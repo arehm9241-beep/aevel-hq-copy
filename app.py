@@ -1652,3 +1652,9 @@ def api_ai_query():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
+# --- Health check endpoint for Render ---
+from flask import jsonify
+
+@app.route("/healthz", methods=["GET"])
+def healthz():
+    return jsonify({"status": "ok"}), 200
