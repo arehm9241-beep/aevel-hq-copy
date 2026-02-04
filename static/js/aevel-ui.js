@@ -131,3 +131,50 @@
     }
   };
 })();
+/* --- Sidebar submenu toggle behavior (append) --- */
+document.addEventListener('DOMContentLoaded', function () {
+  const submenuToggles = document.querySelectorAll('.submenu-toggle');
+
+  submenuToggles.forEach(toggle => {
+    // open on hover for desktop (CSS handles hover open via subtle UX; JS keeps click behavior)
+    toggle.addEventListener('click', function (e) {
+      const expanded = this.getAttribute('aria-expanded') === 'true';
+      const targetId = this.getAttribute('aria-controls');
+      const submenu = document.getElementById(targetId);
+      if (!submenu) return;
+
+      // toggle this submenu
+      const willOpen = !expanded;
+      this.setAttribute('aria-expanded', String(willOpen));
+      submenu.classList.toggle('open', willOpen);
+
+      // optionally close other submenus (accordion behavior)
+      document.querySelectorAll('.submenu').forEach(s => {
+        if (s.id !== targetId) {
+          s.classList.remove('open');
+          const otherToggle = document.querySelector(`[aria-controls="${s.id}"]`);
+          if (otherToggle) otherToggle.setAttribute('aria-expanded', 'false');
+        }
+      });
+    });
+
+    // keyboard accessibility (Enter/Space)
+    toggle.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        this.click();
+      }
+    });
+  });
+
+  // close submenus when clicking outside (mobile friendliness)
+  document.addEventListener('click', function (e) {
+    if (!e.target.closest('.sidebar')) {
+      document.querySelectorAll('.submenu.open').forEach(s => {
+        s.classList.remove('open');
+        const otherToggle = document.querySelector(`[aria-controls="${s.id}"]`);
+        if (otherToggle) otherToggle.setAttribute('aria-expanded', 'false');
+      });
+    }
+  }, true);
+});
