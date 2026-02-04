@@ -1,0 +1,41 @@
+{% extends "base_aevel.html" %}
+{% block title %}Tasks{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Tasks</h1>
+  <p class="subtitle">Assignees (comma-separated), due date, urgency</p>
+</div>
+<section class="section">
+  <div class="card tasks-card">
+    <form id="task-form" class="task-form-add">
+      <input type="text" id="task-input" class="input" placeholder="New task…" required>
+      <input type="text" id="task-assignee" class="input input-sm" placeholder="Assign to (emails, comma-separated)" title="One or more assignees">
+      <input type="text" id="task-due" class="input input-sm" placeholder="Due date (e.g. 2025-02-15)" title="Due date">
+      <select id="task-urgency" class="input input-sm" title="Urgency">
+        <option value="normal">Normal</option>
+        <option value="high">High</option>
+        <option value="low">Low</option>
+      </select>
+      <button type="submit" class="btn btn-primary">Add</button>
+    </form>
+    <div id="task-batch-bar" class="task-batch-bar hidden">
+      <span class="task-batch-count"></span>
+      <button type="button" id="task-batch-complete" class="btn btn-small btn-secondary">Complete selected</button>
+      <button type="button" id="task-batch-delete" class="btn btn-small btn-danger">Delete selected</button>
+      <button type="button" id="task-batch-cancel" class="btn btn-small btn-ghost">Cancel</button>
+    </div>
+    <div class="task-ai-bar" style="margin-bottom: 0.75rem;">
+      <button type="button" id="task-prioritize" class="btn btn-small btn-secondary">Prioritize tasks</button>
+    </div>
+    <div id="task-list-container">
+      <div class="task-list-skeleton" id="task-list-skeleton">
+        <div class="task-group"><div class="skeleton" style="height:1.25rem;width:80px;margin-bottom:0.5rem;"></div><ul><li class="task-item"><div class="skeleton" style="height:1rem;flex:1;"></div></li><li class="task-item"><div class="skeleton" style="height:1rem;flex:1;"></div></li><li class="task-item"><div class="skeleton" style="height:1rem;flex:1;"></div></li></ul></div>
+      </div>
+      <div id="task-groups"></div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/tasks.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,17 @@
+{% extends "base_aevel.html" %}
+{% block title %}Team tasks{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Team tasks</h1>
+  <p class="subtitle">All tasks across the team</p>
+</div>
+<section class="section">
+  <div class="card">
+    <p class="text-secondary" style="margin-bottom:1rem;"><a href="{{ url_for('tasks_page') }}">Tasks</a> · team view</p>
+    <ul id="team-tasks-list" class="team-tasks-list"></ul>
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/team_tasks.js') }}"></script>
+{% endblock %}

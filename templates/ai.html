@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}AI{% endblock %}
+{% block content %}
+<section class="page-head">
+  <h1>AI</h1>
+  <p class="muted">Dedicated AI area — routing and formatting only</p>
+</section>
+<section class="card ai-card">
+  <div id="ai-disabled-message" class="ai-disabled hidden">
+    AI is turned off. Use the toggle in the header or on the <a href="{{ url_for('dashboard') }}">Dashboard</a> to enable AI.
+  </div>
+  <div id="ai-panel" class="ai-panel">
+    <p class="muted">Ask for a route or formatted summary. The AI does not perform calculations or change data.</p>
+    <form id="ai-form" class="ai-form">
+      <textarea id="ai-input" placeholder="e.g. Run full pipeline / Summarize last report" rows="3"></textarea>
+      <button type="submit" class="btn btn-primary">Send</button>
+    </form>
+    <div id="ai-output" class="ai-output"></div>
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/ai.js') }}"></script>
+{% endblock %}

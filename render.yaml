@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: blast-analytics
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.10"
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: ZOHO_EMAIL
+        sync: false
+      - key: ZOHO_PASSWORD
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: DATA_SOURCE_PATH
+        sync: false
+      - key: DATA_SOURCE_URL
+        sync: false
+      - key: DELIVERY_WEBHOOK_URL
+        sync: false
+      - key: DELIVERY_TIMEOUT_SEC
+        value: "10"

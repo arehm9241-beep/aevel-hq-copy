@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — Aevel</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/aevel.css') }}">
+</head>
+<body>
+  <div class="auth-page">
+    <div class="auth-brand">Aevel Admin</div>
+    <div class="auth-card">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="auth-alert" role="alert">{{ message }}</div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+      <div class="card">
+        <h2>Admin access</h2>
+        <p class="text-secondary" style="margin-bottom:1rem;">Enter the admin password to control email settings.</p>
+        <form method="POST" action="{{ url_for('admin_page') }}">
+          <div class="form-group">
+            <label for="admin-password">Password</label>
+            <input type="password" id="admin-password" name="password" class="input" placeholder="Admin password" required autofocus autocomplete="off">
+          </div>
+          <button type="submit" class="btn btn-primary">Access admin</button>
+        </form>
+        <p class="auth-footer">
+          <a href="{{ url_for('dashboard') }}">← Back to dashboard</a>
+        </p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

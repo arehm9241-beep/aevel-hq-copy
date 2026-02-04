@@ -1,0 +1,25 @@
+{% extends "base_aevel.html" %}
+{% block title %}Community notes{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Community notes</h1>
+  <p class="subtitle">Team ideas and notes</p>
+</div>
+<section class="section">
+  <div class="card">
+    <div class="community-notes-add">
+      <h3 class="section-title">Add an idea or note</h3>
+      <form id="community-note-form" class="community-note-form">
+        <input type="text" id="cn-title" class="input" placeholder="Title (e.g. Feature idea, Quick thought)" required>
+        <textarea id="cn-body" class="textarea" rows="3" placeholder="Write your idea or note…"></textarea>
+        <button type="submit" class="btn btn-primary">Post</button>
+      </form>
+    </div>
+    <h3 class="section-title">Notes</h3>
+    <ul id="community-notes-list" class="community-notes-list"></ul>
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/community_notes.js') }}"></script>
+{% endblock %}

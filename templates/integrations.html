@@ -1,0 +1,71 @@
+{% extends "base_aevel.html" %}
+{% block title %}Integrations{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Integrations</h1>
+  <p class="subtitle">AI and external services</p>
+</div>
+
+<section class="section">
+  <h2 class="section-title">AI</h2>
+  <div class="card">
+    <div class="card-title">Routing & formatting</div>
+    <p style="margin: 0 0 1rem; font-size: 0.9375rem; color: var(--text-secondary);">AI is used only for request routing and output formatting. No business logic or calculations. Set GEMINI_API_KEY in environment to enable.</p>
+    <label class="toggle-wrap">
+      <span class="toggle-label">AI-assisted routing</span>
+      <input type="checkbox" id="ai-toggle" class="toggle-input" checked>
+      <span class="toggle-slider"></span>
+    </label>
+  </div>
+</section>
+
+<section class="section">
+  <h2 class="section-title">Query</h2>
+  <div class="card">
+    <form id="ai-form">
+      <div class="form-group">
+        <label>Ask for route or summary</label>
+        <textarea class="textarea" id="ai-input" placeholder="e.g. Run full pipeline / Summarize last report" rows="3" aria-describedby="ai-output"></textarea>
+      </div>
+      <div style="display: flex; gap: 0.5rem; align-items: center;">
+        <button type="submit" class="btn btn-primary">Send</button>
+        <button type="button" class="btn btn-ghost" id="ai-clear">Clear</button>
+      </div>
+    </form>
+    <div id="ai-output" style="margin-top: 1rem; padding: 1rem; background: var(--bg-elevated); border-radius: var(--radius-sm); font-size: 0.875rem; color: var(--text-secondary); min-height: 60px; white-space: pre-wrap;"></div>
+  </div>
+</section>
+
+<section class="section">
+  <h2 class="section-title">Delivery</h2>
+  <div class="card">
+    <div class="card-title">Webhook</div>
+    <p style="margin: 0; font-size: 0.9375rem; color: var(--text-secondary);">Configure DELIVERY_WEBHOOK_URL in environment to POST report payloads to an external endpoint.</p>
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+(function() {
+  var storage = localStorage.getItem('blast_ai_enabled');
+  var toggle = document.getElementById('ai-toggle');
+  if (toggle) toggle.checked = storage !== 'false';
+  toggle.addEventListener('change', function() { localStorage.setItem('blast_ai_enabled', toggle.checked ? 'true' : 'false'); });
+  var out = document.getElementById('ai-output');
+  var aiInput = document.getElementById('ai-input');
+  document.getElementById('ai-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    var text = (aiInput.value || '').trim();
+    if (!text) return;
+    out.textContent = 'Loading…';
+    out.setAttribute('aria-busy', 'true');
+    fetch('/api/ai/query', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query: text }) })
+      .then(function(r) { return r.json(); })
+      .then(function(d) { out.textContent = d.message || JSON.stringify(d, null, 2); out.removeAttribute('aria-busy'); })
+      .catch(function(err) { out.textContent = 'Error: ' + (err.message || 'Request failed'); out.removeAttribute('aria-busy'); });
+  });
+  var clearBtn = document.getElementById('ai-clear');
+  if (clearBtn) clearBtn.addEventListener('click', function() { out.textContent = ''; if (aiInput) aiInput.value = ''; });
+})();
+</script>
+{% endblock %}

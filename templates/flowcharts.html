@@ -1,0 +1,67 @@
+{% extends "base_aevel.html" %}
+{% block title %}Flowcharts{% endblock %}
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Flowcharts</h1>
+  <p class="subtitle">Mermaid flowcharts, shared</p>
+</div>
+<section class="section">
+  <div class="card flowchart-card">
+    <div class="flowcharts-toolbar">
+      <button type="button" id="flowchart-new" class="btn btn-primary">New flowchart</button>
+      <button type="button" id="flowchart-toggle-preview" class="btn btn-secondary" title="Full-width preview">Preview full</button>
+      <details class="flowchart-help-details">
+        <summary class="flowchart-help-summary">Mermaid syntax help</summary>
+        <div class="flowchart-help-body">
+          <p><strong>Flowchart:</strong> <code>graph LR</code> or <code>graph TD</code> — then <code>A --> B</code> or <code>A --- B</code></p>
+          <p><strong>Example:</strong></p>
+          <pre>graph LR
+  Start --> Step1
+  Step1 --> Step2
+  Step2 --> End</pre>
+          <p><strong>Shapes:</strong> <code>A[rect]</code> <code>B(rounded)</code> <code>C{diamond}</code> <code>D((circle))</code></p>
+        </div>
+      </details>
+    </div>
+    <div class="flowcharts-layout">
+      <aside class="flowcharts-sidebar">
+        <p class="flowchart-sidebar-label">Your flowcharts</p>
+        <ul id="flowchart-list" class="flowchart-list"></ul>
+      </aside>
+      <div class="flowcharts-editor-wrap">
+        <div id="flowchart-empty" class="flowchart-empty">
+          <p class="flowchart-empty-title">No flowchart selected</p>
+          <p class="flowchart-empty-desc">Create one with <strong>New flowchart</strong> or click a title in the sidebar. Use Mermaid syntax (e.g. <code>graph LR</code>, <code>A --> B</code>).</p>
+          <pre class="flowchart-empty-example">graph LR
+  A[Start] --> B{Decision}
+  B -->|Yes| C[Done]
+  B -->|No| A</pre>
+        </div>
+        <div id="flowchart-editor" class="flowchart-editor hidden">
+          <input type="text" id="flowchart-title" class="input flowchart-title-input" placeholder="Flowchart title">
+          <div id="flowchart-split" class="flowchart-split">
+            <div class="flowchart-source-wrap">
+              <label class="label-sm">Mermaid code</label>
+              <textarea id="flowchart-mermaid" class="textarea flowchart-mermaid-input" placeholder="graph LR&#10;  A --> B&#10;  B --> C"></textarea>
+            </div>
+            <div class="flowchart-preview-wrap">
+              <label class="label-sm">Live preview</label>
+              <div id="flowchart-preview" class="flowchart-preview"></div>
+            </div>
+          </div>
+          <div class="flowchart-actions">
+            <button type="button" id="flowchart-save" class="btn btn-primary">Save</button>
+            <button type="button" id="flowchart-delete" class="btn btn-danger">Delete</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/flowcharts.js') }}"></script>
+{% endblock %}

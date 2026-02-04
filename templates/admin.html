@@ -1,0 +1,213 @@
+{% extends "base_aevel.html" %}
+{% block title %}Admin — Email controls{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Admin — Email controls</h1>
+  <p class="text-secondary">From {{ zoho_email }}. Configure types and recipients.</p>
+  {% if not zoho_password_configured %}
+  <p class="text-secondary" style="margin-top:0.5rem; color: var(--color-warning, #c9a227);">ZOHO_PASSWORD is not set. Set it in your environment (use an <a href="https://accounts.zoho.com/home#security/app_passwords" target="_blank" rel="noopener">App Password</a> if you use 2FA).</p>
+  {% else %}
+  <p class="text-secondary" style="margin-top:0.25rem; font-size:0.875rem;">If you see “535 Authentication failed”, use an <a href="https://accounts.zoho.com/home#security/app_passwords" target="_blank" rel="noopener">App Password</a> from Zoho (not your normal password).</p>
+  {% endif %}
+  <form method="POST" action="{{ url_for('admin_logout') }}" style="margin-top:0.5rem;">
+    <button type="submit" class="btn btn-secondary">Exit admin</button>
+  </form>
+</div>
+
+<div class="card admin-custom-send-card" style="max-width: 720px; margin-bottom: 1.5rem;">
+  <h2 style="margin-top:0;">Send custom email now</h2>
+  <p class="text-secondary">Type an email and message below to send one email right now (from {{ zoho_email }}).</p>
+  <div class="form-group">
+    <label for="admin-custom-email">To (email address)</label>
+    <input type="email" id="admin-custom-email" class="input" placeholder="someone@example.com">
+  </div>
+  <div class="form-group">
+    <label for="admin-custom-subject">Subject (optional)</label>
+    <input type="text" id="admin-custom-subject" class="input" placeholder="Message from Aevel">
+  </div>
+  <div class="form-group">
+    <label for="admin-custom-body">Message to send</label>
+    <textarea id="admin-custom-body" class="textarea" rows="5" placeholder="Type your message here…"></textarea>
+  </div>
+  <button type="button" id="admin-custom-send" class="btn btn-primary">Send now</button>
+  <span id="admin-custom-status" class="text-secondary admin-status" style="margin-left: 0.75rem;"></span>
+</div>
+
+<div class="card" style="max-width: 720px;">
+  <h2 style="margin-top:0;">Email types &amp; recipients</h2>
+  <p class="text-secondary">Recipients comma-separated.</p>
+  <div id="admin-email-settings"></div>
+  <p id="admin-save-status" class="text-secondary" style="margin-top:1rem;"></p>
+</div>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+(function() {
+  var container = document.getElementById('admin-email-settings');
+  var statusEl = document.getElementById('admin-save-status');
+
+  function load() {
+    fetch('/api/admin/email-settings', { credentials: 'same-origin' })
+      .then(function(r) {
+        if (r.status === 403) { window.location = '/admin'; return; }
+        return r.json();
+      })
+      .then(function(data) {
+        if (!data) return;
+        var html = '';
+        var types = [
+          { key: 'task_assigned', label: 'Task assigned', desc: 'Sent when a task is assigned. The assignee gets the email; add more addresses here to also notify others.' },
+          { key: 'due_soon', label: 'Due soon', desc: 'Reminder when a task is due soon.' },
+          { key: 'digest', label: 'Digest', desc: 'Periodic summary of tasks/updates.' }
+        ];
+        types.forEach(function(t) {
+          var s = data[t.key] || { enabled: false, recipients: [] };
+          var recStr = Array.isArray(s.recipients) ? s.recipients.join(', ') : (s.recipients || '');
+          html += '<div class="form-group admin-email-row" style="margin-bottom:1.5rem; padding:1rem; background: var(--bg-panel); border-radius: var(--radius-sm);">';
+          html += '<label style="display:flex; align-items:center; gap:0.5rem;">';
+          html += '<input type="checkbox" class="admin-enabled" data-type="' + t.key + '" ' + (s.enabled ? 'checked' : '') + '> ';
+          html += '<strong>' + t.label + '</strong></label>';
+          html += '<p class="text-secondary" style="margin:0.25rem 0 0.5rem 0; font-size:0.875rem;">' + t.desc + '</p>';
+          html += '<label for="rec-' + t.key + '" style="font-size:0.8125rem;">Recipients (comma-separated emails)</label>';
+          html += '<input type="text" id="rec-' + t.key + '" class="input admin-recipients" data-type="' + t.key + '" value="' + (recStr.replace(/"/g, '&quot;')) + '" placeholder="email1@example.com, email2@example.com" style="margin-top:0.25rem;">';
+          html += '<div style="margin-top:0.75rem;"><button type="button" class="btn btn-secondary btn-small admin-send-now" data-type="' + t.key + '">Send now</button></div>';
+          html += '</div>';
+        });
+        container.innerHTML = html;
+
+        container.querySelectorAll('.admin-enabled').forEach(function(cb) {
+          cb.addEventListener('change', saveOne);
+        });
+        container.querySelectorAll('.admin-recipients').forEach(function(inp) {
+          inp.addEventListener('blur', saveOne);
+          inp.addEventListener('keydown', function(e) { if (e.key === 'Enter') saveOne.call(this); });
+        });
+        container.querySelectorAll('.admin-send-now').forEach(function(btn) {
+          btn.addEventListener('click', function() {
+            var type = this.dataset && this.dataset.type;
+            if (!type) return;
+            this.disabled = true;
+            this.textContent = 'Sending…';
+            fetch('/api/admin/send-now', {
+              method: 'POST',
+              credentials: 'same-origin',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email_type: type })
+            }).then(function(r) {
+              return r.text().then(function(text) {
+                var res = null;
+                try { res = text ? JSON.parse(text) : null; } catch (e) {}
+                if (r.status === 403) {
+                  statusEl.textContent = res && (res.error || res.message) ? res.error || res.message : 'Session expired. Please log in again.';
+                  statusEl.style.color = 'var(--color-danger, #c0392b)';
+                  setTimeout(function() { statusEl.textContent = ''; statusEl.style.color = ''; }, 6000);
+                  return;
+                }
+                if (res && (res.message !== undefined || res.ok !== undefined)) {
+                  statusEl.textContent = res.message || (res.ok ? 'Sent.' : 'Not sent.');
+                  statusEl.style.color = res.ok ? '' : 'var(--color-danger, #c0392b)';
+                  setTimeout(function() { statusEl.textContent = ''; statusEl.style.color = ''; }, 6000);
+                  return;
+                }
+                statusEl.textContent = r.ok ? 'Sent.' : (r.status >= 500 ? 'Server error.' : 'Request failed.');
+                statusEl.style.color = 'var(--color-danger, #c0392b)';
+                setTimeout(function() { statusEl.textContent = ''; statusEl.style.color = ''; }, 6000);
+              });
+            }).catch(function() {
+              statusEl.textContent = 'Network error. Check connection and try again.';
+              statusEl.style.color = 'var(--color-danger, #c0392b)';
+              setTimeout(function() { statusEl.textContent = ''; statusEl.style.color = ''; }, 6000);
+            }).finally(function() {
+              btn.disabled = false;
+              btn.textContent = 'Send now';
+            });
+          });
+        });
+      })
+      .catch(function() {
+        if (container) container.innerHTML = '<p class="text-secondary">Failed to load email settings.</p>';
+      });
+  }
+
+  function saveOne() {
+    var type = this.dataset && this.dataset.type;
+    if (!type) return;
+    var div = this.closest('.form-group');
+    var enabledEl = div && div.querySelector('.admin-enabled');
+    var recEl = div && div.querySelector('.admin-recipients');
+    var enabled = enabledEl ? enabledEl.checked : false;
+    var recipients = recEl ? recEl.value.trim() : '';
+    statusEl.textContent = 'Saving…';
+    fetch('/api/admin/email-settings', {
+      method: 'PATCH',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email_type: type, enabled: enabled, recipients: recipients })
+    })
+      .then(function(r) {
+        if (r.status === 403) { window.location = '/admin'; return; }
+        statusEl.textContent = 'Saved.';
+        setTimeout(function() { statusEl.textContent = ''; }, 2000);
+      })
+      .catch(function() { statusEl.textContent = 'Failed to save.'; });
+  }
+
+  function setStatus(el, msg, isError) {
+    if (!el) return;
+    el.textContent = msg;
+    el.style.color = isError ? 'var(--color-danger, #c0392b)' : '';
+    setTimeout(function() { el.textContent = ''; el.style.color = ''; }, 8000);
+  }
+
+  document.getElementById('admin-custom-send').addEventListener('click', function() {
+    var emailEl = document.getElementById('admin-custom-email');
+    var subjectEl = document.getElementById('admin-custom-subject');
+    var bodyEl = document.getElementById('admin-custom-body');
+    var statusEl = document.getElementById('admin-custom-status');
+    var email = (emailEl && emailEl.value || '').trim();
+    var subject = (subjectEl && subjectEl.value || '').trim() || 'Message from Aevel';
+    var body = (bodyEl && bodyEl.value || '').trim();
+    if (!email) {
+      setStatus(statusEl, 'Enter an email address.', true);
+      return;
+    }
+    if (!body) body = '(No message)';
+    statusEl.textContent = 'Sending…';
+    statusEl.style.color = '';
+    this.disabled = true;
+    fetch('/api/admin/send-custom', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email, subject: subject, body: body })
+    }).then(function(r) {
+      return r.text().then(function(text) {
+        var res = null;
+        try { res = text ? JSON.parse(text) : null; } catch (e) {}
+        if (r.status === 403) {
+          setStatus(statusEl, res && (res.error || res.message) ? res.error || res.message : 'Session expired. Please log in again.', true);
+          return;
+        }
+        if (res && (res.message !== undefined || res.ok !== undefined)) {
+          setStatus(statusEl, res.message || (res.ok ? 'Sent.' : 'Failed.'), !res.ok);
+          if (res.ok) {
+            emailEl.value = '';
+            bodyEl.value = '';
+            subjectEl.value = '';
+          }
+          return;
+        }
+        setStatus(statusEl, r.ok ? 'Sent.' : (r.status >= 500 ? 'Server error.' : 'Request failed.'), !r.ok);
+      });
+    }).catch(function() {
+      setStatus(statusEl, 'Network error. Check connection and try again.', true);
+    }).finally(function() {
+      document.getElementById('admin-custom-send').disabled = false;
+    });
+  });
+
+  load();
+})();
+</script>
+{% endblock %}

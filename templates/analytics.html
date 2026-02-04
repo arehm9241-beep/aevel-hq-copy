@@ -1,0 +1,164 @@
+{% extends "base_aevel.html" %}
+{% block title %}Analytics{% endblock %}
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Analytics</h1>
+  <p class="subtitle">Performance and trends</p>
+</div>
+
+<section class="section">
+  <h2 class="section-title">Overview</h2>
+  <div class="grid grid-3">
+    <div class="card analytics-card-hover">
+      <div class="card-title">Data volume</div>
+      <div class="card-value" id="analytics-volume">—</div>
+      <div class="card-meta">Records processed</div>
+      <button type="button" class="btn btn-small btn-ghost analytics-ai-explain" data-metric="Data volume" data-value="—">Explain</button>
+    </div>
+    <div class="card analytics-card-hover">
+      <div class="card-title">Pipeline status</div>
+      <div class="card-value" id="analytics-status" style="font-size: 1rem;">—</div>
+      <div class="card-meta">Last run</div>
+    </div>
+    <div class="card analytics-card-hover">
+      <div class="card-title">Reports generated</div>
+      <div class="card-value" id="analytics-reports">—</div>
+      <div class="card-meta">This period</div>
+    </div>
+  </div>
+  <div class="analytics-ai-bar" style="margin-top: 1rem;">
+    <button type="button" id="analytics-ai-summarize" class="btn btn-small btn-secondary">Summarize performance</button>
+    <button type="button" id="analytics-ai-suggest" class="btn btn-small btn-secondary">Suggest optimizations</button>
+  </div>
+  <div id="analytics-ai-panel" class="analytics-ai-panel hidden">
+    <button type="button" class="btn btn-small btn-ghost analytics-ai-close" aria-label="Close" style="float:right;">×</button>
+    <div id="analytics-ai-content"></div>
+  </div>
+</section>
+
+<section class="section">
+  <h2 class="section-title">Trends</h2>
+  <div class="card chart-panel">
+    <div class="card-title">Performance over time</div>
+    <div class="chart-wrapper chart-wrapper--tall">
+      <canvas id="chart-performance"></canvas>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <h2 class="section-title">Breakdown</h2>
+  <div class="card">
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Source</th>
+            <th>Visits</th>
+            <th>Conversions</th>
+            <th>Revenue</th>
+          </tr>
+        </thead>
+        <tbody id="analytics-tbody">
+          <tr><td colspan="4" class="cell-primary">Run a pipeline from Automations to populate analytics.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+(function() {
+  function apiPost(path, body) {
+    return fetch(path, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) })
+      .then(function(r) { return r.json().then(function(d) { if (!r.ok) throw new Error(d.error || 'Failed'); return d; }); });
+  }
+  var panel = document.getElementById('analytics-ai-panel');
+  var panelContent = document.getElementById('analytics-ai-content');
+  function showPanel(html) {
+    if (!panel || !panelContent) return;
+    panelContent.innerHTML = html;
+    panel.classList.remove('hidden');
+  }
+  panel && panel.querySelector('.analytics-ai-close') && panel.querySelector('.analytics-ai-close').addEventListener('click', function() {
+    panel.classList.add('hidden');
+  });
+  var ctx = document.getElementById('chart-performance');
+  var chartData = { labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'], values: [320, 410, 380, 450] };
+  if (ctx) {
+    new Chart(ctx.getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: chartData.labels,
+        datasets: [{
+          label: 'Volume',
+          data: chartData.values,
+          backgroundColor: 'rgba(209, 213, 219, 0.2)',
+          borderColor: '#D1D5DB',
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { color: '#252830' }, ticks: { color: '#6B7280' } },
+          y: { grid: { color: '#252830' }, ticks: { color: '#6B7280' } }
+        }
+      }
+    });
+  }
+  fetch('/health').then(function(r) { return r.json(); }).then(function(d) {
+    var el = document.getElementById('analytics-status');
+    if (el) el.textContent = d.status === 'ok' ? 'Healthy' : 'Error';
+    if (el) el.style.color = d.status === 'ok' ? 'var(--success)' : 'var(--danger)';
+  });
+  document.getElementById('analytics-volume').textContent = '—';
+  document.getElementById('analytics-reports').textContent = '—';
+
+  document.querySelectorAll('.analytics-ai-explain').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var metric = this.getAttribute('data-metric');
+      var value = document.getElementById('analytics-volume').textContent;
+      btn.disabled = true;
+      apiPost('/api/ai/analytics/explain', { metric: metric, value: value, context: 'B.L.A.S.T. analytics pipeline' })
+        .then(function(d) {
+          showPanel('<div class="analytics-ai-output"><p class="analytics-ai-label">AI explanation:</p><p>' + (d.explanation || '').replace(/</g, '&lt;') + '</p><span class="analytics-ai-badge">AI-generated</span></div>');
+        })
+        .catch(function(err) { showPanel('<p class="analytics-ai-error">' + (err.message || 'Failed').replace(/</g, '&lt;') + '</p>'); })
+        .finally(function() { btn.disabled = false; });
+    });
+  });
+
+  document.getElementById('analytics-ai-summarize') && document.getElementById('analytics-ai-summarize').addEventListener('click', function() {
+    var btn = this;
+    btn.disabled = true;
+    var data = { volume: document.getElementById('analytics-volume').textContent, status: document.getElementById('analytics-status').textContent, reports: document.getElementById('analytics-reports').textContent, chart: chartData };
+    apiPost('/api/ai/analytics/summarize', data)
+      .then(function(d) {
+        showPanel('<div class="analytics-ai-output"><p class="analytics-ai-label">Campaign summary:</p><p>' + (d.summary || '').replace(/</g, '&lt;').replace(/\n/g, '<br>') + '</p><span class="analytics-ai-badge">AI-generated</span></div>');
+      })
+      .catch(function(err) { showPanel('<p class="analytics-ai-error">' + (err.message || 'Failed').replace(/</g, '&lt;') + '</p>'); })
+      .finally(function() { btn.disabled = false; });
+  });
+
+  document.getElementById('analytics-ai-suggest') && document.getElementById('analytics-ai-suggest').addEventListener('click', function() {
+    var btn = this;
+    btn.disabled = true;
+    var data = { chart: chartData, volume: document.getElementById('analytics-volume').textContent };
+    apiPost('/api/ai/analytics/suggest', data)
+      .then(function(d) {
+        var sug = (d.suggestions || []).map(function(s) { return '<li>' + s.replace(/</g, '&lt;') + '</li>'; }).join('');
+        showPanel('<div class="analytics-ai-output"><p class="analytics-ai-label">Suggestions (review before applying):</p><ul>' + sug + '</ul><span class="analytics-ai-badge">AI-generated</span></div>');
+      })
+      .catch(function(err) { showPanel('<p class="analytics-ai-error">' + (err.message || 'Failed').replace(/</g, '&lt;') + '</p>'); })
+      .finally(function() { btn.disabled = false; });
+  });
+})();
+</script>
+{% endblock %}

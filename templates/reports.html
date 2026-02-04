@@ -1,0 +1,83 @@
+{% extends "base_aevel.html" %}
+{% block title %}Reports{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Reports</h1>
+  <p class="subtitle">Notes and memos</p>
+</div>
+
+<section class="section">
+  <div class="card" style="margin-bottom: 1.25rem;">
+    <div class="card-title">New report</div>
+    <form id="note-form">
+      <div class="form-group">
+        <label>Title</label>
+        <input type="text" class="input" id="note-title" placeholder="Report title" required>
+      </div>
+      <div class="form-group">
+        <label>Content</label>
+        <textarea class="textarea" id="note-body" placeholder="Content…"></textarea>
+      </div>
+      <button type="submit" class="btn btn-primary">Save</button>
+    </form>
+  </div>
+
+  <h2 class="section-title">Saved reports</h2>
+  <p class="text-secondary" style="font-size: 0.875rem; margin-bottom: 0.75rem;">
+    <a href="/api/notes/export?format=csv" class="btn btn-ghost btn-small" download="aevel-reports.csv" style="padding: 0.25rem 0;">Export CSV</a>
+  </p>
+  <div class="card">
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Updated</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="notes-tbody">
+          <tr><td colspan="3" class="cell-primary">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+(function() {
+  function load() {
+    fetch('/api/notes', { credentials: 'same-origin' }).then(function(r) { return r.json().then(function(d) { if (!r.ok) throw new Error(d.error || 'Request failed'); return d; }); }).then(function(d) {
+      var notes = d.notes || [];
+      var tbody = document.getElementById('notes-tbody');
+      tbody.innerHTML = notes.length ? notes.map(function(n) {
+        return '<tr><td class="cell-primary">' + (n.title || '').replace(/</g, '&lt;') + '</td><td>—</td><td><a href="/notes" class="btn btn-ghost btn-small">Open</a></td></tr>';
+      }).join('') : '<tr><td colspan="3"><div class="empty-state"><p class="empty-state__title">No reports yet</p><p>Create one above or go to <a href="/notes">Notes</a>.</p></div></td></tr>';
+    }).catch(function() {
+      var tbody = document.getElementById('notes-tbody');
+      if (tbody) tbody.innerHTML = '<tr><td colspan="3"><div class="empty-state"><p class="empty-state__title">Failed to load</p></div></td></tr>';
+      if (typeof Aevel !== 'undefined' && Aevel.toast) Aevel.toast('Failed to load reports', 'error');
+    });
+  }
+  document.getElementById('note-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    var title = document.getElementById('note-title').value.trim();
+    var body = document.getElementById('note-body').value || '';
+    if (!title) return;
+    fetch('/api/notes', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: title, body: body }) })
+      .then(function(r) { return r.json().then(function(d) { if (!r.ok) throw new Error(d.error || 'Request failed'); return d; }); })
+      .then(function() {
+        document.getElementById('note-title').value = '';
+        document.getElementById('note-body').value = '';
+        load();
+        if (typeof Aevel !== 'undefined' && Aevel.toast) Aevel.toast('Report saved', 'success');
+      })
+      .catch(function() {
+        if (typeof Aevel !== 'undefined' && Aevel.toast) Aevel.toast('Failed to save report', 'error');
+      });
+  });
+  load();
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Dashboard{% endblock %} — BLAST Analytics</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+</head>
+<body class="theme-dark">
+  <header class="header">
+    <nav class="nav">
+      <a href="{{ url_for('dashboard') }}" class="nav-logo">BLAST</a>
+      <a href="{{ url_for('dashboard') }}" class="nav-link">Dashboard</a>
+      <a href="{{ url_for('calendar_page') }}" class="nav-link">Calendar</a>
+      <a href="{{ url_for('tasks_page') }}" class="nav-link">Tasks</a>
+      <a href="{{ url_for('notes_page') }}" class="nav-link">Notes</a>
+      <a href="{{ url_for('ai_page') }}" class="nav-link nav-link-ai">AI</a>
+    </nav>
+    <div class="header-actions">
+      <span style="color: var(--text-muted); font-size: 0.875rem; margin-right: 1rem;">{{ session.get('user_email', '') }}</span>
+      <label class="toggle-wrap" title="Enable or disable AI features">
+        <span class="toggle-label">AI</span>
+        <input type="checkbox" id="ai-toggle" class="toggle-input" checked>
+        <span class="toggle-slider"></span>
+      </label>
+      <form method="POST" action="{{ url_for('logout') }}" style="display: inline;">
+        <button type="submit" class="btn btn-small">Logout</button>
+      </form>
+    </div>
+  </header>
+  <main class="main">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="card flash-success">
+            <p>{{ message }}</p>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </main>
+  <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

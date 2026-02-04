@@ -1,0 +1,47 @@
+{% extends "base_aevel.html" %}
+{% block title %}Calendar{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Calendar</h1>
+  <p class="subtitle">Click a day to set date · Drag events between days · Click event to edit inline</p>
+</div>
+<section class="section">
+  <div class="card calendar-card">
+    <div class="calendar-toolbar">
+      <div class="cal-toolbar-center">
+        <button type="button" id="cal-prev" class="btn btn-secondary" aria-label="Previous month">← Prev</button>
+        <h2 id="cal-title" class="cal-month-title">—</h2>
+        <button type="button" id="cal-next" class="btn btn-secondary" aria-label="Next month">Next →</button>
+      </div>
+      <div class="cal-toolbar-actions">
+        <button type="button" id="cal-today" class="btn btn-ghost">Go to today</button>
+        <button type="button" id="cal-ai-optimize" class="btn btn-secondary btn-ai" title="AI suggests better time placement">Optimize schedule</button>
+        <button type="button" id="cal-ai-summarize" class="btn btn-secondary btn-ai">Summarize</button>
+        <button type="button" id="cal-ai-extract" class="btn btn-secondary btn-ai">Create from text</button>
+      </div>
+    </div>
+    <div id="cal-ai-panel" class="cal-ai-panel hidden"></div>
+    <div id="cal-grid" class="cal-grid"></div>
+    <div class="calendar-form-wrap">
+      <h3 class="section-title">Add event</h3>
+      <p class="text-secondary" style="font-size:0.875rem; margin-top:0.25rem;">Pick a date above or use the field below.</p>
+      <form id="cal-form" class="form-inline">
+        <input type="date" id="cal-date" class="input" required>
+        <input type="time" id="cal-time-input" class="input" placeholder="Time (optional)">
+        <input type="text" id="cal-title-input" class="input" placeholder="Event title" required>
+        <button type="submit" class="btn btn-primary">Add event</button>
+      </form>
+    </div>
+    <div class="events-list-wrap">
+      <h3 class="section-title">Events this month</h3>
+      <div class="form-inline" style="margin-bottom: 0.75rem;">
+        <input type="text" id="cal-filter" class="input" placeholder="Filter by title…" aria-label="Filter events" style="max-width: 240px;">
+      </div>
+      <ul id="events-list" class="events-list"></ul>
+    </div>
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/calendar.js') }}"></script>
+{% endblock %}

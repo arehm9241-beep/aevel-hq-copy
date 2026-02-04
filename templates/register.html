@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create account — Aevel</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/aevel.css') }}">
+</head>
+<body>
+  <div class="auth-page">
+    <div class="auth-brand">Aevel</div>
+    <div class="auth-card">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="auth-alert" role="alert">{{ message }}</div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+      <div class="card">
+        <h2 id="register-heading">Create account</h2>
+        <form method="POST" action="{{ url_for('register') }}" id="register-form" novalidate aria-labelledby="register-heading">
+          <div class="form-group">
+            <label for="register-email">Email</label>
+            <input type="email" id="register-email" name="email" class="input" placeholder="you@company.com" required autofocus autocomplete="email" aria-required="true" aria-describedby="register-email-error">
+            <span id="register-email-error" class="form-error" aria-live="polite"></span>
+          </div>
+          <div class="form-group">
+            <label for="register-password">Password</label>
+            <input type="password" id="register-password" name="password" class="input" placeholder="At least 6 characters" required minlength="6" autocomplete="new-password" aria-required="true" aria-describedby="register-password-error">
+            <span id="register-password-error" class="form-error" aria-live="polite"></span>
+          </div>
+          <div class="form-group">
+            <label for="register-confirm">Confirm password</label>
+            <input type="password" id="register-confirm" name="confirm" class="input" placeholder="Confirm password" required minlength="6" autocomplete="new-password" aria-required="true" aria-describedby="register-confirm-error">
+            <span id="register-confirm-error" class="form-error" aria-live="polite"></span>
+          </div>
+          <button type="submit" class="btn btn-primary">Create account</button>
+        </form>
+        <p class="auth-footer">
+          Already have an account? <a href="{{ url_for('login') }}">Sign in</a>
+        </p>
+      </div>
+    </div>
+  </div>
+  <script>
+  (function() {
+    var form = document.getElementById('register-form');
+    if (form) {
+      form.addEventListener('submit', function(e) {
+        var email = document.getElementById('register-email');
+        var password = document.getElementById('register-password');
+        var confirm = document.getElementById('register-confirm');
+        var emailErr = document.getElementById('register-email-error');
+        var passwordErr = document.getElementById('register-password-error');
+        var confirmErr = document.getElementById('register-confirm-error');
+        [emailErr, passwordErr, confirmErr].forEach(function(el) { el.textContent = ''; });
+        [email, password, confirm].forEach(function(el) { el.classList.remove('is-error'); });
+        var valid = true;
+        if (!email.value.trim()) { emailErr.textContent = 'Email is required'; email.classList.add('is-error'); valid = false; }
+        if (password.value.length < 6) { passwordErr.textContent = 'Password must be at least 6 characters'; password.classList.add('is-error'); valid = false; }
+        if (password.value !== confirm.value) { confirmErr.textContent = 'Passwords do not match'; confirm.classList.add('is-error'); valid = false; }
+        if (!valid) e.preventDefault();
+      });
+    }
+  })();
+  </script>
+</body>
+</html>

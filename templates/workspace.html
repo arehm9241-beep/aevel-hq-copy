@@ -1,0 +1,34 @@
+{% extends "base_aevel.html" %}
+{% block title %}Workspace{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Workspace</h1>
+  <p class="subtitle">Shared team pages</p>
+</div>
+<section class="section">
+  <div class="card">
+    <div class="workspace-toolbar">
+      <button type="button" id="workspace-new" class="btn btn-primary">New page</button>
+    </div>
+    <div class="workspace-layout">
+      <aside class="workspace-sidebar">
+        <ul id="workspace-list" class="workspace-page-list"></ul>
+      </aside>
+      <div class="workspace-editor-wrap">
+        <div id="workspace-empty" class="workspace-empty">Select a page or create one.</div>
+        <div id="workspace-editor" class="workspace-editor hidden">
+          <input type="text" id="workspace-title" class="input workspace-title-input" placeholder="Page title">
+          <textarea id="workspace-body" class="textarea workspace-body-input" placeholder="Write here… (shared with the team)"></textarea>
+          <div class="workspace-editor-actions">
+            <button type="button" id="workspace-save" class="btn btn-primary">Save</button>
+            <button type="button" id="workspace-delete" class="btn btn-danger">Delete page</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/workspace.js') }}"></script>
+{% endblock %}

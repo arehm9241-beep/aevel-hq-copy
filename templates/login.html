@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign in — Aevel</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/aevel.css') }}">
+</head>
+<body>
+  <div class="auth-page">
+    <div class="auth-brand" id="auth-brand">Aevel</div>
+    <div class="auth-card">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="auth-alert" role="alert">{{ message }}</div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+      <div class="card">
+        <h2 id="login-heading">Sign in</h2>
+        <form method="POST" action="{{ url_for('login') }}" id="login-form" novalidate aria-labelledby="login-heading">
+          <div class="form-group">
+            <label for="login-email">Email</label>
+            <input type="email" id="login-email" name="email" class="input" placeholder="you@company.com" required autofocus autocomplete="email" aria-required="true" aria-describedby="login-email-error">
+            <span id="login-email-error" class="form-error" aria-live="polite"></span>
+          </div>
+          <div class="form-group">
+            <label for="login-password">Password</label>
+            <input type="password" id="login-password" name="password" class="input" placeholder="Password" required autocomplete="current-password" aria-required="true" aria-describedby="login-password-error">
+            <span id="login-password-error" class="form-error" aria-live="polite"></span>
+          </div>
+          <button type="submit" class="btn btn-primary">Sign in</button>
+        </form>
+        <p class="auth-footer">
+          Don't have an account? <a href="{{ url_for('register') }}">Create one</a>
+        </p>
+      </div>
+    </div>
+  </div>
+  <script>
+  (function() {
+    var form = document.getElementById('login-form');
+    if (form) {
+      form.addEventListener('submit', function(e) {
+        var email = document.getElementById('login-email');
+        var password = document.getElementById('login-password');
+        var emailErr = document.getElementById('login-email-error');
+        var passwordErr = document.getElementById('login-password-error');
+        emailErr.textContent = '';
+        passwordErr.textContent = '';
+        email.classList.remove('is-error');
+        password.classList.remove('is-error');
+        var valid = true;
+        if (!email.value.trim()) { emailErr.textContent = 'Email is required'; email.classList.add('is-error'); valid = false; }
+        if (!password.value) { passwordErr.textContent = 'Password is required'; password.classList.add('is-error'); valid = false; }
+        if (!valid) e.preventDefault();
+      });
+    }
+  })();
+  </script>
+</body>
+</html>
