@@ -17,6 +17,12 @@ from pathlib import Path
 from functools import wraps
 from urllib.parse import urljoin
 
+# Load environment variables from .env file FIRST (before any other imports)
+from dotenv import load_dotenv
+_env_file = Path(__file__).resolve().parent / ".env"
+if _env_file.exists():
+    load_dotenv(_env_file)
+
 from itsdangerous import URLSafeTimedSerializer, BadSignature
 
 logger = logging.getLogger(__name__)
@@ -72,34 +78,66 @@ def init_db():
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
+    # Teams for multi-tenant team scoping
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS teams (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            created_by INTEGER NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (created_by) REFERENCES users(id)
+        )
+    """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS team_members (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            team_id TEXT NOT NULL,
+            user_id INTEGER NOT NULL,
+            role TEXT DEFAULT 'member',
+            joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (team_id) REFERENCES teams(id),
+            FOREIGN KEY (user_id) REFERENCES users(id),
+            UNIQUE(team_id, user_id)
+        )
+    """)
     conn.execute("""
         CREATE TABLE IF NOT EXISTS tasks (
             id TEXT PRIMARY KEY,
             user_id INTEGER NOT NULL,
+            team_id TEXT,
             text TEXT NOT NULL,
             done INTEGER DEFAULT 0,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users(id)
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id),
+            FOREIGN KEY (team_id) REFERENCES teams(id)
         )
     """)
     conn.execute("""
         CREATE TABLE IF NOT EXISTS notes (
             id TEXT PRIMARY KEY,
             user_id INTEGER NOT NULL,
+            team_id TEXT,
             title TEXT NOT NULL,
             body TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users(id)
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id),
+            FOREIGN KEY (team_id) REFERENCES teams(id)
         )
     """)
     conn.execute("""
         CREATE TABLE IF NOT EXISTS events (
             id TEXT PRIMARY KEY,
             user_id INTEGER NOT NULL,
+            team_id TEXT,
             date TEXT NOT NULL,
             title TEXT NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users(id)
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id),
+            FOREIGN KEY (team_id) REFERENCES teams(id)
         )
     """)
     conn.execute("""
@@ -110,6 +148,79 @@ def init_db():
             FOREIGN KEY (user_id) REFERENCES users(id)
         )
     """)
+    # Pipeline runs - CRITICAL: Must persist across restarts
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS pipeline_runs (
+            id TEXT PRIMARY KEY,
+            user_id INTEGER NOT NULL,
+            team_id TEXT,
+            status TEXT DEFAULT 'pending',
+            config_json TEXT,
+            started_at TIMESTAMP,
+            completed_at TIMESTAMP,
+            logs_json TEXT,
+            outputs_json TEXT,
+            input_file TEXT,
+            input_filename TEXT,
+            input_size INTEGER,
+            row_count INTEGER,
+            error_message TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id),
+            FOREIGN KEY (team_id) REFERENCES teams(id)
+        )
+    """)
+    # Pipeline uploads for tracking uploaded files
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS pipeline_uploads (
+            id TEXT PRIMARY KEY,
+            user_id INTEGER NOT NULL,
+            team_id TEXT,
+            filename TEXT NOT NULL,
+            filepath TEXT NOT NULL,
+            file_size INTEGER,
+            file_ext TEXT,
+            row_count INTEGER,
+            columns_json TEXT,
+            uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id),
+            FOREIGN KEY (team_id) REFERENCES teams(id)
+        )
+    """)
+    # Reports - dedicated table with proper fields
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS reports (
+            id TEXT PRIMARY KEY,
+            user_id INTEGER NOT NULL,
+            team_id TEXT,
+            title TEXT NOT NULL,
+            body TEXT,
+            report_type TEXT DEFAULT 'general',
+            generated_from TEXT,
+            file_path TEXT,
+            ai_summary TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id),
+            FOREIGN KEY (team_id) REFERENCES teams(id)
+        )
+    """)
+    # Analytics snapshots for persisting dashboard/analytics data
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS analytics_snapshots (
+            id TEXT PRIMARY KEY,
+            user_id INTEGER NOT NULL,
+            team_id TEXT,
+            snapshot_type TEXT NOT NULL,
+            data_json TEXT NOT NULL,
+            period_start TEXT,
+            period_end TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id),
+            FOREIGN KEY (team_id) REFERENCES teams(id)
+        )
+    """)
     conn.commit()
     conn.close()
 
@@ -117,16 +228,43 @@ def init_db():
 def migrate_db():
     """Add new columns and tables (tasks assignee/urgency, workspace_pages, flowcharts, email_settings)."""
     conn = get_db()
-    for col, ctype in [("assigned_to", "TEXT"), ("due_date", "TEXT"), ("urgency", "TEXT")]:
+    
+    # Task columns
+    for col, ctype in [("assigned_to", "TEXT"), ("due_date", "TEXT"), ("urgency", "TEXT"), ("team_id", "TEXT"), ("updated_at", "TIMESTAMP")]:
         try:
             conn.execute(f"ALTER TABLE tasks ADD COLUMN {col} {ctype}")
             conn.commit()
         except sqlite3.OperationalError:
             pass  # column exists
+    
+    # Notes columns
+    for col, ctype in [("team_id", "TEXT"), ("updated_at", "TIMESTAMP")]:
+        try:
+            conn.execute(f"ALTER TABLE notes ADD COLUMN {col} {ctype}")
+            conn.commit()
+        except sqlite3.OperationalError:
+            pass
+    
+    # Events columns
+    for col, ctype in [
+        ("time_start", "TEXT"),
+        ("time_end", "TEXT"),
+        ("notes", "TEXT"),
+        ("is_all_day", "INTEGER"),
+        ("team_id", "TEXT"),
+        ("updated_at", "TIMESTAMP"),
+    ]:
+        try:
+            conn.execute(f"ALTER TABLE events ADD COLUMN {col} {ctype}")
+            conn.commit()
+        except sqlite3.OperationalError:
+            pass
+    
     conn.execute("""
         CREATE TABLE IF NOT EXISTS workspace_pages (
             id TEXT PRIMARY KEY,
             user_id INTEGER NOT NULL,
+            team_id TEXT,
             title TEXT NOT NULL,
             body TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -134,10 +272,19 @@ def migrate_db():
             FOREIGN KEY (user_id) REFERENCES users(id)
         )
     """)
+    
+    # Workspace pages team_id
+    try:
+        conn.execute("ALTER TABLE workspace_pages ADD COLUMN team_id TEXT")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
+    
     conn.execute("""
         CREATE TABLE IF NOT EXISTS flowcharts (
             id TEXT PRIMARY KEY,
             user_id INTEGER NOT NULL,
+            team_id TEXT,
             title TEXT NOT NULL,
             mermaid_text TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -145,6 +292,14 @@ def migrate_db():
             FOREIGN KEY (user_id) REFERENCES users(id)
         )
     """)
+    
+    # Flowcharts team_id
+    try:
+        conn.execute("ALTER TABLE flowcharts ADD COLUMN team_id TEXT")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
+    
     conn.execute("""
         CREATE TABLE IF NOT EXISTS email_settings (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -158,27 +313,26 @@ def migrate_db():
         CREATE TABLE IF NOT EXISTS community_notes (
             id TEXT PRIMARY KEY,
             user_id INTEGER NOT NULL,
+            team_id TEXT,
             title TEXT NOT NULL,
             body TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users(id)
         )
     """)
-    for col, ctype in [
-        ("time_start", "TEXT"),
-        ("time_end", "TEXT"),
-        ("notes", "TEXT"),
-        ("is_all_day", "INTEGER"),
-    ]:
-        try:
-            conn.execute(f"ALTER TABLE events ADD COLUMN {col} {ctype}")
-            conn.commit()
-        except sqlite3.OperationalError:
-            pass
+    
+    # Community notes team_id
+    try:
+        conn.execute("ALTER TABLE community_notes ADD COLUMN team_id TEXT")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
+    
     conn.execute("""
         CREATE TABLE IF NOT EXISTS activity_log (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER,
+            team_id TEXT,
             action TEXT NOT NULL,
             resource_type TEXT,
             resource_id TEXT,
@@ -187,6 +341,14 @@ def migrate_db():
             FOREIGN KEY (user_id) REFERENCES users(id)
         )
     """)
+    
+    # Activity log team_id
+    try:
+        conn.execute("ALTER TABLE activity_log ADD COLUMN team_id TEXT")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
+    
     conn.commit()
     # Seed email types if missing
     for etype in ("task_assigned", "due_soon", "digest"):
@@ -375,12 +537,228 @@ def run_pipeline_legacy(steps_config=None, dry_run=False):
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# Pipeline API Routes
+# Pipeline API Routes - Database-backed persistence
 # ═══════════════════════════════════════════════════════════════════════════
 
-# In-memory storage for pipeline runs (in production, use database)
-PIPELINE_RUNS = []
-PIPELINE_UPLOADS = {}
+def get_team_id():
+    """Get current team ID from session (None for personal data)."""
+    return session.get("team_id")
+
+
+def db_save_pipeline_run(run_data):
+    """Save a pipeline run to the database."""
+    conn = get_db()
+    try:
+        conn.execute("""
+            INSERT INTO pipeline_runs (id, user_id, team_id, status, config_json, started_at, 
+                completed_at, logs_json, outputs_json, input_file, input_filename, input_size, 
+                row_count, error_message, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        """, (
+            run_data.get("id"),
+            run_data.get("user_id"),
+            run_data.get("team_id"),
+            run_data.get("status", "pending"),
+            json.dumps(run_data.get("config", {})),
+            run_data.get("started_at"),
+            run_data.get("completed_at"),
+            json.dumps(run_data.get("logs", [])),
+            json.dumps(run_data.get("outputs", [])),
+            run_data.get("input", {}).get("file"),
+            run_data.get("input", {}).get("filename"),
+            run_data.get("input", {}).get("size"),
+            run_data.get("input", {}).get("row_count"),
+            run_data.get("error_message")
+        ))
+        conn.commit()
+        return True
+    except Exception as e:
+        logger.error(f"Failed to save pipeline run: {e}")
+        return False
+    finally:
+        conn.close()
+
+
+def db_update_pipeline_run(run_id, updates):
+    """Update a pipeline run in the database."""
+    conn = get_db()
+    try:
+        set_clauses = []
+        params = []
+        for key, value in updates.items():
+            if key in ("status", "error_message"):
+                set_clauses.append(f"{key} = ?")
+                params.append(value)
+            elif key == "completed_at":
+                set_clauses.append("completed_at = ?")
+                params.append(value)
+            elif key == "logs":
+                set_clauses.append("logs_json = ?")
+                params.append(json.dumps(value))
+            elif key == "outputs":
+                set_clauses.append("outputs_json = ?")
+                params.append(json.dumps(value))
+        
+        if set_clauses:
+            set_clauses.append("updated_at = CURRENT_TIMESTAMP")
+            params.append(run_id)
+            conn.execute(f"UPDATE pipeline_runs SET {', '.join(set_clauses)} WHERE id = ?", params)
+            conn.commit()
+        return True
+    except Exception as e:
+        logger.error(f"Failed to update pipeline run: {e}")
+        return False
+    finally:
+        conn.close()
+
+
+def db_get_pipeline_run(run_id, user_id=None):
+    """Get a pipeline run from the database."""
+    conn = get_db()
+    try:
+        if user_id:
+            row = conn.execute(
+                "SELECT * FROM pipeline_runs WHERE id = ? AND user_id = ?",
+                (run_id, user_id)
+            ).fetchone()
+        else:
+            row = conn.execute("SELECT * FROM pipeline_runs WHERE id = ?", (run_id,)).fetchone()
+        
+        if not row:
+            return None
+        
+        return {
+            "id": row["id"],
+            "user_id": row["user_id"],
+            "team_id": row["team_id"],
+            "status": row["status"],
+            "config": json.loads(row["config_json"] or "{}"),
+            "started_at": row["started_at"],
+            "completed_at": row["completed_at"],
+            "logs": json.loads(row["logs_json"] or "[]"),
+            "outputs": json.loads(row["outputs_json"] or "[]"),
+            "input": {
+                "file": row["input_file"],
+                "filename": row["input_filename"],
+                "size": row["input_size"],
+                "row_count": row["row_count"]
+            },
+            "error_message": row["error_message"],
+            "created_at": row["created_at"],
+            "updated_at": row["updated_at"]
+        }
+    except Exception as e:
+        logger.error(f"Failed to get pipeline run: {e}")
+        return None
+    finally:
+        conn.close()
+
+
+def db_get_pipeline_runs(user_id, team_id=None, limit=20):
+    """Get pipeline runs for a user, optionally filtered by team."""
+    conn = get_db()
+    try:
+        if team_id:
+            rows = conn.execute(
+                "SELECT * FROM pipeline_runs WHERE user_id = ? AND team_id = ? ORDER BY created_at DESC LIMIT ?",
+                (user_id, team_id, limit)
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                "SELECT * FROM pipeline_runs WHERE user_id = ? ORDER BY created_at DESC LIMIT ?",
+                (user_id, limit)
+            ).fetchall()
+        
+        runs = []
+        for row in rows:
+            runs.append({
+                "id": row["id"],
+                "user_id": row["user_id"],
+                "team_id": row["team_id"],
+                "status": row["status"],
+                "config": json.loads(row["config_json"] or "{}"),
+                "started_at": row["started_at"],
+                "completed_at": row["completed_at"],
+                "logs": json.loads(row["logs_json"] or "[]"),
+                "outputs": json.loads(row["outputs_json"] or "[]"),
+                "input": {
+                    "file": row["input_file"],
+                    "filename": row["input_filename"],
+                    "size": row["input_size"],
+                    "row_count": row["row_count"]
+                },
+                "error_message": row["error_message"],
+                "created_at": row["created_at"],
+                "updated_at": row["updated_at"]
+            })
+        return runs
+    except Exception as e:
+        logger.error(f"Failed to get pipeline runs: {e}")
+        return []
+    finally:
+        conn.close()
+
+
+def db_save_pipeline_upload(upload_data):
+    """Save a pipeline upload to the database."""
+    conn = get_db()
+    try:
+        conn.execute("""
+            INSERT INTO pipeline_uploads (id, user_id, team_id, filename, filepath, file_size, 
+                file_ext, row_count, columns_json, uploaded_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        """, (
+            upload_data.get("id"),
+            upload_data.get("user_id"),
+            upload_data.get("team_id"),
+            upload_data.get("filename"),
+            upload_data.get("filepath"),
+            upload_data.get("size"),
+            upload_data.get("ext"),
+            upload_data.get("row_count"),
+            json.dumps(upload_data.get("columns", []))
+        ))
+        conn.commit()
+        return True
+    except Exception as e:
+        logger.error(f"Failed to save pipeline upload: {e}")
+        return False
+    finally:
+        conn.close()
+
+
+def db_get_pipeline_upload(upload_id, user_id=None):
+    """Get a pipeline upload from the database."""
+    conn = get_db()
+    try:
+        if user_id:
+            row = conn.execute(
+                "SELECT * FROM pipeline_uploads WHERE id = ? AND user_id = ?",
+                (upload_id, user_id)
+            ).fetchone()
+        else:
+            row = conn.execute("SELECT * FROM pipeline_uploads WHERE id = ?", (upload_id,)).fetchone()
+        
+        if not row:
+            return None
+        
+        return {
+            "id": row["id"],
+            "user_id": row["user_id"],
+            "team_id": row["team_id"],
+            "filename": row["filename"],
+            "filepath": row["filepath"],
+            "size": row["file_size"],
+            "ext": row["file_ext"],
+            "row_count": row["row_count"],
+            "columns": json.loads(row["columns_json"] or "[]"),
+            "uploaded_at": row["uploaded_at"]
+        }
+    except Exception as e:
+        logger.error(f"Failed to get pipeline upload: {e}")
+        return None
+    finally:
+        conn.close()
 
 
 @app.route("/api/pipeline/upload", methods=["POST"])
@@ -401,7 +779,6 @@ def pipeline_upload():
         return jsonify({"error": "Invalid file type. Supported: CSV, JSON, XLSX"}), 400
     
     # Save to temp directory
-    import uuid
     upload_id = str(uuid.uuid4())
     filename = f"{upload_id}{ext}"
     filepath = TMP_DIR / filename
@@ -430,19 +807,25 @@ def pipeline_upload():
                     row_count = len(data)
                     sample_rows = [list(row.values()) for row in data[:5]] if columns else []
     except Exception as e:
-        pass  # File info extraction failed, continue anyway
+        logger.warning(f"File info extraction failed: {e}")
     
-    PIPELINE_UPLOADS[upload_id] = {
+    # Save to database (persistent storage)
+    upload_data = {
         "id": upload_id,
+        "user_id": session.get("user_id"),
+        "team_id": get_team_id(),
         "filename": file.filename,
         "filepath": str(filepath),
         "size": file_size,
         "ext": ext,
         "row_count": row_count,
-        "columns": columns,
-        "uploaded_at": time.time(),
-        "user_id": session.get("user_id")
+        "columns": columns
     }
+    
+    if not db_save_pipeline_upload(upload_data):
+        return jsonify({"error": "Failed to save upload record"}), 500
+    
+    log_activity(session.get("user_id"), "pipeline_upload", "pipeline_upload", upload_id)
     
     return jsonify({
         "upload_id": upload_id,
@@ -463,7 +846,6 @@ def pipeline_webhook_ingest():
         return jsonify({"error": "No data provided"}), 400
     
     # Save incoming data to temp file
-    import uuid
     upload_id = str(uuid.uuid4())
     filename = f"{upload_id}.json"
     filepath = TMP_DIR / filename
@@ -471,13 +853,23 @@ def pipeline_webhook_ingest():
     with open(filepath, 'w', encoding='utf-8') as f:
         json.dump(data.get("data", data), f)
     
-    PIPELINE_UPLOADS[upload_id] = {
+    # Get row count for JSON data
+    json_data = data.get("data", data)
+    row_count = len(json_data) if isinstance(json_data, list) else 1
+    
+    # Save to database (persistent storage)
+    upload_data = {
         "id": upload_id,
+        "user_id": None,  # Webhook ingestion may not have user context
+        "team_id": None,
         "filename": "webhook_data.json",
         "filepath": str(filepath),
-        "source": "webhook",
-        "uploaded_at": time.time()
+        "size": os.path.getsize(filepath),
+        "ext": ".json",
+        "row_count": row_count,
+        "columns": []
     }
+    db_save_pipeline_upload(upload_data)
     
     return jsonify({"upload_id": upload_id, "status": "received"}), 200
 
@@ -487,28 +879,31 @@ def pipeline_webhook_ingest():
 def pipeline_runs_list():
     """Get list of pipeline runs."""
     user_id = session.get("user_id")
-    user_runs = [r for r in PIPELINE_RUNS if r.get("user_id") == user_id]
-    return jsonify({"runs": user_runs[-20:]}), 200  # Last 20 runs
+    team_id = get_team_id()
+    runs = db_get_pipeline_runs(user_id, team_id, limit=20)
+    return jsonify({"runs": runs}), 200
 
 
 @app.route("/api/pipeline/runs/<run_id>", methods=["GET"])
 @login_required
 def pipeline_run_detail(run_id):
     """Get details of a specific pipeline run."""
-    for run in PIPELINE_RUNS:
-        if run.get("id") == run_id:
-            return jsonify(run), 200
-    return jsonify({"error": "Run not found"}), 404
+    user_id = session.get("user_id")
+    run = db_get_pipeline_run(run_id, user_id)
+    if not run:
+        return jsonify({"error": "Run not found"}), 404
+    return jsonify(run), 200
 
 
 @app.route("/api/pipeline/outputs/<run_id>", methods=["GET"])
 @login_required
 def pipeline_outputs(run_id):
     """Get outputs from a pipeline run."""
-    for run in PIPELINE_RUNS:
-        if run.get("id") == run_id:
-            return jsonify({"outputs": run.get("outputs", [])}), 200
-    return jsonify({"error": "Run not found"}), 404
+    user_id = session.get("user_id")
+    run = db_get_pipeline_run(run_id, user_id)
+    if not run:
+        return jsonify({"error": "Run not found"}), 404
+    return jsonify({"outputs": run.get("outputs", [])}), 200
 
 
 @app.route("/api/pipeline/download/<run_id>/<filename>", methods=["GET"])
@@ -520,12 +915,8 @@ def pipeline_download(run_id, filename):
     
     user_id = session.get("user_id")
     
-    # Find the run and verify ownership
-    run = None
-    for r in PIPELINE_RUNS:
-        if r.get("id") == run_id and r.get("user_id") == user_id:
-            run = r
-            break
+    # Find the run and verify ownership (from database)
+    run = db_get_pipeline_run(run_id, user_id)
     
     if not run:
         return jsonify({"error": "Run not found"}), 404
@@ -594,21 +985,28 @@ def trigger():
         # Record pipeline run
         run_id = f"run_{int(time.time() * 1000)}"
         start_time = time.time()
+        user_id = session.get("user_id")
+        team_id = get_team_id()
         
         run_record = {
             "id": run_id,
+            "user_id": user_id,
+            "team_id": team_id,
             "status": "running",
             "started_at": start_time,
-            "trigger": "manual" if session.get("user_id") else "api",
-            "user_id": session.get("user_id"),
             "config": {
                 "steps": steps_config,
                 "dry_run": dry_run,
-                "output_format": output_format
+                "output_format": output_format,
+                "trigger": "manual" if user_id else "api"
             },
-            "outputs": []
+            "outputs": [],
+            "logs": []
         }
-        PIPELINE_RUNS.append(run_record)
+        
+        # Save to database immediately (persist running state)
+        if not db_save_pipeline_run(run_record):
+            return jsonify({"error": "Failed to save pipeline run"}), 500
         
         # Run pipeline with config
         pipeline_result = run_pipeline(steps_config=steps_config, dry_run=dry_run)
@@ -623,9 +1021,17 @@ def trigger():
         run_record["pipeline_result"] = pipeline_result
         run_record["agents"] = pipeline_result.get("agents", {})
         
+        duration = run_record["duration"]
+        
+        # Prepare updates for database
+        updates = {
+            "status": run_record["status"],
+            "completed_at": run_record["completed_at"]
+        }
+        
         # Generate real output files on success
+        outputs = []
         if is_success:
-            outputs = []
             created_at = time.strftime("%Y-%m-%d %H:%M:%S")
             
             # Create processed dataset output
@@ -638,10 +1044,9 @@ def trigger():
                         for i in range(10):
                             f.write(f"{i+1},{created_at},{100+i*10},processed\n")
                 else:  # json
-                    import json as json_module
                     data = {"records": [{"id": i+1, "timestamp": created_at, "value": 100+i*10, "status": "processed"} for i in range(10)]}
                     with open(dataset_path, "w") as f:
-                        json_module.dump(data, f, indent=2)
+                        json.dump(data, f, indent=2)
                 file_size = os.path.getsize(dataset_path)
                 outputs.append({
                     "name": f"Processed_Dataset.{output_format}",
@@ -660,7 +1065,6 @@ def trigger():
             analytics_filename = f"{run_id}_analytics.json"
             analytics_path = TMP_DIR / analytics_filename
             try:
-                import json as json_module
                 analytics_data = {
                     "run_id": run_id,
                     "generated_at": created_at,
@@ -676,7 +1080,7 @@ def trigger():
                     }
                 }
                 with open(analytics_path, "w") as f:
-                    json_module.dump(analytics_data, f, indent=2)
+                    json.dump(analytics_data, f, indent=2)
                 file_size = os.path.getsize(analytics_path)
                 outputs.append({
                     "name": "Analytics_Results.json",
@@ -704,7 +1108,6 @@ def trigger():
                         f.write(f"run_id,{run_id},complete\n")
                         f.write(f"generated_at,{created_at},complete\n")
                 else:  # json
-                    import json as json_module
                     report_data = {
                         "report": {
                             "title": "Pipeline Run Report",
@@ -715,7 +1118,7 @@ def trigger():
                         }
                     }
                     with open(report_path, "w") as f:
-                        json_module.dump(report_data, f, indent=2)
+                        json.dump(report_data, f, indent=2)
                 file_size = os.path.getsize(report_path)
                 outputs.append({
                     "name": f"Report_Summary.{output_format}",
@@ -729,15 +1132,20 @@ def trigger():
                 })
             except Exception as e:
                 logger.error(f"Failed to create report output: {e}")
-            
-            run_record["outputs"] = outputs
+        
+        # Update the run record in database
+        updates["outputs"] = outputs
+        db_update_pipeline_run(run_id, updates)
+        
+        # Log activity
+        log_activity(user_id, "pipeline_run", "pipeline_run", run_id, {"status": updates["status"], "duration": duration})
         
         return jsonify({
             "route": result, 
             "pipeline_exit": 0 if is_success else 1,
             "pipeline_result": pipeline_result,
             "run_id": run_id,
-            "duration": run_record["duration"],
+            "duration": duration,
             "agents": pipeline_result.get("agents", {})
         }), 200 if is_success else 500
     
@@ -1045,6 +1453,276 @@ def api_admin_send_custom():
     except Exception as e:
         log_activity(get_user_id(), "admin_send_custom", details={"to": to_email, "ok": False, "error": str(e)})
         return jsonify({"ok": False, "message": "Send failed: " + str(e)}), 200
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# API: Teams Management
+# ═══════════════════════════════════════════════════════════════════════════
+
+@app.route("/api/teams", methods=["GET"])
+@login_required
+def api_teams_list():
+    """Get all teams the user belongs to."""
+    user_id = get_user_id()
+    conn = None
+    try:
+        conn = get_db()
+        rows = conn.execute("""
+            SELECT t.id, t.name, t.created_by, t.created_at, tm.role
+            FROM teams t
+            JOIN team_members tm ON tm.team_id = t.id
+            WHERE tm.user_id = ?
+            ORDER BY t.name
+        """, (user_id,)).fetchall()
+        teams = [{
+            "id": r["id"],
+            "name": r["name"],
+            "created_by": r["created_by"],
+            "role": r["role"],
+            "created_at": r["created_at"]
+        } for r in rows]
+        return jsonify({"teams": teams, "current_team_id": get_team_id()}), 200
+    except Exception as e:
+        logger.error(f"Failed to list teams: {e}")
+        return jsonify({"error": "Failed to load teams"}), 500
+    finally:
+        if conn:
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+
+@app.route("/api/teams", methods=["POST"])
+@login_required
+def api_teams_create():
+    """Create a new team."""
+    user_id = get_user_id()
+    if not user_id:
+        return jsonify({"error": "Authentication required"}), 401
+    
+    data = request.get_json(silent=True) or {}
+    name = (data.get("name") or "").strip()
+    if not name:
+        return jsonify({"error": "Team name required"}), 400
+    
+    team_id = str(uuid.uuid4())
+    
+    conn = None
+    try:
+        conn = get_db()
+        # Create the team
+        conn.execute(
+            "INSERT INTO teams (id, name, created_by, created_at, updated_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+            (team_id, name, user_id)
+        )
+        # Add creator as admin member
+        conn.execute(
+            "INSERT INTO team_members (team_id, user_id, role, joined_at) VALUES (?, ?, 'admin', CURRENT_TIMESTAMP)",
+            (team_id, user_id)
+        )
+        conn.commit()
+        log_activity(user_id, "team_create", "team", team_id)
+        return jsonify({"id": team_id, "name": name, "role": "admin"}), 201
+    except Exception as e:
+        logger.error(f"Failed to create team: {e}")
+        return jsonify({"error": "Failed to create team"}), 500
+    finally:
+        if conn:
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+
+@app.route("/api/teams/<team_id>/switch", methods=["POST"])
+@login_required
+def api_teams_switch(team_id):
+    """Switch to a different team context."""
+    user_id = get_user_id()
+    
+    if team_id == "personal" or not team_id:
+        # Switch to personal (no team) context
+        session.pop("team_id", None)
+        log_activity(user_id, "team_switch", details={"team_id": None})
+        return jsonify({"ok": True, "team_id": None, "message": "Switched to personal space"}), 200
+    
+    conn = None
+    try:
+        conn = get_db()
+        # Verify user is member of this team
+        row = conn.execute(
+            "SELECT role FROM team_members WHERE team_id = ? AND user_id = ?",
+            (team_id, user_id)
+        ).fetchone()
+        if not row:
+            return jsonify({"error": "You are not a member of this team"}), 403
+        
+        session["team_id"] = team_id
+        log_activity(user_id, "team_switch", details={"team_id": team_id})
+        return jsonify({"ok": True, "team_id": team_id, "role": row["role"]}), 200
+    except Exception as e:
+        logger.error(f"Failed to switch team: {e}")
+        return jsonify({"error": "Failed to switch team"}), 500
+    finally:
+        if conn:
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+
+@app.route("/api/teams/<team_id>/members", methods=["GET"])
+@login_required
+def api_teams_members(team_id):
+    """Get all members of a team."""
+    user_id = get_user_id()
+    
+    conn = None
+    try:
+        conn = get_db()
+        # Verify user is member of this team
+        member = conn.execute(
+            "SELECT role FROM team_members WHERE team_id = ? AND user_id = ?",
+            (team_id, user_id)
+        ).fetchone()
+        if not member:
+            return jsonify({"error": "You are not a member of this team"}), 403
+        
+        rows = conn.execute("""
+            SELECT tm.user_id, tm.role, tm.joined_at, u.email
+            FROM team_members tm
+            JOIN users u ON u.id = tm.user_id
+            WHERE tm.team_id = ?
+            ORDER BY tm.joined_at
+        """, (team_id,)).fetchall()
+        
+        members = [{
+            "user_id": r["user_id"],
+            "email": r["email"],
+            "role": r["role"],
+            "joined_at": r["joined_at"]
+        } for r in rows]
+        return jsonify({"members": members}), 200
+    except Exception as e:
+        logger.error(f"Failed to list team members: {e}")
+        return jsonify({"error": "Failed to load team members"}), 500
+    finally:
+        if conn:
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+
+@app.route("/api/teams/<team_id>/members", methods=["POST"])
+@login_required
+def api_teams_add_member(team_id):
+    """Add a member to a team (admin only)."""
+    user_id = get_user_id()
+    data = request.get_json(silent=True) or {}
+    email = (data.get("email") or "").strip().lower()
+    role = (data.get("role") or "member").strip()
+    
+    if not email:
+        return jsonify({"error": "Email required"}), 400
+    if role not in ("member", "admin"):
+        role = "member"
+    
+    conn = None
+    try:
+        conn = get_db()
+        # Verify user is admin of this team
+        admin_check = conn.execute(
+            "SELECT role FROM team_members WHERE team_id = ? AND user_id = ? AND role = 'admin'",
+            (team_id, user_id)
+        ).fetchone()
+        if not admin_check:
+            return jsonify({"error": "Only team admins can add members"}), 403
+        
+        # Find the user by email
+        target_user = conn.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()
+        if not target_user:
+            return jsonify({"error": "User not found"}), 404
+        
+        target_user_id = target_user["id"]
+        
+        # Check if already a member
+        existing = conn.execute(
+            "SELECT 1 FROM team_members WHERE team_id = ? AND user_id = ?",
+            (team_id, target_user_id)
+        ).fetchone()
+        if existing:
+            return jsonify({"error": "User is already a member"}), 400
+        
+        # Add the member
+        conn.execute(
+            "INSERT INTO team_members (team_id, user_id, role, joined_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)",
+            (team_id, target_user_id, role)
+        )
+        conn.commit()
+        log_activity(user_id, "team_add_member", "team", team_id, {"added_user": email, "role": role})
+        return jsonify({"ok": True, "user_id": target_user_id, "email": email, "role": role}), 201
+    except Exception as e:
+        logger.error(f"Failed to add team member: {e}")
+        return jsonify({"error": "Failed to add member"}), 500
+    finally:
+        if conn:
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+
+@app.route("/api/teams/<team_id>/members/<member_user_id>", methods=["DELETE"])
+@login_required
+def api_teams_remove_member(team_id, member_user_id):
+    """Remove a member from a team (admin only, cannot remove self if last admin)."""
+    user_id = get_user_id()
+    
+    conn = None
+    try:
+        conn = get_db()
+        # Verify user is admin of this team
+        admin_check = conn.execute(
+            "SELECT role FROM team_members WHERE team_id = ? AND user_id = ? AND role = 'admin'",
+            (team_id, user_id)
+        ).fetchone()
+        if not admin_check:
+            return jsonify({"error": "Only team admins can remove members"}), 403
+        
+        member_user_id = int(member_user_id)
+        
+        # Check if trying to remove self as last admin
+        if member_user_id == user_id:
+            admin_count = conn.execute(
+                "SELECT COUNT(*) as c FROM team_members WHERE team_id = ? AND role = 'admin'",
+                (team_id,)
+            ).fetchone()["c"]
+            if admin_count <= 1:
+                return jsonify({"error": "Cannot remove yourself as the last admin"}), 400
+        
+        # Remove the member
+        cur = conn.execute(
+            "DELETE FROM team_members WHERE team_id = ? AND user_id = ?",
+            (team_id, member_user_id)
+        )
+        conn.commit()
+        
+        if cur.rowcount == 0:
+            return jsonify({"error": "Member not found"}), 404
+        
+        log_activity(user_id, "team_remove_member", "team", team_id, {"removed_user_id": member_user_id})
+        return jsonify({"ok": True}), 200
+    except Exception as e:
+        logger.error(f"Failed to remove team member: {e}")
+        return jsonify({"error": "Failed to remove member"}), 500
+    finally:
+        if conn:
+            try:
+                conn.close()
+            except Exception:
+                pass
 
 
 @app.route("/", methods=["GET"])
@@ -1667,11 +2345,16 @@ def api_tasks_list():
 @login_required
 def api_tasks_create():
     user_id = get_user_id()
+    if not user_id:
+        return jsonify({"error": "Authentication required"}), 401
+    
     data = request.get_json(silent=True) or {}
     text = (data.get("text") or "").strip()
     if not text:
         return jsonify({"error": "text required"}), 400
+    
     task_id = str(uuid.uuid4())
+    team_id = get_team_id()
     assigned_raw = data.get("assigned_to")
     if isinstance(assigned_raw, list):
         assigned_to = ",".join(str(e).strip() for e in assigned_raw if str(e).strip())
@@ -1679,23 +2362,35 @@ def api_tasks_create():
         assigned_to = (assigned_raw or "").strip()
     due_date = (data.get("due_date") or "").strip()
     urgency = (data.get("urgency") or "normal").strip() or "normal"
-    conn = get_db()
-    conn.execute(
-        "INSERT INTO tasks (id, user_id, text, assigned_to, due_date, urgency) VALUES (?, ?, ?, ?, ?, ?)",
-        (task_id, user_id, text, assigned_to, due_date, urgency),
-    )
-    conn.commit()
-    conn.close()
-    log_activity(user_id, "task_create", "task", task_id)
-    if assigned_to:
-        emails = [e.strip() for e in assigned_to.split(",") if e.strip()]
-        send_app_email(  # returns (ok, err); we don't surface err to user here
-            "task_assigned",
-            "Task assigned: " + text[:50],
-            f"<p>You were assigned a task:</p><p><strong>{text}</strong></p><p>Urgency: {urgency}</p><p>Due: {due_date or 'Not set'}</p>",
-            to_emails=emails,
-        )  # (ok, err) ignored
-    return jsonify({"id": task_id, "text": text, "done": False, "assigned_to": assigned_to, "due_date": due_date, "urgency": urgency}), 201
+    
+    conn = None
+    try:
+        conn = get_db()
+        conn.execute(
+            "INSERT INTO tasks (id, user_id, team_id, text, assigned_to, due_date, urgency, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)",
+            (task_id, user_id, team_id, text, assigned_to, due_date, urgency),
+        )
+        conn.commit()
+        log_activity(user_id, "task_create", "task", task_id)
+        
+        if assigned_to:
+            emails = [e.strip() for e in assigned_to.split(",") if e.strip()]
+            send_app_email(
+                "task_assigned",
+                "Task assigned: " + text[:50],
+                f"<p>You were assigned a task:</p><p><strong>{text}</strong></p><p>Urgency: {urgency}</p><p>Due: {due_date or 'Not set'}</p>",
+                to_emails=emails,
+            )
+        return jsonify({"id": task_id, "text": text, "done": False, "assigned_to": assigned_to, "due_date": due_date, "urgency": urgency}), 201
+    except Exception as e:
+        logger.error(f"Failed to create task: {e}")
+        return jsonify({"error": "Failed to save task. Please try again."}), 500
+    finally:
+        if conn:
+            try:
+                conn.close()
+            except Exception:
+                pass
 
 
 @app.route("/api/tasks/<tid>", methods=["PATCH"])
@@ -1776,30 +2471,258 @@ def api_notes_list():
 @login_required
 def api_notes_create():
     user_id = get_user_id()
+    if not user_id:
+        return jsonify({"error": "Authentication required"}), 401
+    
     data = request.get_json(silent=True) or {}
     title = (data.get("title") or "").strip()
     if not title:
         return jsonify({"error": "title required"}), 400
+    
     note_id = str(uuid.uuid4())
+    team_id = get_team_id()
     body = (data.get("body") or "").strip()
-    conn = get_db()
-    conn.execute("INSERT INTO notes (id, user_id, title, body) VALUES (?, ?, ?, ?)", (note_id, user_id, title, body))
-    conn.commit()
-    conn.close()
-    log_activity(user_id, "note_create", "note", note_id)
-    return jsonify({"id": note_id, "title": title, "body": body}), 201
+    
+    conn = None
+    try:
+        conn = get_db()
+        conn.execute(
+            "INSERT INTO notes (id, user_id, team_id, title, body, updated_at) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)",
+            (note_id, user_id, team_id, title, body)
+        )
+        conn.commit()
+        log_activity(user_id, "note_create", "note", note_id)
+        return jsonify({"id": note_id, "title": title, "body": body}), 201
+    except Exception as e:
+        logger.error(f"Failed to create note: {e}")
+        return jsonify({"error": "Failed to save note. Please try again."}), 500
+    finally:
+        if conn:
+            try:
+                conn.close()
+            except Exception:
+                pass
 
 
 @app.route("/api/notes/<nid>", methods=["DELETE"])
 @login_required
 def api_notes_delete(nid):
     user_id = get_user_id()
-    conn = get_db()
-    conn.execute("DELETE FROM notes WHERE id = ? AND user_id = ?", (nid, user_id))
-    conn.commit()
-    conn.close()
-    log_activity(user_id, "note_delete", "note", nid)
-    return jsonify({"ok": True}), 200
+    conn = None
+    try:
+        conn = get_db()
+        cur = conn.execute("DELETE FROM notes WHERE id = ? AND user_id = ?", (nid, user_id))
+        conn.commit()
+        if cur.rowcount == 0:
+            return jsonify({"error": "Note not found"}), 404
+        log_activity(user_id, "note_delete", "note", nid)
+        return jsonify({"ok": True}), 200
+    except Exception as e:
+        logger.error(f"Failed to delete note: {e}")
+        return jsonify({"error": "Failed to delete note"}), 500
+    finally:
+        if conn:
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+
+# — API: reports (dedicated storage for generated reports)
+@app.route("/api/reports", methods=["GET"])
+@login_required
+def api_reports_list():
+    """Get all reports for the current user."""
+    user_id = get_user_id()
+    team_id = get_team_id()
+    
+    conn = None
+    try:
+        conn = get_db()
+        if team_id:
+            rows = conn.execute(
+                "SELECT id, title, body, report_type, generated_from, file_path, ai_summary, created_at, updated_at FROM reports WHERE user_id = ? AND team_id = ? ORDER BY created_at DESC",
+                (user_id, team_id)
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                "SELECT id, title, body, report_type, generated_from, file_path, ai_summary, created_at, updated_at FROM reports WHERE user_id = ? ORDER BY created_at DESC",
+                (user_id,)
+            ).fetchall()
+        reports = [{
+            "id": r["id"],
+            "title": r["title"],
+            "body": r["body"] or "",
+            "report_type": r["report_type"],
+            "generated_from": r["generated_from"],
+            "file_path": r["file_path"],
+            "ai_summary": r["ai_summary"],
+            "created_at": r["created_at"],
+            "updated_at": r["updated_at"]
+        } for r in rows]
+        return jsonify({"reports": reports}), 200
+    except Exception as e:
+        logger.error(f"Failed to list reports: {e}")
+        return jsonify({"error": "Failed to load reports"}), 500
+    finally:
+        if conn:
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+
+@app.route("/api/reports", methods=["POST"])
+@login_required
+def api_reports_create():
+    """Create a new report."""
+    user_id = get_user_id()
+    if not user_id:
+        return jsonify({"error": "Authentication required"}), 401
+    
+    data = request.get_json(silent=True) or {}
+    title = (data.get("title") or "").strip()
+    if not title:
+        return jsonify({"error": "title required"}), 400
+    
+    report_id = str(uuid.uuid4())
+    team_id = get_team_id()
+    body = (data.get("body") or "").strip()
+    report_type = (data.get("report_type") or "general").strip()
+    generated_from = data.get("generated_from")  # e.g., pipeline run ID
+    file_path = data.get("file_path")
+    ai_summary = data.get("ai_summary")
+    
+    conn = None
+    try:
+        conn = get_db()
+        conn.execute(
+            """INSERT INTO reports (id, user_id, team_id, title, body, report_type, generated_from, file_path, ai_summary, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)""",
+            (report_id, user_id, team_id, title, body, report_type, generated_from, file_path, ai_summary)
+        )
+        conn.commit()
+        log_activity(user_id, "report_create", "report", report_id)
+        return jsonify({
+            "id": report_id,
+            "title": title,
+            "body": body,
+            "report_type": report_type,
+            "generated_from": generated_from,
+            "file_path": file_path,
+            "ai_summary": ai_summary
+        }), 201
+    except Exception as e:
+        logger.error(f"Failed to create report: {e}")
+        return jsonify({"error": "Failed to save report. Please try again."}), 500
+    finally:
+        if conn:
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+
+@app.route("/api/reports/<rid>", methods=["GET"])
+@login_required
+def api_reports_get(rid):
+    """Get a specific report."""
+    user_id = get_user_id()
+    conn = None
+    try:
+        conn = get_db()
+        row = conn.execute(
+            "SELECT id, title, body, report_type, generated_from, file_path, ai_summary, created_at, updated_at FROM reports WHERE id = ? AND user_id = ?",
+            (rid, user_id)
+        ).fetchone()
+        if not row:
+            return jsonify({"error": "Report not found"}), 404
+        return jsonify(dict(row)), 200
+    except Exception as e:
+        logger.error(f"Failed to get report: {e}")
+        return jsonify({"error": "Failed to load report"}), 500
+    finally:
+        if conn:
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+
+@app.route("/api/reports/<rid>", methods=["PATCH"])
+@login_required
+def api_reports_update(rid):
+    """Update a report."""
+    user_id = get_user_id()
+    data = request.get_json(silent=True) or {}
+    
+    conn = None
+    try:
+        conn = get_db()
+        row = conn.execute("SELECT id FROM reports WHERE id = ? AND user_id = ?", (rid, user_id)).fetchone()
+        if not row:
+            return jsonify({"error": "Report not found"}), 404
+        
+        updates = []
+        params = []
+        if "title" in data:
+            updates.append("title = ?")
+            params.append((data["title"] or "").strip())
+        if "body" in data:
+            updates.append("body = ?")
+            params.append((data["body"] or "").strip())
+        if "ai_summary" in data:
+            updates.append("ai_summary = ?")
+            params.append(data["ai_summary"])
+        
+        if updates:
+            updates.append("updated_at = CURRENT_TIMESTAMP")
+            params.append(rid)
+            params.append(user_id)
+            conn.execute(f"UPDATE reports SET {', '.join(updates)} WHERE id = ? AND user_id = ?", params)
+            conn.commit()
+        
+        log_activity(user_id, "report_update", "report", rid)
+        
+        row = conn.execute(
+            "SELECT id, title, body, report_type, generated_from, file_path, ai_summary, created_at, updated_at FROM reports WHERE id = ? AND user_id = ?",
+            (rid, user_id)
+        ).fetchone()
+        return jsonify(dict(row)), 200
+    except Exception as e:
+        logger.error(f"Failed to update report: {e}")
+        return jsonify({"error": "Failed to update report"}), 500
+    finally:
+        if conn:
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+
+@app.route("/api/reports/<rid>", methods=["DELETE"])
+@login_required
+def api_reports_delete(rid):
+    """Delete a report."""
+    user_id = get_user_id()
+    conn = None
+    try:
+        conn = get_db()
+        cur = conn.execute("DELETE FROM reports WHERE id = ? AND user_id = ?", (rid, user_id))
+        conn.commit()
+        if cur.rowcount == 0:
+            return jsonify({"error": "Report not found"}), 404
+        log_activity(user_id, "report_delete", "report", rid)
+        return jsonify({"ok": True}), 200
+    except Exception as e:
+        logger.error(f"Failed to delete report: {e}")
+        return jsonify({"error": "Failed to delete report"}), 500
+    finally:
+        if conn:
+            try:
+                conn.close()
+            except Exception:
+                pass
 
 
 # — API: events (calendar)
@@ -1837,36 +2760,54 @@ def api_events_list():
 @login_required
 def api_events_create():
     user_id = get_user_id()
+    if not user_id:
+        return jsonify({"error": "Authentication required"}), 401
+    
     data = request.get_json(silent=True) or {}
     date = (data.get("date") or "").strip()
     title = (data.get("title") or "").strip()
     if not date or not title:
         return jsonify({"error": "date and title required"}), 400
+    
     event_id = str(uuid.uuid4())
+    team_id = get_team_id()
     time_start = (data.get("time_start") or "").strip() or None
     time_end = (data.get("time_end") or "").strip() or None
     notes = (data.get("notes") or "").strip() or None
     is_all_day = 1 if data.get("is_all_day", True) else 0
-    conn = get_db()
+    
+    conn = None
     try:
-        conn.execute(
-            "INSERT INTO events (id, user_id, date, title, time_start, time_end, notes, is_all_day) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            (event_id, user_id, date, title, time_start, time_end, notes, is_all_day),
-        )
-    except sqlite3.OperationalError:
-        conn.execute("INSERT INTO events (id, user_id, date, title) VALUES (?, ?, ?, ?)", (event_id, user_id, date, title))
-    conn.commit()
-    conn.close()
-    log_activity(user_id, "event_create", "event", event_id)
-    out = {"id": event_id, "date": date, "title": title}
-    if time_start is not None:
-        out["time_start"] = time_start
-    if time_end is not None:
-        out["time_end"] = time_end
-    if notes is not None:
-        out["notes"] = notes
-    out["is_all_day"] = bool(is_all_day)
-    return jsonify(out), 201
+        conn = get_db()
+        try:
+            conn.execute(
+                "INSERT INTO events (id, user_id, team_id, date, title, time_start, time_end, notes, is_all_day, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)",
+                (event_id, user_id, team_id, date, title, time_start, time_end, notes, is_all_day),
+            )
+        except sqlite3.OperationalError:
+            # Fallback for older schema
+            conn.execute("INSERT INTO events (id, user_id, date, title) VALUES (?, ?, ?, ?)", (event_id, user_id, date, title))
+        conn.commit()
+        log_activity(user_id, "event_create", "event", event_id)
+        
+        out = {"id": event_id, "date": date, "title": title}
+        if time_start is not None:
+            out["time_start"] = time_start
+        if time_end is not None:
+            out["time_end"] = time_end
+        if notes is not None:
+            out["notes"] = notes
+        out["is_all_day"] = bool(is_all_day)
+        return jsonify(out), 201
+    except Exception as e:
+        logger.error(f"Failed to create event: {e}")
+        return jsonify({"error": "Failed to save event. Please try again."}), 500
+    finally:
+        if conn:
+            try:
+                conn.close()
+            except Exception:
+                pass
 
 
 @app.route("/api/events/<eid>", methods=["PATCH"])
@@ -2204,6 +3145,360 @@ def api_ai_query():
         "message": result.get("message"),
         "formatted_payload": result.get("formatted_payload"),
     }), 200
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# API: Pipeline AI
+# ═══════════════════════════════════════════════════════════════════════════
+
+@app.route("/api/ai/pipeline/summarize", methods=["POST"])
+@login_required
+def api_ai_pipeline_summarize():
+    """Summarize a pipeline run."""
+    user_id = get_user_id()
+    data = request.get_json(silent=True) or {}
+    run_id = data.get("run_id")
+    
+    # Find the run from database
+    run_data = db_get_pipeline_run(run_id, user_id)
+    
+    if not run_data:
+        return jsonify({"error": "Run not found"}), 404
+    
+    from tools import ai_service
+    summary, err = ai_service.summarize_pipeline_run(run_data, user_id, log_activity)
+    if err:
+        return jsonify({"error": err}), 400
+    return jsonify({"summary": summary}), 200
+
+
+@app.route("/api/ai/pipeline/explain-failure", methods=["POST"])
+@login_required
+def api_ai_pipeline_explain_failure():
+    """Explain a pipeline failure."""
+    user_id = get_user_id()
+    data = request.get_json(silent=True) or {}
+    run_id = data.get("run_id")
+    logs = data.get("logs", [])
+    
+    # Find the run from database
+    run_data = db_get_pipeline_run(run_id, user_id)
+    
+    if not run_data:
+        return jsonify({"error": "Run not found"}), 404
+    
+    from tools import ai_service
+    explanation, err = ai_service.explain_pipeline_failure(run_data, logs, user_id, log_activity)
+    if err:
+        return jsonify({"error": err}), 400
+    return jsonify({"explanation": explanation}), 200
+
+
+@app.route("/api/ai/pipeline/optimize", methods=["POST"])
+@login_required
+def api_ai_pipeline_optimize():
+    """Suggest pipeline optimizations."""
+    user_id = get_user_id()
+    team_id = get_team_id()
+    
+    # Get user's pipeline runs from database
+    user_runs = db_get_pipeline_runs(user_id, team_id, limit=50)
+    
+    from tools import ai_service
+    suggestions, err = ai_service.suggest_pipeline_optimizations(user_runs, user_id, log_activity)
+    if err:
+        return jsonify({"error": err}), 400
+    return jsonify({"suggestions": suggestions or []}), 200
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# API: Reports AI
+# ═══════════════════════════════════════════════════════════════════════════
+
+@app.route("/api/ai/reports/summarize", methods=["POST"])
+@login_required
+def api_ai_reports_summarize():
+    """Summarize a report."""
+    user_id = get_user_id()
+    data = request.get_json(silent=True) or {}
+    title = (data.get("title") or "").strip()
+    body = (data.get("body") or "").strip()
+    
+    if not body:
+        return jsonify({"error": "body required"}), 400
+    
+    from tools import ai_service
+    summary, err = ai_service.summarize_report(title, body, user_id, log_activity)
+    if err:
+        return jsonify({"error": err}), 400
+    return jsonify({"summary": summary}), 200
+
+
+@app.route("/api/ai/reports/rewrite", methods=["POST"])
+@login_required
+def api_ai_reports_rewrite():
+    """Rewrite a report for a specific audience."""
+    user_id = get_user_id()
+    data = request.get_json(silent=True) or {}
+    title = (data.get("title") or "").strip()
+    body = (data.get("body") or "").strip()
+    audience = (data.get("audience") or "executive").strip().lower()
+    
+    if not body:
+        return jsonify({"error": "body required"}), 400
+    if audience not in ["executive", "marketing", "technical"]:
+        audience = "executive"
+    
+    from tools import ai_service
+    rewritten, err = ai_service.rewrite_report_for_audience(title, body, audience, user_id, log_activity)
+    if err:
+        return jsonify({"error": err}), 400
+    return jsonify({"rewritten": rewritten, "audience": audience}), 200
+
+
+@app.route("/api/ai/reports/takeaways", methods=["POST"])
+@login_required
+def api_ai_reports_takeaways():
+    """Extract key takeaways from a report."""
+    user_id = get_user_id()
+    data = request.get_json(silent=True) or {}
+    title = (data.get("title") or "").strip()
+    body = (data.get("body") or "").strip()
+    
+    if not body:
+        return jsonify({"error": "body required"}), 400
+    
+    from tools import ai_service
+    result, err = ai_service.extract_report_takeaways(title, body, user_id, log_activity)
+    if err:
+        return jsonify({"error": err}), 400
+    return jsonify(result or {"takeaways": [], "action_items": []}), 200
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# API: Workload & Tasks AI
+# ═══════════════════════════════════════════════════════════════════════════
+
+@app.route("/api/ai/workload/summarize", methods=["POST"])
+@login_required
+def api_ai_workload_summarize():
+    """Summarize current workload."""
+    user_id = get_user_id()
+    conn = get_db()
+    tasks = conn.execute(
+        "SELECT text, due_date, urgency, done FROM tasks WHERE user_id = ? ORDER BY created_at DESC LIMIT 50",
+        (user_id,)
+    ).fetchall()
+    events = conn.execute(
+        "SELECT title, date FROM events WHERE user_id = ? ORDER BY date ASC LIMIT 30",
+        (user_id,)
+    ).fetchall()
+    conn.close()
+    
+    tasks_list = [dict(t) for t in tasks]
+    events_list = [dict(e) for e in events]
+    
+    from tools import ai_service
+    summary, err = ai_service.summarize_workload(tasks_list, events_list, user_id, log_activity)
+    if err:
+        return jsonify({"error": err}), 400
+    return jsonify({"summary": summary}), 200
+
+
+@app.route("/api/ai/workload/focus", methods=["POST"])
+@login_required
+def api_ai_workload_focus():
+    """Suggest what to focus on today."""
+    user_id = get_user_id()
+    conn = get_db()
+    tasks = conn.execute(
+        "SELECT text, due_date, urgency, done FROM tasks WHERE user_id = ? AND done = 0 ORDER BY created_at DESC LIMIT 30",
+        (user_id,)
+    ).fetchall()
+    conn.close()
+    
+    tasks_list = [dict(t) for t in tasks]
+    
+    from tools import ai_service
+    suggestion, err = ai_service.suggest_focus(tasks_list, user_id, log_activity)
+    if err:
+        return jsonify({"error": err}), 400
+    return jsonify({"suggestion": suggestion}), 200
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# API: Notes AI
+# ═══════════════════════════════════════════════════════════════════════════
+
+@app.route("/api/ai/notes/summarize", methods=["POST"])
+@login_required
+def api_ai_notes_summarize():
+    """Summarize a note."""
+    user_id = get_user_id()
+    data = request.get_json(silent=True) or {}
+    title = (data.get("title") or "").strip()
+    body = (data.get("body") or "").strip()
+    
+    if not body:
+        return jsonify({"error": "body required"}), 400
+    
+    from tools import ai_service
+    summary, err = ai_service.summarize_note(title, body, user_id, log_activity)
+    if err:
+        return jsonify({"error": err}), 400
+    return jsonify({"summary": summary}), 200
+
+
+@app.route("/api/ai/notes/extract-actions", methods=["POST"])
+@login_required
+def api_ai_notes_extract_actions():
+    """Extract action items from note content."""
+    user_id = get_user_id()
+    data = request.get_json(silent=True) or {}
+    content = (data.get("content") or "").strip()
+    
+    if not content:
+        return jsonify({"error": "content required"}), 400
+    
+    from tools import ai_service
+    actions, err = ai_service.extract_action_items(content, user_id, log_activity)
+    if err:
+        return jsonify({"error": err}), 400
+    return jsonify({"actions": actions or []}), 200
+
+
+@app.route("/api/ai/notes/find-themes", methods=["POST"])
+@login_required
+def api_ai_notes_find_themes():
+    """Find common themes across notes."""
+    user_id = get_user_id()
+    conn = get_db()
+    notes = conn.execute(
+        "SELECT title, body FROM notes WHERE user_id = ? ORDER BY created_at DESC LIMIT 20",
+        (user_id,)
+    ).fetchall()
+    conn.close()
+    
+    notes_list = [dict(n) for n in notes]
+    
+    from tools import ai_service
+    themes, err = ai_service.find_related_themes(notes_list, user_id, log_activity)
+    if err:
+        return jsonify({"error": err}), 400
+    return jsonify({"themes": themes or []}), 200
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# API: AI Briefing (Dashboard)
+# ═══════════════════════════════════════════════════════════════════════════
+
+@app.route("/api/ai/briefing", methods=["POST"])
+@login_required
+def api_ai_briefing():
+    """Generate comprehensive AI briefing."""
+    user_id = get_user_id()
+    conn = get_db()
+    
+    # Get stats
+    tasks_total = conn.execute("SELECT COUNT(*) as c FROM tasks WHERE user_id = ?", (user_id,)).fetchone()["c"]
+    tasks_done = conn.execute("SELECT COUNT(*) as c FROM tasks WHERE user_id = ? AND done = 1", (user_id,)).fetchone()["c"]
+    
+    from datetime import datetime, timedelta
+    today = datetime.utcnow().date().isoformat()
+    tasks_overdue = conn.execute(
+        "SELECT COUNT(*) as c FROM tasks WHERE user_id = ? AND done = 0 AND due_date IS NOT NULL AND due_date != '' AND due_date < ?",
+        (user_id, today)
+    ).fetchone()["c"]
+    
+    week_later = (datetime.utcnow().date() + timedelta(days=7)).isoformat()
+    events_this_week = conn.execute(
+        "SELECT COUNT(*) as c FROM events WHERE user_id = ? AND date >= ? AND date <= ?",
+        (user_id, today, week_later)
+    ).fetchone()["c"]
+    
+    # Get upcoming tasks
+    tasks = conn.execute(
+        "SELECT text, due_date FROM tasks WHERE user_id = ? AND done = 0 ORDER BY due_date ASC LIMIT 15",
+        (user_id,)
+    ).fetchall()
+    
+    # Get upcoming events
+    events = conn.execute(
+        "SELECT title, date FROM events WHERE user_id = ? AND date >= ? ORDER BY date ASC LIMIT 15",
+        (user_id, today)
+    ).fetchall()
+    
+    # Get recent activity
+    activity = conn.execute(
+        "SELECT action FROM activity_log WHERE user_id = ? ORDER BY created_at DESC LIMIT 15",
+        (user_id,)
+    ).fetchall()
+    
+    conn.close()
+    
+    stats = {
+        "tasks_total": tasks_total,
+        "tasks_done": tasks_done,
+        "tasks_overdue": tasks_overdue,
+        "events_this_week": events_this_week,
+    }
+    tasks_list = [dict(t) for t in tasks]
+    events_list = [dict(e) for e in events]
+    activity_list = [dict(a) for a in activity]
+    
+    from tools import ai_service
+    briefing, err = ai_service.generate_briefing(stats, tasks_list, events_list, activity_list, user_id, log_activity)
+    if err:
+        return jsonify({"error": err}), 400
+    return jsonify(briefing or {}), 200
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# API: Global AI Command
+# ═══════════════════════════════════════════════════════════════════════════
+
+@app.route("/api/ai/command", methods=["POST"])
+@login_required
+def api_ai_command():
+    """Process a natural language AI command."""
+    user_id = get_user_id()
+    data = request.get_json(silent=True) or {}
+    query = (data.get("query") or "").strip()
+    
+    if not query:
+        return jsonify({"error": "query required"}), 400
+    
+    from tools import ai_service
+    
+    # First, route the command
+    routing, err = ai_service.route_ai_command(query, user_id, log_activity)
+    if err:
+        # Fall back to general query
+        answer, err2 = ai_service.answer_general_query(query, {}, user_id, log_activity)
+        if err2:
+            return jsonify({"error": err2}), 400
+        return jsonify({"response": answer, "type": "general"}), 200
+    
+    intent = routing.get("intent", "unknown")
+    target = routing.get("target", "general")
+    
+    # Route to appropriate handler based on intent
+    if intent == "unknown" or target == "general":
+        answer, err = ai_service.answer_general_query(query, {}, user_id, log_activity)
+        if err:
+            return jsonify({"error": err}), 400
+        return jsonify({"response": answer, "type": "general", "routing": routing}), 200
+    
+    # For now, use general answer with context note
+    answer, err = ai_service.answer_general_query(
+        query, 
+        {"note": f"This query relates to {target}. Intent detected: {intent}."},
+        user_id, 
+        log_activity
+    )
+    if err:
+        return jsonify({"error": err}), 400
+    return jsonify({"response": answer, "type": target, "routing": routing}), 200
 
 
 if __name__ == "__main__":

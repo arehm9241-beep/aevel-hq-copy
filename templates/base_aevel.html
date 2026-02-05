@@ -149,6 +149,43 @@
       {% endwith %}
       {% block content %}{% endblock %}
     </main>
+    
+    <!-- Global AI Command Bar -->
+    <div class="ai-command-bar" id="ai-command-bar">
+      <button type="button" class="ai-command-trigger" id="ai-command-trigger" aria-label="Open AI assistant">
+        <span class="ai-command-icon">AI</span>
+        <span class="ai-command-hint">Ask anything...</span>
+        <kbd class="ai-command-kbd">⌘K</kbd>
+      </button>
+    </div>
+    
+    <!-- AI Command Modal -->
+    <div class="ai-command-modal" id="ai-command-modal" role="dialog" aria-modal="true" aria-label="AI Command">
+      <div class="ai-command-backdrop" id="ai-command-backdrop"></div>
+      <div class="ai-command-dialog">
+        <div class="ai-command-header">
+          <span class="ai-badge">AI</span>
+          <span>Ask the AI assistant</span>
+        </div>
+        <div class="ai-command-input-wrap">
+          <input type="text" class="ai-command-input" id="ai-command-input" placeholder="e.g., Summarize last pipeline run, What should I focus on?" autocomplete="off">
+          <button type="button" class="ai-command-submit" id="ai-command-submit">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </button>
+        </div>
+        <div class="ai-command-output" id="ai-command-output" style="display:none;">
+          <div class="ai-command-response" id="ai-command-response"></div>
+          <div class="ai-command-meta">
+            <span class="ai-badge-sm">AI-generated</span>
+          </div>
+        </div>
+        <div class="ai-command-suggestions">
+          <span class="ai-command-suggestion" data-query="What should I focus on today?">Focus</span>
+          <span class="ai-command-suggestion" data-query="Summarize my workload">Workload</span>
+          <span class="ai-command-suggestion" data-query="What changed this week?">Changes</span>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script src="{{ url_for('static', filename='js/aevel-ui.js') }}"></script>
@@ -157,6 +194,96 @@
     fetch('/api/preferences').then(function(r) { return r.json(); }).then(function(d) {
       document.body.classList.toggle('compact', !!d.compact);
     }).catch(function() {});
+    
+    // AI Command Bar
+    var modal = document.getElementById('ai-command-modal');
+    var trigger = document.getElementById('ai-command-trigger');
+    var backdrop = document.getElementById('ai-command-backdrop');
+    var input = document.getElementById('ai-command-input');
+    var submit = document.getElementById('ai-command-submit');
+    var output = document.getElementById('ai-command-output');
+    var response = document.getElementById('ai-command-response');
+    
+    function escapeHtml(str) {
+      var div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+    
+    function openAIModal() {
+      modal.classList.add('ai-command-modal--open');
+      setTimeout(function() { input.focus(); }, 100);
+    }
+    
+    function closeAIModal() {
+      modal.classList.remove('ai-command-modal--open');
+      output.style.display = 'none';
+      input.value = '';
+    }
+    
+    function submitQuery() {
+      var query = input.value.trim();
+      if (!query) return;
+      
+      submit.disabled = true;
+      response.innerHTML = '<p class="ai-loading">Thinking...</p>';
+      output.style.display = 'block';
+      
+      fetch('/api/ai/command', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: query })
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.error) throw new Error(data.error);
+        response.innerHTML = '<p>' + escapeHtml(data.response || 'No response.').replace(/\n/g, '<br>') + '</p>';
+      })
+      .catch(function(err) {
+        response.innerHTML = '<p class="ai-error">' + escapeHtml(err.message || 'Failed to process query.') + '</p>';
+      })
+      .finally(function() {
+        submit.disabled = false;
+      });
+    }
+    
+    trigger.addEventListener('click', openAIModal);
+    backdrop.addEventListener('click', closeAIModal);
+    
+    submit.addEventListener('click', submitQuery);
+    input.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        submitQuery();
+      }
+      if (e.key === 'Escape') {
+        closeAIModal();
+      }
+    });
+    
+    // Keyboard shortcut (Cmd/Ctrl + K)
+    document.addEventListener('keydown', function(e) {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        if (modal.classList.contains('ai-command-modal--open')) {
+          closeAIModal();
+        } else {
+          openAIModal();
+        }
+      }
+      if (e.key === 'Escape' && modal.classList.contains('ai-command-modal--open')) {
+        closeAIModal();
+      }
+    });
+    
+    // Suggestions
+    document.querySelectorAll('.ai-command-suggestion').forEach(function(el) {
+      el.addEventListener('click', function() {
+        input.value = el.getAttribute('data-query');
+        submitQuery();
+      });
+    });
   })();
   </script>
 

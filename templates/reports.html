@@ -18,8 +18,39 @@
         <label>Content</label>
         <textarea class="textarea" id="note-body" placeholder="Content…"></textarea>
       </div>
-      <button type="submit" class="btn btn-primary">Save</button>
+      <div class="form-actions" style="display: flex; gap: var(--space-3); align-items: center; flex-wrap: wrap;">
+        <button type="submit" class="btn btn-primary">Save</button>
+        <div class="ai-actions" style="display: flex; gap: var(--space-2);">
+          <button type="button" class="btn btn-ghost btn-small" id="ai-summarize-btn">
+            <span class="ai-badge-inline">AI</span> Summarize
+          </button>
+          <button type="button" class="btn btn-ghost btn-small" id="ai-takeaways-btn">
+            <span class="ai-badge-inline">AI</span> Extract takeaways
+          </button>
+          <div class="ai-rewrite-dropdown" style="position: relative;">
+            <button type="button" class="btn btn-ghost btn-small" id="ai-rewrite-btn">
+              <span class="ai-badge-inline">AI</span> Rewrite for...
+            </button>
+            <div class="ai-rewrite-menu" id="ai-rewrite-menu" style="display: none;">
+              <button type="button" data-audience="executive">Executive</button>
+              <button type="button" data-audience="marketing">Marketing</button>
+              <button type="button" data-audience="technical">Technical</button>
+            </div>
+          </div>
+        </div>
+      </div>
     </form>
+    
+    <!-- AI Output Panel -->
+    <div class="ai-output-panel" id="ai-output-panel" style="display: none;">
+      <div class="ai-output-header">
+        <span class="ai-badge">AI</span>
+        <span class="ai-output-title" id="ai-output-title">AI Output</span>
+        <button type="button" class="btn btn-ghost btn-small" id="ai-apply-btn" style="display: none;">Apply to content</button>
+        <button type="button" class="btn btn-ghost btn-small" id="ai-dismiss-btn">Dismiss</button>
+      </div>
+      <div class="ai-output-content" id="ai-output-content"></div>
+    </div>
   </div>
 
   <h2 class="section-title">Saved reports</h2>
@@ -43,40 +74,323 @@
     </div>
   </div>
 </section>
+
+<style>
+.ai-badge-inline {
+  font-size: 9px;
+  padding: 1px 4px;
+  background: var(--bg-overlay);
+  color: var(--text-muted);
+  border-radius: var(--radius-full);
+  margin-right: 4px;
+  vertical-align: middle;
+}
+.ai-rewrite-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-1);
+  z-index: 100;
+  min-width: 140px;
+  box-shadow: var(--shadow-md);
+}
+.ai-rewrite-menu button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: var(--space-2) var(--space-3);
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  border-radius: var(--radius-xs);
+}
+.ai-rewrite-menu button:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+.ai-output-panel {
+  margin-top: var(--space-4);
+  padding: var(--space-4);
+  background: var(--bg-overlay);
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--accent);
+}
+.ai-output-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+.ai-output-title {
+  flex: 1;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text-secondary);
+}
+.ai-output-content {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: var(--leading);
+  white-space: pre-wrap;
+}
+.ai-output-content ul {
+  margin: var(--space-2) 0;
+  padding-left: var(--space-5);
+}
+.ai-output-content li {
+  margin-bottom: var(--space-1);
+}
+</style>
 {% endblock %}
 {% block scripts %}
 <script>
 (function() {
-  function load() {
-    fetch('/api/notes', { credentials: 'same-origin' }).then(function(r) { return r.json().then(function(d) { if (!r.ok) throw new Error(d.error || 'Request failed'); return d; }); }).then(function(d) {
-      var notes = d.notes || [];
-      var tbody = document.getElementById('notes-tbody');
-      tbody.innerHTML = notes.length ? notes.map(function(n) {
-        return '<tr><td class="cell-primary">' + (n.title || '').replace(/</g, '&lt;') + '</td><td>—</td><td><a href="/notes" class="btn btn-ghost btn-small">Open</a></td></tr>';
-      }).join('') : '<tr><td colspan="3"><div class="empty-state"><p class="empty-state__title">No reports yet</p><p>Create one above or go to <a href="/notes">Notes</a>.</p></div></td></tr>';
-    }).catch(function() {
-      var tbody = document.getElementById('notes-tbody');
-      if (tbody) tbody.innerHTML = '<tr><td colspan="3"><div class="empty-state"><p class="empty-state__title">Failed to load</p></div></td></tr>';
-      if (typeof Aevel !== 'undefined' && Aevel.toast) Aevel.toast('Failed to load reports', 'error');
-    });
+  var lastAIOutput = null;
+  var lastAIType = null;
+  
+  function escapeHtml(str) {
+    var div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
   }
+  
+  function showAIOutput(title, content, showApply) {
+    var panel = document.getElementById('ai-output-panel');
+    var titleEl = document.getElementById('ai-output-title');
+    var contentEl = document.getElementById('ai-output-content');
+    var applyBtn = document.getElementById('ai-apply-btn');
+    
+    titleEl.textContent = title;
+    contentEl.innerHTML = escapeHtml(content).replace(/\n/g, '<br>');
+    if (applyBtn) applyBtn.style.display = showApply ? 'inline-flex' : 'none';
+    panel.style.display = 'block';
+    lastAIOutput = content;
+  }
+  
+  function hideAIOutput() {
+    document.getElementById('ai-output-panel').style.display = 'none';
+    lastAIOutput = null;
+  }
+  
+  function getReportContent() {
+    return {
+      title: document.getElementById('note-title').value.trim(),
+      body: document.getElementById('note-body').value.trim()
+    };
+  }
+  
+  // AI Summarize
+  document.getElementById('ai-summarize-btn').addEventListener('click', function() {
+    var btn = this;
+    var content = getReportContent();
+    if (!content.body) {
+      if (typeof Aevel !== 'undefined' && Aevel.toast) Aevel.toast('Add content first', 'error');
+      return;
+    }
+    btn.disabled = true;
+    btn.innerHTML = '<span class="ai-badge-inline">AI</span> Analyzing...';
+    
+    fetch('/api/ai/reports/summarize', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(content)
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.error) throw new Error(data.error);
+      showAIOutput('Summary', data.summary || 'No summary generated.', false);
+      lastAIType = 'summary';
+    })
+    .catch(function(err) {
+      if (typeof Aevel !== 'undefined' && Aevel.toast) Aevel.toast(err.message || 'Failed', 'error');
+    })
+    .finally(function() {
+      btn.disabled = false;
+      btn.innerHTML = '<span class="ai-badge-inline">AI</span> Summarize';
+    });
+  });
+  
+  // AI Takeaways
+  document.getElementById('ai-takeaways-btn').addEventListener('click', function() {
+    var btn = this;
+    var content = getReportContent();
+    if (!content.body) {
+      if (typeof Aevel !== 'undefined' && Aevel.toast) Aevel.toast('Add content first', 'error');
+      return;
+    }
+    btn.disabled = true;
+    btn.innerHTML = '<span class="ai-badge-inline">AI</span> Analyzing...';
+    
+    fetch('/api/ai/reports/takeaways', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(content)
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.error) throw new Error(data.error);
+      var takeaways = data.takeaways || [];
+      var actions = data.action_items || [];
+      var output = 'Key Takeaways:\n';
+      output += takeaways.length ? takeaways.map(function(t) { return '• ' + t; }).join('\n') : '• None identified';
+      if (actions.length) {
+        output += '\n\nAction Items:\n';
+        output += actions.map(function(a) { return '• ' + a; }).join('\n');
+      }
+      showAIOutput('Takeaways & Actions', output, false);
+      lastAIType = 'takeaways';
+    })
+    .catch(function(err) {
+      if (typeof Aevel !== 'undefined' && Aevel.toast) Aevel.toast(err.message || 'Failed', 'error');
+    })
+    .finally(function() {
+      btn.disabled = false;
+      btn.innerHTML = '<span class="ai-badge-inline">AI</span> Extract takeaways';
+    });
+  });
+  
+  // AI Rewrite dropdown
+  var rewriteBtn = document.getElementById('ai-rewrite-btn');
+  var rewriteMenu = document.getElementById('ai-rewrite-menu');
+  
+  rewriteBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    rewriteMenu.style.display = rewriteMenu.style.display === 'none' ? 'block' : 'none';
+  });
+  
+  document.addEventListener('click', function() {
+    rewriteMenu.style.display = 'none';
+  });
+  
+  rewriteMenu.querySelectorAll('button').forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var audience = btn.getAttribute('data-audience');
+      var content = getReportContent();
+      if (!content.body) {
+        if (typeof Aevel !== 'undefined' && Aevel.toast) Aevel.toast('Add content first', 'error');
+        rewriteMenu.style.display = 'none';
+        return;
+      }
+      rewriteBtn.disabled = true;
+      rewriteBtn.innerHTML = '<span class="ai-badge-inline">AI</span> Rewriting...';
+      rewriteMenu.style.display = 'none';
+      
+      fetch('/api/ai/reports/rewrite', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: content.title, body: content.body, audience: audience })
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.error) throw new Error(data.error);
+        showAIOutput('Rewritten for ' + audience + ' audience', data.rewritten || 'No rewrite generated.', true);
+        lastAIType = 'rewrite';
+      })
+      .catch(function(err) {
+        if (typeof Aevel !== 'undefined' && Aevel.toast) Aevel.toast(err.message || 'Failed', 'error');
+      })
+      .finally(function() {
+        rewriteBtn.disabled = false;
+        rewriteBtn.innerHTML = '<span class="ai-badge-inline">AI</span> Rewrite for...';
+      });
+    });
+  });
+  
+  // Apply AI output to content
+  document.getElementById('ai-apply-btn').addEventListener('click', function() {
+    if (lastAIOutput && lastAIType === 'rewrite') {
+      document.getElementById('note-body').value = lastAIOutput;
+      hideAIOutput();
+      if (typeof Aevel !== 'undefined' && Aevel.toast) Aevel.toast('Content updated', 'success');
+    }
+  });
+  
+  // Dismiss AI output
+  document.getElementById('ai-dismiss-btn').addEventListener('click', hideAIOutput);
+  
+  // Load reports - uses dedicated /api/reports endpoint
+  function load() {
+    fetch('/api/reports', { credentials: 'same-origin' })
+      .then(function(r) { return r.json().then(function(d) { if (!r.ok) throw new Error(d.error || 'Request failed'); return d; }); })
+      .then(function(d) {
+        var reports = d.reports || [];
+        var tbody = document.getElementById('notes-tbody');
+        if (reports.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="3"><div class="empty-state"><p class="empty-state__title">No reports yet</p><p>Create your first report above.</p></div></td></tr>';
+        } else {
+          tbody.innerHTML = reports.map(function(r) {
+            var updated = r.updated_at ? new Date(r.updated_at).toLocaleDateString() : '—';
+            return '<tr data-id="' + r.id + '"><td class="cell-primary">' + escapeHtml(r.title || '') + '</td><td>' + updated + '</td><td><button class="btn btn-ghost btn-small delete-report-btn" data-id="' + r.id + '">Delete</button></td></tr>';
+          }).join('');
+          // Bind delete buttons
+          tbody.querySelectorAll('.delete-report-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+              var id = btn.getAttribute('data-id');
+              if (!confirm('Delete this report?')) return;
+              fetch('/api/reports/' + id, { method: 'DELETE', credentials: 'same-origin' })
+                .then(function(r) { return r.json().then(function(d) { if (!r.ok) throw new Error(d.error || 'Failed'); return d; }); })
+                .then(function() {
+                  load();
+                  if (typeof Aevel !== 'undefined' && Aevel.toast) Aevel.toast('Report deleted', 'success');
+                })
+                .catch(function(err) {
+                  if (typeof Aevel !== 'undefined' && Aevel.toast) Aevel.toast(err.message || 'Failed to delete', 'error');
+                });
+            });
+          });
+        }
+      })
+      .catch(function(err) {
+        var tbody = document.getElementById('notes-tbody');
+        if (tbody) tbody.innerHTML = '<tr><td colspan="3"><div class="empty-state"><p class="empty-state__title">Failed to load</p><p>' + escapeHtml(err.message || '') + '</p></div></td></tr>';
+        if (typeof Aevel !== 'undefined' && Aevel.toast) Aevel.toast('Failed to load reports', 'error');
+      });
+  }
+  
+  // Save report - uses dedicated /api/reports endpoint
   document.getElementById('note-form').addEventListener('submit', function(e) {
     e.preventDefault();
     var title = document.getElementById('note-title').value.trim();
     var body = document.getElementById('note-body').value || '';
-    if (!title) return;
-    fetch('/api/notes', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: title, body: body }) })
+    if (!title) {
+      if (typeof Aevel !== 'undefined' && Aevel.toast) Aevel.toast('Title is required', 'error');
+      return;
+    }
+    
+    var submitBtn = e.target.querySelector('button[type="submit"]');
+    if (submitBtn) submitBtn.disabled = true;
+    
+    fetch('/api/reports', { 
+      method: 'POST', 
+      credentials: 'same-origin', 
+      headers: { 'Content-Type': 'application/json' }, 
+      body: JSON.stringify({ title: title, body: body, report_type: 'manual' }) 
+    })
       .then(function(r) { return r.json().then(function(d) { if (!r.ok) throw new Error(d.error || 'Request failed'); return d; }); })
       .then(function() {
         document.getElementById('note-title').value = '';
         document.getElementById('note-body').value = '';
+        hideAIOutput();
         load();
         if (typeof Aevel !== 'undefined' && Aevel.toast) Aevel.toast('Report saved', 'success');
       })
-      .catch(function() {
-        if (typeof Aevel !== 'undefined' && Aevel.toast) Aevel.toast('Failed to save report', 'error');
+      .catch(function(err) {
+        if (typeof Aevel !== 'undefined' && Aevel.toast) Aevel.toast(err.message || 'Failed to save report', 'error');
+      })
+      .finally(function() {
+        if (submitBtn) submitBtn.disabled = false;
       });
   });
+  
   load();
 })();
 </script>
