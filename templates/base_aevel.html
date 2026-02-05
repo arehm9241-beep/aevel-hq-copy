@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -9,122 +9,123 @@
 </head>
 <body>
   <div class="app-layout">
-    <aside class="sidebar">
-      <div class="sidebar-brand">Aevel</div>
+    <aside class="sidebar" aria-label="Team Space navigation">
+      <div class="sidebar-brand">
+        <div class="sidebar-brand-title">Aevel</div>
+        <div class="sidebar-brand-subtitle">Team Space</div>
+      </div>
 
-      {# navigation: refactored to support submenus/dropdowns #}
       {% set request_endpoint = request.endpoint %}
-      {% set workspace_active = request_endpoint in ['workspace_page', 'notes_page', 'team_tasks_page', 'tasks_page'] %}
+      {% set workspace_cluster = ['workspace_page', 'notes_page', 'team_tasks_page', 'tasks_page'] %}
+      {% set workspace_active = request_endpoint in workspace_cluster %}
 
-      <nav class="sidebar-nav" aria-label="Main Navigation">
-        <ul>
-          <li class="nav-item">
-            <a href="{{ url_for('dashboard') }}" class="{% if request.endpoint == 'dashboard' %}active{% endif %}">
-              <span class="icon"> <!-- kept original svgs if desired --> </span>
-              <span class="label">Dashboard</span>
-            </a>
-          </li>
+      <nav class="sidebar-nav">
+        <div class="sidebar-section">
+          <div class="sidebar-section-label">Team Space</div>
+          <ul>
+            <li class="nav-item">
+              <a href="{{ url_for('dashboard') }}" class="{% if request.endpoint == 'dashboard' %}active{% endif %}">
+                <span class="icon"></span>
+                <span class="label">Dashboard</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{{ url_for('analytics_page') }}" class="{% if request.endpoint == 'analytics_page' %}active{% endif %}">
+                <span class="icon"></span>
+                <span class="label">Analytics</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{{ url_for('reports_page') }}" class="{% if request.endpoint == 'reports_page' %}active{% endif %}">
+                <span class="icon"></span>
+                <span class="label">Reports</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{{ url_for('automations_page') }}" class="{% if request.endpoint == 'automations_page' %}active{% endif %}">
+                <span class="icon"></span>
+                <span class="label">Automations</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{{ url_for('calendar_page') }}" class="{% if request.endpoint == 'calendar_page' %}active{% endif %}">
+                <span class="icon"></span>
+                <span class="label">Calendar</span>
+              </a>
+            </li>
+          </ul>
+        </div>
 
-          <li class="nav-item">
-            <a href="{{ url_for('analytics_page') }}" class="{% if request.endpoint == 'analytics_page' %}active{% endif %}">
-              <span class="icon"></span>
-              <span class="label">Analytics</span>
-            </a>
-          </li>
+        <div class="sidebar-section">
+          <div class="sidebar-section-label">Workspace</div>
+          <ul>
+            <li class="nav-item has-submenu {% if workspace_active %}active{% endif %}">
+              <button
+                class="submenu-toggle"
+                aria-expanded="{{ 'true' if workspace_active else 'false' }}"
+                aria-controls="submenu-workspace"
+                type="button"
+              >
+                <span class="icon"></span>
+                <span class="label">Pages & Tasks</span>
+                <span class="caret" aria-hidden="true"></span>
+              </button>
+              <ul id="submenu-workspace" class="submenu {% if workspace_active %}open{% endif %}" role="menu" aria-label="Workspace pages">
+                <li role="none">
+                  <a role="menuitem" href="{{ url_for('workspace_page') }}" class="{% if request.endpoint == 'workspace_page' %}active{% endif %}">
+                    Workspace
+                  </a>
+                </li>
+                <li role="none">
+                  <a role="menuitem" href="{{ url_for('notes_page') }}" class="{% if request.endpoint == 'notes_page' %}active{% endif %}">
+                    Notes
+                  </a>
+                </li>
+                <li role="none">
+                  <a role="menuitem" href="{{ url_for('team_tasks_page') }}" class="{% if request.endpoint == 'team_tasks_page' %}active{% endif %}">
+                    Team Tasks
+                  </a>
+                </li>
+                <li role="none">
+                  <a role="menuitem" href="{{ url_for('tasks_page') }}" class="{% if request.endpoint == 'tasks_page' %}active{% endif %}">
+                    My Tasks
+                  </a>
+                </li>
+              </ul>
+            </li>
 
-          <li class="nav-item">
-            <a href="{{ url_for('reports_page') }}" class="{% if request.endpoint == 'reports_page' %}active{% endif %}">
-              <span class="icon"></span>
-              <span class="label">Reports</span>
-            </a>
-          </li>
-
-          <li class="nav-item">
-            <a href="{{ url_for('automations_page') }}" class="{% if request.endpoint == 'automations_page' %}active{% endif %}">
-              <span class="icon"></span>
-              <span class="label">Automations</span>
-            </a>
-          </li>
-
-          <li class="nav-item">
-            <a href="{{ url_for('calendar_page') }}" class="{% if request.endpoint == 'calendar_page' %}active{% endif %}">
-              <span class="icon"></span>
-              <span class="label">Calendar</span>
-            </a>
-          </li>
-
-          {# Example parent with submenu: Workspace #}
-          <li class="nav-item has-submenu {% if workspace_active %}active{% endif %}">
-            <button
-              class="submenu-toggle"
-              aria-expanded="{{ 'true' if workspace_active else 'false' }}"
-              aria-controls="submenu-workspace"
-              type="button"
-            >
-              <span class="icon"></span>
-              <span class="label">Workspace</span>
-              <span class="caret" aria-hidden="true"></span>
-            </button>
-
-            <ul id="submenu-workspace" class="submenu {% if workspace_active %}open{% endif %}" role="menu" aria-label="Workspace submenu">
-              <li role="none">
-                <a role="menuitem" href="{{ url_for('workspace_page') }}" class="{% if request.endpoint == 'workspace_page' %}active{% endif %}">
-                  Overview
-                </a>
-              </li>
-              <li role="none">
-                <a role="menuitem" href="{{ url_for('notes_page') }}" class="{% if request.endpoint == 'notes_page' %}active{% endif %}">
-                  Notes
-                </a>
-              </li>
-              <li role="none">
-                <a role="menuitem" href="{{ url_for('team_tasks_page') }}" class="{% if request.endpoint == 'team_tasks_page' %}active{% endif %}">
-                  Team tasks
-                </a>
-              </li>
-              <li role="none">
-                <a role="menuitem" href="{{ url_for('tasks_page') }}" class="{% if request.endpoint == 'tasks_page' %}active{% endif %}">
-                  Tasks
-                </a>
-              </li>
-            </ul>
-          </li>
-
-          <li class="nav-item">
-            <a href="{{ url_for('flowcharts_page') }}" class="{% if request.endpoint == 'flowcharts_page' %}active{% endif %}">
-              <span class="icon"></span>
-              <span class="label">Flowcharts</span>
-            </a>
-          </li>
-
-          <li class="nav-item">
-            <a href="{{ url_for('community_notes_page') }}" class="{% if request.endpoint == 'community_notes_page' %}active{% endif %}">
-              <span class="icon"></span>
-              <span class="label">Community notes</span>
-            </a>
-          </li>
-
-          <li class="nav-item">
-            <a href="{{ url_for('integrations_page') }}" class="{% if request.endpoint == 'integrations_page' %}active{% endif %}">
-              <span class="icon"></span>
-              <span class="label">Integrations</span>
-            </a>
-          </li>
-
-          <li class="nav-item">
-            <a href="{{ url_for('settings_page') }}" class="{% if request.endpoint == 'settings_page' %}active{% endif %}">
-              <span class="icon"></span>
-              <span class="label">Settings</span>
-            </a>
-          </li>
-
-          <li class="nav-item">
-            <a href="{{ url_for('admin_page') }}" class="{% if request.endpoint == 'admin_page' %}active{% endif %}">
-              <span class="icon"></span>
-              <span class="label">Admin</span>
-            </a>
-          </li>
-        </ul>
+            <li class="nav-item">
+              <a href="{{ url_for('flowcharts_page') }}" class="{% if request.endpoint == 'flowcharts_page' %}active{% endif %}">
+                <span class="icon"></span>
+                <span class="label">Flowcharts</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{{ url_for('community_notes_page') }}" class="{% if request.endpoint == 'community_notes_page' %}active{% endif %}">
+                <span class="icon"></span>
+                <span class="label">Community Notes</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{{ url_for('integrations_page') }}" class="{% if request.endpoint == 'integrations_page' %}active{% endif %}">
+                <span class="icon"></span>
+                <span class="label">Integrations</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{{ url_for('settings_page') }}" class="{% if request.endpoint == 'settings_page' %}active{% endif %}">
+                <span class="icon"></span>
+                <span class="label">Settings</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{{ url_for('admin_page') }}" class="{% if request.endpoint == 'admin_page' %}active{% endif %}">
+                <span class="icon"></span>
+                <span class="label">Admin</span>
+              </a>
+            </li>
+          </ul>
+        </div>
       </nav>
 
       <div class="sidebar-footer">

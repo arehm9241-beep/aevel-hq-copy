@@ -634,10 +634,24 @@ def api_admin_send_custom():
 
 
 @app.route("/", methods=["GET"])
-def index():
-    if "user_id" in session:
-        return redirect(url_for("dashboard"))
-    return redirect(url_for("login"))
+def marketing_home():
+    """Public marketing home. Team Space is entered via Dashboard after login."""
+    return render_template("public_home.html")
+
+
+@app.route("/services", methods=["GET"])
+def marketing_services():
+    return render_template("public_services.html")
+
+
+@app.route("/how-we-work", methods=["GET"])
+def marketing_how():
+    return render_template("public_how.html")
+
+
+@app.route("/contact", methods=["GET"])
+def marketing_contact():
+    return render_template("public_contact.html")
 
 
 @app.route("/dashboard", methods=["GET"])

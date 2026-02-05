@@ -1,0 +1,33 @@
+{% extends "public_base.html" %}
+{% block title %}Aevel — Analytics Headquarters{% endblock %}
+{% block content %}
+<section class="hero">
+  <div class="hero-inner">
+    <p class="eyebrow">Analytics HQ</p>
+    <h1>Operational clarity for data-driven teams.</h1>
+    <p class="lead">
+      Aevel turns scattered tasks, reports, and calendars into a single, calm command center
+      for your analytics and growth workflows.
+    </p>
+    <div class="hero-actions">
+      <a href="{{ url_for('dashboard') }}" class="btn-primary">Enter Team Space</a>
+      <a href="{{ url_for('marketing_services') }}" class="btn-ghost">Explore services</a>
+    </div>
+    <p class="hero-meta">Built for teams that live in dashboards, pipelines, and client deliverables.</p>
+  </div>
+</section>
+
+<section class="grid-section">
+  <div class="grid-two">
+    <div class="grid-card">
+      <h2>Analytics that stay in sync.</h2>
+      <p>Tasks, reports, events, and notes live in one timeline, so your team always knows what changed and why.</p>
+    </div>
+    <div class="grid-card">
+      <h2>Automation without chaos.</h2>
+      <p>Campaigns, alerts, and internal workflows are orchestrated from a single place instead of a patchwork of tools.</p>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
