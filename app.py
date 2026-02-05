@@ -8,10 +8,14 @@ Zoho Mail (hello.aevel@zohomail.com) for notifications; admin area to control wh
 import json
 import os
 import sys
+import time
 import uuid
 import sqlite3
 from pathlib import Path
 from functools import wraps
+from urllib.parse import urljoin
+
+from itsdangerous import URLSafeTimedSerializer, BadSignature
 
 # Ensure project root on path
 ROOT = Path(__file__).resolve().parent
@@ -407,6 +411,88 @@ def register():
 def logout():
     session.clear()
     return redirect(url_for("login"))
+
+
+# — Password reset (signed token; no DB table)
+RESET_SALT = "aevel-password-reset"
+RESET_MAX_AGE = 3600  # 1 hour
+
+
+def _make_reset_token(user_id):
+    serializer = URLSafeTimedSerializer(app.secret_key, salt=RESET_SALT)
+    return serializer.dumps({"user_id": user_id, "exp": time.time() + RESET_MAX_AGE})
+
+
+def _verify_reset_token(token):
+    serializer = URLSafeTimedSerializer(app.secret_key, salt=RESET_SALT)
+    try:
+        data = serializer.loads(token, max_age=RESET_MAX_AGE)
+        return data.get("user_id")
+    except (BadSignature, Exception):
+        return None
+
+
+@app.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password():
+    if request.method == "POST":
+        email = (request.form.get("email") or "").strip().lower()
+        if not email:
+            flash("Email is required", "error")
+            return render_template("forgot_password.html")
+        conn = get_db()
+        user = conn.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()
+        if user:
+            token = _make_reset_token(user["id"])
+            reset_url = urljoin(request.url_root, url_for("reset_password", token=token))
+            if mail and ZOHO_PASSWORD:
+                try:
+                    from flask_mail import Message
+                    msg = Message(
+                        subject="Reset your Aevel password",
+                        recipients=[email],
+                        body=f"Use this link to set a new password (valid 1 hour):\n{reset_url}\n\nIf you didn't request this, ignore this email.",
+                    )
+                    msg.html = f"<p>Use this link to set a new password (valid 1 hour):</p><p><a href=\"{reset_url}\">{reset_url}</a></p><p>If you didn't request this, ignore this email.</p>"
+                    mail.send(msg)
+                except Exception:
+                    pass
+            # Always show same message (don't reveal if email exists)
+        conn.close()
+        flash("If that email is registered, we sent a password reset link. Check your inbox.", "success")
+        return redirect(url_for("login"))
+    return render_template("forgot_password.html")
+
+
+@app.route("/reset-password", methods=["GET", "POST"])
+def reset_password():
+    token = request.args.get("token") or request.form.get("token") or ""
+    if not token:
+        flash("Invalid or missing reset link. Request a new one from the login page.", "error")
+        return redirect(url_for("forgot_password"))
+    user_id = _verify_reset_token(token)
+    if not user_id:
+        flash("This reset link has expired or is invalid. Request a new one.", "error")
+        return redirect(url_for("forgot_password"))
+    if request.method == "POST":
+        password = request.form.get("password") or ""
+        confirm = request.form.get("confirm") or ""
+        if not password or len(password) < 6:
+            flash("Password must be at least 6 characters", "error")
+            return render_template("reset_password.html", token=token)
+        if password != confirm:
+            flash("Passwords do not match", "error")
+            return render_template("reset_password.html", token=token)
+        conn = get_db()
+        conn.execute(
+            "UPDATE users SET password_hash = ? WHERE id = ?",
+            (generate_password_hash(password), user_id),
+        )
+        conn.commit()
+        conn.close()
+        log_activity(user_id, "password_reset")
+        flash("Password updated. Sign in with your new password.", "success")
+        return redirect(url_for("login"))
+    return render_template("reset_password.html", token=token)
 
 
 # — Admin (password-protected; control what emails get sent and to whom)
