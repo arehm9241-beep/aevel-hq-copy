@@ -3060,6 +3060,54 @@ def api_activity_recent():
     return jsonify({"items": items})
 
 
+# — API: task stats for sidebar badge
+@app.route("/api/tasks/stats", methods=["GET"])
+@login_required
+def api_tasks_stats():
+    """Returns task counts for sidebar badge."""
+    user_id = get_user_id()
+    today = datetime.now().strftime("%Y-%m-%d")
+    
+    conn = get_db()
+    try:
+        # Count open tasks (not done)
+        open_count = conn.execute(
+            "SELECT COUNT(*) as c FROM tasks WHERE user_id = ? AND done = 0",
+            (user_id,)
+        ).fetchone()["c"]
+        
+        # Count tasks due today
+        due_today = conn.execute(
+            "SELECT COUNT(*) as c FROM tasks WHERE user_id = ? AND done = 0 AND due_date = ?",
+            (user_id, today)
+        ).fetchone()["c"]
+        
+        # Count overdue tasks
+        overdue = conn.execute(
+            "SELECT COUNT(*) as c FROM tasks WHERE user_id = ? AND done = 0 AND due_date < ? AND due_date != ''",
+            (user_id, today)
+        ).fetchone()["c"]
+        
+        # Count completed tasks
+        completed = conn.execute(
+            "SELECT COUNT(*) as c FROM tasks WHERE user_id = ? AND done = 1",
+            (user_id,)
+        ).fetchone()["c"]
+        
+        return jsonify({
+            "open": open_count,
+            "due_today": due_today,
+            "overdue": overdue,
+            "completed": completed,
+            "total": open_count + completed
+        })
+    except Exception as e:
+        app.logger.error(f"Failed to get task stats: {e}")
+        return jsonify({"open": 0, "due_today": 0, "overdue": 0, "completed": 0, "total": 0})
+    finally:
+        conn.close()
+
+
 # — API: batch complete tasks
 @app.route("/api/tasks/batch-complete", methods=["POST"])
 @login_required

@@ -78,8 +78,7 @@
   /* ─────────────────────────────────────────────────────────────────────────────
      NAV LINKS
      ───────────────────────────────────────────────────────────────────────────── */
-  .sidebar-nav a,
-  .sidebar-nav .submenu-toggle {
+  .sidebar-nav a {
     display: flex;
     align-items: center;
     gap: 12px;
@@ -97,8 +96,7 @@
     text-align: left;
   }
   
-  .sidebar-nav a:hover,
-  .sidebar-nav .submenu-toggle:hover {
+  .sidebar-nav a:hover {
     color: #E8E6E3;
     background: rgba(255, 255, 255, 0.03);
   }
@@ -133,66 +131,32 @@
     opacity: 0.9;
   }
   
-  /* ─────────────────────────────────────────────────────────────────────────────
-     SUBMENU (COLLAPSIBLE)
-     ───────────────────────────────────────────────────────────────────────────── */
-  .submenu-toggle {
-    justify-content: space-between;
-  }
-  
-  .submenu-toggle .nav-label {
+  /* Nav label with badge */
+  .nav-label-wrap {
     display: flex;
     align-items: center;
-    gap: 12px;
+    justify-content: space-between;
+    flex: 1;
+    min-width: 0;
   }
   
-  .submenu-toggle .caret {
-    width: 12px;
-    height: 12px;
-    color: #5A5752;
-    transition: transform 0.2s ease;
+  .nav-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 6px;
+    font-size: 10px;
+    font-weight: 600;
+    color: #3D3A36;
+    background: rgba(168, 144, 120, 0.85);
+    border-radius: 9px;
+    margin-left: 8px;
   }
   
-  .submenu-toggle[aria-expanded="true"] .caret {
-    transform: rotate(180deg);
-  }
-  
-  .submenu-toggle[aria-expanded="true"] {
-    color: #E8E6E3;
-    background: rgba(255, 255, 255, 0.03);
-  }
-  
-  .sidebar-nav .submenu {
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height 0.25s ease;
-    background: rgba(0, 0, 0, 0.15);
-  }
-  
-  .sidebar-nav .submenu.open {
-    max-height: 300px;
-  }
-  
-  .sidebar-nav .submenu a {
-    padding: 8px 20px 8px 48px;
-    font-size: 12px;
-    color: #7A7770;
-  }
-  
-  .sidebar-nav .submenu a:hover {
-    color: #B5B2AC;
-    background: rgba(255, 255, 255, 0.02);
-  }
-  
-  .sidebar-nav .submenu a.active {
-    color: #E8E6E3;
-    background: rgba(255, 255, 255, 0.04);
-  }
-  
-  .sidebar-nav .submenu a.active::before {
-    left: 20px;
-    height: 14px;
-    width: 2px;
+  .nav-badge.hidden {
+    display: none;
   }
   
   /* ─────────────────────────────────────────────────────────────────────────────
@@ -342,13 +306,8 @@
   /* ─────────────────────────────────────────────────────────────────────────────
      COMPACT MODE ADJUSTMENTS
      ───────────────────────────────────────────────────────────────────────────── */
-  .compact .sidebar-nav a,
-  .compact .sidebar-nav .submenu-toggle {
+  .compact .sidebar-nav a {
     padding: 7px 20px;
-  }
-  
-  .compact .sidebar-nav .submenu a {
-    padding: 6px 20px 6px 48px;
   }
   </style>
   {% block head %}{% endblock %}
@@ -372,8 +331,6 @@
       </button>
 
       {% set request_endpoint = request.endpoint %}
-      {% set workspace_cluster = ['workspace_page', 'notes_page', 'team_tasks_page', 'tasks_page'] %}
-      {% set workspace_active = request_endpoint in workspace_cluster %}
 
       <nav class="sidebar-nav" id="sidebar-nav">
         <!-- ═══════════════════════════════════════════════════════════════════
@@ -439,53 +396,44 @@
         <div class="sidebar-divider"></div>
 
         <!-- ═══════════════════════════════════════════════════════════════════
-             SECTION: WORKSPACE — Collaboration & Thinking
+             SECTION: WORKSPACE — Collaboration & Execution
              ═══════════════════════════════════════════════════════════════════ -->
         <div class="sidebar-section">
           <div class="sidebar-section-label">Workspace</div>
           <ul>
             <li class="nav-item">
-              <button
-                class="submenu-toggle"
-                aria-expanded="{{ 'true' if workspace_active else 'false' }}"
-                aria-controls="submenu-pages"
-                type="button"
-              >
-                <span class="nav-label">
-                  <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M4 19.5A2.5 2.5 0 016.5 17H20"/>
-                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/>
-                  </svg>
-                  <span>Pages</span>
-                </span>
-                <svg class="caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polyline points="6,9 12,15 18,9"/>
+              <a href="{{ url_for('tasks_page') }}" class="{% if request.endpoint == 'tasks_page' %}active{% endif %}">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M9 11l3 3L22 4"/>
+                  <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
                 </svg>
-              </button>
-              <ul id="submenu-pages" class="submenu {% if workspace_active %}open{% endif %}" role="menu">
-                <li role="none">
-                  <a role="menuitem" href="{{ url_for('workspace_page') }}" class="{% if request.endpoint == 'workspace_page' %}active{% endif %}">
-                    Workspace
-                  </a>
-                </li>
-                <li role="none">
-                  <a role="menuitem" href="{{ url_for('notes_page') }}" class="{% if request.endpoint == 'notes_page' %}active{% endif %}">
-                    Notes
-                  </a>
-                </li>
-                <li role="none">
-                  <a role="menuitem" href="{{ url_for('team_tasks_page') }}" class="{% if request.endpoint == 'team_tasks_page' %}active{% endif %}">
-                    Team Tasks
-                  </a>
-                </li>
-                <li role="none">
-                  <a role="menuitem" href="{{ url_for('tasks_page') }}" class="{% if request.endpoint == 'tasks_page' %}active{% endif %}">
-                    My Tasks
-                  </a>
-                </li>
-              </ul>
+                <span class="nav-label-wrap">
+                  <span>Tasks</span>
+                  <span class="nav-badge hidden" id="tasks-badge">0</span>
+                </span>
+              </a>
             </li>
-            
+            <li class="nav-item">
+              <a href="{{ url_for('workspace_page') }}" class="{% if request.endpoint == 'workspace_page' %}active{% endif %}">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M4 19.5A2.5 2.5 0 016.5 17H20"/>
+                  <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/>
+                </svg>
+                <span>Workspace</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{{ url_for('notes_page') }}" class="{% if request.endpoint == 'notes_page' %}active{% endif %}">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                  <polyline points="14,2 14,8 20,8"/>
+                  <line x1="16" y1="13" x2="8" y2="13"/>
+                  <line x1="16" y1="17" x2="8" y2="17"/>
+                  <polyline points="10,9 9,9 8,9"/>
+                </svg>
+                <span>Notes</span>
+              </a>
+            </li>
             <li class="nav-item">
               <a href="{{ url_for('flowcharts_page') }}" class="{% if request.endpoint == 'flowcharts_page' %}active{% endif %}">
                 <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -632,6 +580,25 @@
       document.body.classList.toggle('compact', !!d.compact);
     }).catch(function() {});
     
+    // Load task badge count
+    function updateTaskBadge() {
+      fetch('/api/tasks/stats', { credentials: 'same-origin' })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          var badge = document.getElementById('tasks-badge');
+          if (badge) {
+            var count = (data.open || 0);
+            badge.textContent = count;
+            badge.classList.toggle('hidden', count === 0);
+          }
+        })
+        .catch(function() {});
+    }
+    
+    updateTaskBadge();
+    // Refresh badge every 60 seconds
+    setInterval(updateTaskBadge, 60000);
+    
     // Mobile menu toggle
     var mobileToggle = document.getElementById('mobile-menu-toggle');
     var sidebarNav = document.getElementById('sidebar-nav');
@@ -650,40 +617,6 @@
         });
       });
     }
-    
-    // Submenu toggle
-    document.querySelectorAll('.submenu-toggle').forEach(function(toggle) {
-      toggle.addEventListener('click', function() {
-        var expanded = toggle.getAttribute('aria-expanded') === 'true';
-        var submenuId = toggle.getAttribute('aria-controls');
-        var submenu = document.getElementById(submenuId);
-        
-        toggle.setAttribute('aria-expanded', !expanded);
-        if (submenu) {
-          submenu.classList.toggle('open', !expanded);
-        }
-        
-        // Remember state
-        try {
-          var states = JSON.parse(localStorage.getItem('aevel_nav_states') || '{}');
-          states[submenuId] = !expanded;
-          localStorage.setItem('aevel_nav_states', JSON.stringify(states));
-        } catch (e) {}
-      });
-    });
-    
-    // Restore submenu states
-    try {
-      var states = JSON.parse(localStorage.getItem('aevel_nav_states') || '{}');
-      Object.keys(states).forEach(function(id) {
-        var submenu = document.getElementById(id);
-        var toggle = document.querySelector('[aria-controls="' + id + '"]');
-        if (submenu && toggle && states[id]) {
-          submenu.classList.add('open');
-          toggle.setAttribute('aria-expanded', 'true');
-        }
-      });
-    } catch (e) {}
     
     // AI Command Bar
     var modal = document.getElementById('ai-command-modal');
