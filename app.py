@@ -367,6 +367,42 @@ init_db()
 migrate_db()
 
 
+def seed_default_accounts():
+    """Create default user accounts if they don't exist.
+    This ensures accounts persist across Render free tier restarts.
+    """
+    default_accounts = [
+        {"email": "akaya@aevel.com", "password": "change123"},
+        {"email": "lucas@aevel.com", "password": "change123"},
+    ]
+    
+    conn = get_db()
+    for account in default_accounts:
+        try:
+            # Check if user already exists
+            existing = conn.execute(
+                "SELECT id FROM users WHERE email = ?", 
+                (account["email"],)
+            ).fetchone()
+            
+            if not existing:
+                conn.execute(
+                    "INSERT INTO users (email, password_hash) VALUES (?, ?)",
+                    (account["email"], generate_password_hash(account["password"]))
+                )
+                conn.commit()
+                logger.info(f"Created default account: {account['email']}")
+        except sqlite3.IntegrityError:
+            pass  # Account already exists
+        except Exception as e:
+            logger.error(f"Failed to create default account {account['email']}: {e}")
+    conn.close()
+
+
+# Create default accounts on startup
+seed_default_accounts()
+
+
 def login_required(f):
     """Decorator to require login."""
     @wraps(f)
