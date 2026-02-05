@@ -1,5 +1,134 @@
 {% extends "base_aevel.html" %}
 {% block title %}Data Pipeline{% endblock %}
+{% block head %}
+<style>
+/* Agent Reports Styles */
+.agent-reports-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.agent-report-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.agent-report-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: rgba(255,255,255,0.02);
+  border-bottom: 1px solid var(--border);
+}
+
+.agent-report-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.agent-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.agent-badge--success { background: rgba(16, 185, 129, 0.15); color: #10b981; }
+.agent-badge--warning { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+.agent-badge--error { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+
+.agent-subtitle {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+
+.agent-status {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.agent-status--success { color: #10b981; }
+.agent-status--warning { color: #f59e0b; }
+.agent-status--error { color: #ef4444; }
+
+.agent-report-body {
+  padding: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.report-section {
+  flex: 1;
+  min-width: 200px;
+  padding: 0.75rem;
+  background: rgba(255,255,255,0.02);
+  border-radius: 6px;
+}
+
+.report-section strong {
+  display: block;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-tertiary);
+  margin-bottom: 0.5rem;
+}
+
+.report-section ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 0.8125rem;
+}
+
+.report-section ul li {
+  padding: 0.25rem 0;
+  color: var(--text-secondary);
+}
+
+.report-section p {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.report-section--error {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.report-section--error ul li {
+  color: #ef4444;
+}
+
+.section-subtitle {
+  font-size: 0.875rem;
+  color: var(--text-tertiary);
+  margin-top: -0.5rem;
+  margin-bottom: 1rem;
+}
+
+/* Step skipped state */
+.pipeline-step.step-skipped {
+  opacity: 0.5;
+}
+
+.pipeline-step.step-skipped .step-status-indicator {
+  background: var(--text-tertiary);
+}
+</style>
+{% endblock %}
 {% block content %}
 
 <!-- ═══════════════════════════════════════════════════════════════════════════
@@ -227,8 +356,8 @@
     <div class="pipeline-step" data-step="ingest">
       <div class="step-status-indicator"></div>
       <div class="step-content">
-        <div class="step-name">Ingest</div>
-        <div class="step-desc">Load raw data from source</div>
+        <div class="step-name">INGEST</div>
+        <div class="step-desc">The Data Collector</div>
         <div class="step-meta">
           <span class="step-duration" style="display:none;">—</span>
           <span class="step-status">Pending</span>
@@ -240,8 +369,8 @@
     <div class="pipeline-step" data-step="clean">
       <div class="step-status-indicator"></div>
       <div class="step-content">
-        <div class="step-name">Clean</div>
-        <div class="step-desc">Validate and normalize</div>
+        <div class="step-name">CLEAN</div>
+        <div class="step-desc">The Data Sanitizer</div>
         <div class="step-meta">
           <span class="step-duration" style="display:none;">—</span>
           <span class="step-status">Pending</span>
@@ -253,8 +382,8 @@
     <div class="pipeline-step" data-step="analyze">
       <div class="step-status-indicator"></div>
       <div class="step-content">
-        <div class="step-name">Analyze</div>
-        <div class="step-desc">Compute metrics and aggregates</div>
+        <div class="step-name">ANALYZE</div>
+        <div class="step-desc">The Intelligence Engine</div>
         <div class="step-meta">
           <span class="step-duration" style="display:none;">—</span>
           <span class="step-status">Pending</span>
@@ -266,8 +395,8 @@
     <div class="pipeline-step" data-step="report">
       <div class="step-status-indicator"></div>
       <div class="step-content">
-        <div class="step-name">Report</div>
-        <div class="step-desc">Generate report payload</div>
+        <div class="step-name">REPORT</div>
+        <div class="step-desc">The Story Architect</div>
         <div class="step-meta">
           <span class="step-duration" style="display:none;">—</span>
           <span class="step-status">Pending</span>
@@ -279,8 +408,8 @@
     <div class="pipeline-step" data-step="deliver">
       <div class="step-status-indicator"></div>
       <div class="step-content">
-        <div class="step-name">Deliver</div>
-        <div class="step-desc">Send to webhook or artifact</div>
+        <div class="step-name">DELIVER</div>
+        <div class="step-desc">The Final Mile</div>
         <div class="step-meta">
           <span class="step-duration" style="display:none;">—</span>
           <span class="step-status">Pending</span>
@@ -363,7 +492,19 @@
 </section>
 
 <!-- ═══════════════════════════════════════════════════════════════════════════
-     7. OUTPUT & DOWNLOADS
+     7. AGENT REPORTS
+     ═══════════════════════════════════════════════════════════════════════════ -->
+<section class="section pipeline-section" id="agent-reports-section" style="display:none;">
+  <h2 class="section-title">Agent Reports</h2>
+  <p class="section-subtitle">Detailed output from each agent in the pipeline</p>
+  
+  <div class="agent-reports-grid" id="agent-reports-container">
+    <!-- Agent report cards will be inserted here -->
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     8. OUTPUT & DOWNLOADS
      ═══════════════════════════════════════════════════════════════════════════ -->
 <section class="section pipeline-section" id="outputs-section" style="display:none;">
   <h2 class="section-title">Outputs</h2>
@@ -741,10 +882,11 @@
     .then(function(r) { return r.json(); })
     .then(function(data) {
       var ok = data.pipeline_exit === 0;
-      var duration = ((Date.now() - startTime) / 1000).toFixed(2);
+      var duration = data.duration ? data.duration.toFixed(2) : ((Date.now() - startTime) / 1000).toFixed(2);
+      var agents = data.agents || {};
       
-      // Simulate step completion for visualization
-      simulateStepCompletion(enabledSteps, ok, function() {
+      // Use real agent data to update step visualization
+      updateStepsFromAgents(enabledSteps, agents, function() {
         state.isRunning = false;
         els.runBtn.disabled = false;
         els.runBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg> Run Pipeline';
@@ -768,6 +910,9 @@
           showOutputs(data);
         }
         
+        // Show agent reports
+        showAgentReports(agents);
+        
         showToast(ok ? 'Pipeline completed' : 'Pipeline had errors', ok ? 'success' : 'error');
       });
     })
@@ -780,7 +925,7 @@
     });
   }
   
-  function simulateStepCompletion(steps, allOk, callback) {
+  function updateStepsFromAgents(steps, agents, callback) {
     var i = 0;
     function nextStep() {
       if (i >= steps.length) {
@@ -789,27 +934,220 @@
       }
       var step = steps[i];
       var stepEl = document.querySelector('.pipeline-step[data-step="' + step + '"]');
+      var agentReport = agents[step] || {};
+      var agentStatus = agentReport.status || 'unknown';
+      var agentName = agentReport.agent || step.toUpperCase();
+      
       stepEl.classList.add('step-running');
       stepEl.querySelector('.step-status').textContent = 'Running';
-      addLog('info', 'Step: ' + step + ' started');
+      addLog('info', agentName + ' Agent started');
       
       setTimeout(function() {
-        var isLastStep = i === steps.length - 1;
-        var stepOk = allOk || !isLastStep;
+        var stepOk = agentStatus === 'success' || agentStatus === 'partial';
         
         stepEl.classList.remove('step-running');
-        stepEl.classList.add(stepOk ? 'step-completed' : 'step-failed');
-        stepEl.querySelector('.step-status').textContent = stepOk ? 'Completed' : 'Failed';
-        stepEl.querySelector('.step-duration').textContent = (Math.random() * 2 + 0.5).toFixed(2) + 's';
+        stepEl.classList.add(stepOk ? 'step-completed' : (agentStatus === 'skipped' ? 'step-skipped' : 'step-failed'));
+        stepEl.querySelector('.step-status').textContent = stepOk ? 'Completed' : (agentStatus === 'skipped' ? 'Skipped' : 'Failed');
+        
+        // Show real duration if available
+        if (agentReport.completed_at && agentReport.started_at) {
+          var start = new Date(agentReport.started_at).getTime();
+          var end = new Date(agentReport.completed_at).getTime();
+          var dur = ((end - start) / 1000).toFixed(2);
+          stepEl.querySelector('.step-duration').textContent = dur + 's';
+        } else {
+          stepEl.querySelector('.step-duration').textContent = '—';
+        }
         stepEl.querySelector('.step-duration').style.display = 'inline';
         
-        addLog(stepOk ? 'success' : 'error', 'Step: ' + step + ' ' + (stepOk ? 'completed' : 'failed'));
+        // Log agent findings
+        if (stepOk) {
+          addLog('success', agentName + ' Agent completed');
+          logAgentHighlights(step, agentReport);
+        } else if (agentStatus === 'skipped') {
+          addLog('warn', agentName + ' Agent skipped');
+        } else {
+          addLog('error', agentName + ' Agent failed');
+          if (agentReport.error) addLog('error', '  Error: ' + agentReport.error);
+        }
         
         i++;
         nextStep();
-      }, 400 + Math.random() * 600);
+      }, 300);
     }
     nextStep();
+  }
+  
+  function logAgentHighlights(step, report) {
+    // Log key findings from each agent
+    if (step === 'ingest' && report.data_inventory) {
+      var inv = report.data_inventory;
+      addLog('info', '  → Dataset: ' + (inv.dataset_name || 'unknown') + ' (' + (inv.size_rows || 0) + ' rows)');
+      if (report.ingestion_issues && report.ingestion_issues.potential_risks && report.ingestion_issues.potential_risks.length) {
+        report.ingestion_issues.potential_risks.forEach(function(r) {
+          addLog('warn', '  → Risk: ' + r);
+        });
+      }
+    }
+    if (step === 'clean' && report.cleaning_summary) {
+      var cs = report.cleaning_summary;
+      addLog('info', '  → Rows: ' + cs.total_rows_before + ' → ' + cs.total_rows_after);
+      if (report.assumptions_decisions && report.assumptions_decisions.assumptions_made) {
+        report.assumptions_decisions.assumptions_made.forEach(function(a) {
+          addLog('info', '  → Assumption: ' + a);
+        });
+      }
+    }
+    if (step === 'analyze' && report.key_findings) {
+      report.key_findings.slice(0, 2).forEach(function(f) {
+        addLog('info', '  → ' + (f.finding || ''));
+      });
+    }
+    if (step === 'report' && report.executive_summary) {
+      addLog('info', '  → Report generated');
+    }
+    if (step === 'deliver' && report.delivery_confirmation) {
+      var dc = report.delivery_confirmation;
+      addLog('info', '  → Delivery: ' + (dc.status || 'unknown'));
+      if (dc.details) {
+        dc.details.forEach(function(d) { addLog('info', '    ' + d); });
+      }
+    }
+  }
+  
+  function showAgentReports(agents) {
+    var reportsSection = document.getElementById('agent-reports-section');
+    if (!reportsSection) return;
+    
+    reportsSection.style.display = 'block';
+    var container = document.getElementById('agent-reports-container');
+    if (!container) return;
+    
+    var html = '';
+    var stepOrder = ['ingest', 'clean', 'analyze', 'report', 'deliver'];
+    var agentLabels = {
+      ingest: { name: 'INGEST', title: 'Data Collector' },
+      clean: { name: 'CLEAN', title: 'Data Sanitizer' },
+      analyze: { name: 'ANALYZE', title: 'Intelligence Engine' },
+      report: { name: 'REPORT', title: 'Story Architect' },
+      deliver: { name: 'DELIVER', title: 'Final Mile' }
+    };
+    
+    stepOrder.forEach(function(step) {
+      var report = agents[step];
+      if (!report || report.status === 'skipped') return;
+      
+      var label = agentLabels[step];
+      var statusClass = report.status === 'success' ? 'success' : report.status === 'partial' ? 'warning' : 'error';
+      
+      html += '<div class="agent-report-card">';
+      html += '<div class="agent-report-header">';
+      html += '<div class="agent-report-title">';
+      html += '<span class="agent-badge agent-badge--' + statusClass + '">' + label.name + '</span>';
+      html += '<span class="agent-subtitle">' + label.title + '</span>';
+      html += '</div>';
+      html += '<span class="agent-status agent-status--' + statusClass + '">' + (report.status || 'unknown') + '</span>';
+      html += '</div>';
+      html += '<div class="agent-report-body">';
+      html += renderAgentReportContent(step, report);
+      html += '</div>';
+      html += '</div>';
+    });
+    
+    container.innerHTML = html || '<p class="text-secondary">No agent reports available.</p>';
+  }
+  
+  function renderAgentReportContent(step, report) {
+    var html = '';
+    
+    if (step === 'ingest') {
+      if (report.data_inventory) {
+        var inv = report.data_inventory;
+        html += '<div class="report-section"><strong>Data Inventory</strong><ul>';
+        html += '<li>Dataset: ' + escapeHtml(inv.dataset_name || 'N/A') + '</li>';
+        html += '<li>Source: ' + escapeHtml((inv.source || '').substring(0, 50)) + '</li>';
+        html += '<li>Format: ' + escapeHtml(inv.format || 'N/A') + '</li>';
+        html += '<li>Rows: ' + (inv.size_rows || 0) + '</li>';
+        html += '</ul></div>';
+      }
+      if (report.structure_summary && report.structure_summary.columns && report.structure_summary.columns.length) {
+        html += '<div class="report-section"><strong>Columns</strong><p>' + report.structure_summary.columns.slice(0, 10).join(', ') + '</p></div>';
+      }
+      if (report.ingestion_issues) {
+        var issues = report.ingestion_issues;
+        if (issues.confirmed_issues && issues.confirmed_issues.length) {
+          html += '<div class="report-section report-section--error"><strong>Issues</strong><ul>';
+          issues.confirmed_issues.forEach(function(i) { html += '<li>' + escapeHtml(i) + '</li>'; });
+          html += '</ul></div>';
+        }
+      }
+    }
+    
+    if (step === 'clean') {
+      if (report.cleaning_summary) {
+        var cs = report.cleaning_summary;
+        html += '<div class="report-section"><strong>Cleaning Summary</strong><ul>';
+        html += '<li>Rows before: ' + cs.total_rows_before + '</li>';
+        html += '<li>Rows after: ' + cs.total_rows_after + '</li>';
+        html += '</ul></div>';
+      }
+      if (report.cleaning_actions) {
+        var ca = report.cleaning_actions;
+        html += '<div class="report-section"><strong>Actions</strong><ul>';
+        (ca.missing_data_handling || []).forEach(function(a) { html += '<li>' + escapeHtml(a) + '</li>'; });
+        (ca.duplicates_handling || []).forEach(function(a) { html += '<li>' + escapeHtml(a) + '</li>'; });
+        html += '</ul></div>';
+      }
+    }
+    
+    if (step === 'analyze') {
+      if (report.key_findings && report.key_findings.length) {
+        html += '<div class="report-section"><strong>Key Findings</strong><ul>';
+        report.key_findings.forEach(function(f) {
+          html += '<li><strong>' + escapeHtml(f.finding || '') + '</strong></li>';
+        });
+        html += '</ul></div>';
+      }
+      if (report.handoff && report.handoff.visuals_recommended) {
+        html += '<div class="report-section"><strong>Recommended Visuals</strong><ul>';
+        report.handoff.visuals_recommended.forEach(function(v) { html += '<li>' + escapeHtml(v) + '</li>'; });
+        html += '</ul></div>';
+      }
+    }
+    
+    if (step === 'report') {
+      if (report.executive_summary) {
+        html += '<div class="report-section"><strong>Executive Summary</strong><p style="white-space:pre-wrap;">' + escapeHtml(report.executive_summary.substring(0, 500)) + '</p></div>';
+      }
+      if (report.key_insights && report.key_insights.length) {
+        html += '<div class="report-section"><strong>Insights</strong><ul>';
+        report.key_insights.slice(0, 3).forEach(function(ins) {
+          html += '<li>' + escapeHtml(ins.insight || '') + '</li>';
+        });
+        html += '</ul></div>';
+      }
+    }
+    
+    if (step === 'deliver') {
+      if (report.final_assets && report.final_assets.files_produced) {
+        html += '<div class="report-section"><strong>Files Produced</strong><ul>';
+        report.final_assets.files_produced.forEach(function(f) {
+          html += '<li>' + escapeHtml(f.filename || '') + ' (' + escapeHtml(f.format || '') + ')</li>';
+        });
+        html += '</ul></div>';
+      }
+      if (report.delivery_confirmation) {
+        var dc = report.delivery_confirmation;
+        html += '<div class="report-section"><strong>Delivery Status</strong><p>' + escapeHtml(dc.status || 'N/A') + '</p></div>';
+      }
+    }
+    
+    return html || '<p class="text-secondary">No details available.</p>';
+  }
+  
+  // Legacy function kept for backward compatibility
+  function simulateStepCompletion(steps, allOk, callback) {
+    updateStepsFromAgents(steps, {}, callback);
   }
   
   // ═══════════════════════════════════════════════════════════════════════════
