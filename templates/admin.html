@@ -33,6 +33,17 @@
   <span id="admin-custom-status" class="text-secondary admin-status" style="margin-left: 0.75rem;"></span>
 </div>
 
+<div class="card" style="max-width: 720px; margin-bottom: 1.5rem;">
+  <h2 style="margin-top:0;">Password reset link</h2>
+  <p class="text-secondary">If forgot-password didn't send an email (e.g. Zoho not configured), generate a link here and send it to the user manually. Link is valid 1 hour.</p>
+  <div class="form-group">
+    <label for="admin-reset-email">User email</label>
+    <input type="email" id="admin-reset-email" class="input" placeholder="user@example.com">
+  </div>
+  <button type="button" id="admin-reset-link-btn" class="btn btn-secondary">Generate reset link</button>
+  <div id="admin-reset-link-result" class="text-secondary" style="margin-top: 0.75rem; word-break: break-all;"></div>
+</div>
+
 <div class="card" style="max-width: 720px;">
   <h2 style="margin-top:0;">Email types &amp; recipients</h2>
   <p class="text-secondary">Recipients comma-separated.</p>
@@ -204,6 +215,46 @@
       setStatus(statusEl, 'Network error. Check connection and try again.', true);
     }).finally(function() {
       document.getElementById('admin-custom-send').disabled = false;
+    });
+  });
+
+  document.getElementById('admin-reset-link-btn').addEventListener('click', function() {
+    var emailEl = document.getElementById('admin-reset-email');
+    var resultEl = document.getElementById('admin-reset-link-result');
+    var email = (emailEl && emailEl.value || '').trim();
+    if (!email) {
+      resultEl.textContent = 'Enter the user\'s email.';
+      resultEl.style.color = 'var(--color-danger, #c0392b)';
+      return;
+    }
+    resultEl.textContent = 'Generating…';
+    resultEl.style.color = '';
+    this.disabled = true;
+    fetch('/api/admin/password-reset-link', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email })
+    }).then(function(r) {
+      return r.json().then(function(res) {
+        if (r.status === 403) {
+          resultEl.textContent = res && res.error ? res.error : 'Session expired.';
+          resultEl.style.color = 'var(--color-danger, #c0392b)';
+          return;
+        }
+        if (r.ok && res && res.reset_url) {
+          resultEl.innerHTML = 'Link (valid 1 hour): <a href="' + res.reset_url + '" target="_blank" rel="noopener">' + res.reset_url + '</a>';
+          resultEl.style.color = '';
+        } else {
+          resultEl.textContent = (res && res.error) ? res.error : 'Failed to generate link.';
+          resultEl.style.color = 'var(--color-danger, #c0392b)';
+        }
+      });
+    }).catch(function() {
+      resultEl.textContent = 'Network error. Try again.';
+      resultEl.style.color = 'var(--color-danger, #c0392b)';
+    }).finally(function() {
+      document.getElementById('admin-reset-link-btn').disabled = false;
     });
   });
 

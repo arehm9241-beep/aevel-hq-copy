@@ -6,6 +6,7 @@ Zoho Mail (hello.aevel@zohomail.com) for notifications; admin area to control wh
 """
 
 import json
+import logging
 import os
 import sys
 import time
@@ -16,6 +17,8 @@ from functools import wraps
 from urllib.parse import urljoin
 
 from itsdangerous import URLSafeTimedSerializer, BadSignature
+
+logger = logging.getLogger(__name__)
 
 # Ensure project root on path
 ROOT = Path(__file__).resolve().parent
@@ -454,8 +457,11 @@ def forgot_password():
                     )
                     msg.html = f"<p>Use this link to set a new password (valid 1 hour):</p><p><a href=\"{reset_url}\">{reset_url}</a></p><p>If you didn't request this, ignore this email.</p>"
                     mail.send(msg)
-                except Exception:
-                    pass
+                    logger.info("Password reset email sent to %s", email)
+                except Exception as e:
+                    logger.exception("Password reset email failed for %s: %s", email, e)
+            else:
+                logger.warning("Password reset email not sent: ZOHO_EMAIL/ZOHO_PASSWORD not configured. Set them in Render env for forgot-password emails.")
             # Always show same message (don't reveal if email exists)
         conn.close()
         flash("If that email is registered, we sent a password reset link. Check your inbox.", "success")
@@ -581,6 +587,25 @@ def api_admin_send_now():
     if err:
         return jsonify({"ok": False, "message": "Send failed: " + err}), 200
     return jsonify({"ok": False, "message": "Not sent (enable this type and add recipients)."}), 200
+
+
+@app.route("/api/admin/password-reset-link", methods=["POST"])
+@admin_required
+def api_admin_password_reset_link():
+    """Generate a password reset link for a user (admin only). Use when email isn't configured or didn't send."""
+    data = request.get_json(silent=True) or {}
+    email = (data.get("email") or "").strip().lower()
+    if not email or "@" not in email:
+        return jsonify({"error": "Valid email required"}), 400
+    conn = get_db()
+    user = conn.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()
+    conn.close()
+    if not user:
+        return jsonify({"error": "No account with that email"}), 404
+    token = _make_reset_token(user["id"])
+    reset_url = urljoin(request.url_root, url_for("reset_password", token=token))
+    log_activity(get_user_id(), "admin_password_reset_link", details={"for_email": email})
+    return jsonify({"reset_url": reset_url, "expires_in_hours": 1}), 200
 
 
 @app.route("/api/admin/send-custom", methods=["POST"])
