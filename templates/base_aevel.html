@@ -130,6 +130,7 @@
 
       <div class="sidebar-footer">
         <div class="user-email">{{ session.get('user_email', '') }}</div>
+        <a href="{{ url_for('login') }}" class="btn-public-site" aria-label="View public site">View Public Site</a>
         <form method="POST" action="{{ url_for('logout') }}">
           <button type="submit" class="btn-logout">Sign out</button>
         </form>

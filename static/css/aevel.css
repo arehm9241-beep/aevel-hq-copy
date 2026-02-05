@@ -179,6 +179,39 @@ body {
 }
 .sidebar-footer .btn-logout:hover { color: var(--text); border-color: var(--border-strong); }
 
+.sidebar-footer .btn-public-site {
+  display: block;
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  margin-bottom: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  text-align: center;
+  text-decoration: none;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 250ms ease, color 250ms ease, border-color 250ms ease, transform 250ms ease;
+}
+.sidebar-footer .btn-public-site:hover {
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--text);
+  border-color: var(--border-strong);
+  transform: translateY(-1px);
+}
+.sidebar-footer .btn-public-site:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(160, 190, 255, 0.35);
+}
+.sidebar-footer .btn-public-site:focus:not(:focus-visible) {
+  box-shadow: none;
+}
+.sidebar-footer .btn-public-site:focus-visible {
+  box-shadow: 0 0 0 2px rgba(160, 190, 255, 0.35);
+}
+
 .main-content {
   flex: 1;
   min-width: 0;
