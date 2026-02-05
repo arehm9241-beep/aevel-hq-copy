@@ -897,6 +897,29 @@
   cursor: not-allowed;
 }
 
+/* Button disabled states */
+.modal-btn-primary:disabled,
+.schedule-add-btn:disabled,
+.action-apply-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Loading animation */
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+.schedule-empty-text {
+  animation: none;
+}
+
+.schedule-list.loading .schedule-empty-text {
+  animation: pulse-subtle 1.5s ease-in-out infinite;
+}
+
 /* ─────────────────────────────────────────────────────────────────────────────
    INLINE EDIT (Event in list)
    ───────────────────────────────────────────────────────────────────────────── */
@@ -1120,16 +1143,22 @@
   'use strict';
   
   // ═══════════════════════════════════════════════════════════════════════════
-  // STATE
+  // STATE — Single Source of Truth
   // ═══════════════════════════════════════════════════════════════════════════
   
   var monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   var dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  var current = new Date();
-  var events = [];
-  var selectedDate = null;
-  var editingEventId = null;
-  var searchQuery = '';
+  
+  var state = {
+    currentYear: new Date().getFullYear(),
+    currentMonth: new Date().getMonth(),
+    events: [],
+    selectedDate: null,
+    editingEventId: null,
+    searchQuery: '',
+    isLoading: false,
+    isSaving: false
+  };
   
   // DOM Elements
   var gridEl = document.getElementById('cal-grid');
@@ -1137,9 +1166,10 @@
   var listEl = document.getElementById('schedule-list');
   var modalEl = document.getElementById('event-modal');
   var actionPanel = document.getElementById('action-panel');
+  var saveBtn = document.getElementById('modal-save');
   
   // ═══════════════════════════════════════════════════════════════════════════
-  // API
+  // API with Loading States
   // ═══════════════════════════════════════════════════════════════════════════
   
   function api(method, path, body) {
@@ -1154,10 +1184,22 @@
   }
   
   function loadEvents() {
+    state.isLoading = true;
+    showLoadingState();
+    
     return api('GET', '/api/events').then(function(data) {
-      events = data.events || [];
-      return events;
+      state.events = data.events || [];
+      state.isLoading = false;
+      return state.events;
+    }).catch(function(err) {
+      state.isLoading = false;
+      console.error('Failed to load events:', err);
+      return [];
     });
+  }
+  
+  function showLoadingState() {
+    listEl.innerHTML = '<div class="schedule-empty"><p class="schedule-empty-text">Loading events...</p></div>';
   }
   
   // ═══════════════════════════════════════════════════════════════════════════
@@ -1168,21 +1210,37 @@
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   }
   
+  function getTodayStr() {
+    return toDateStr(new Date());
+  }
+  
   function escapeHtml(str) {
     var div = document.createElement('div');
     div.textContent = str || '';
     return div.innerHTML;
   }
   
+  function formatTime(timeStr) {
+    // Handle null, undefined, empty, or invalid time values
+    if (!timeStr || timeStr === 'null' || timeStr === 'undefined') return '';
+    // Validate time format (HH:MM)
+    if (!/^\d{2}:\d{2}$/.test(timeStr)) return '';
+    return timeStr;
+  }
+  
   function formatEventDate(dateStr) {
     if (!dateStr) return '';
-    var date = new Date(dateStr);
-    var today = new Date();
-    var todayStr = toDateStr(today);
+    
+    // Parse date correctly (YYYY-MM-DD format)
+    var parts = dateStr.split('-');
+    if (parts.length !== 3) return dateStr;
+    
+    var date = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+    var todayStr = getTodayStr();
     
     if (dateStr === todayStr) return 'Today';
     
-    var tomorrow = new Date(today);
+    var tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     if (dateStr === toDateStr(tomorrow)) return 'Tomorrow';
     
@@ -1196,14 +1254,48 @@
   }
   
   // ═══════════════════════════════════════════════════════════════════════════
+  // NAVIGATION — Updates All State Correctly
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  function navigateMonth(delta) {
+    var newMonth = state.currentMonth + delta;
+    var newYear = state.currentYear;
+    
+    if (newMonth > 11) {
+      newMonth = 0;
+      newYear++;
+    } else if (newMonth < 0) {
+      newMonth = 11;
+      newYear--;
+    }
+    
+    state.currentYear = newYear;
+    state.currentMonth = newMonth;
+    state.selectedDate = null; // Clear selection when changing months
+    
+    renderCalendar();
+  }
+  
+  function goToToday() {
+    var today = new Date();
+    state.currentYear = today.getFullYear();
+    state.currentMonth = today.getMonth();
+    state.selectedDate = getTodayStr();
+    
+    renderCalendar();
+    toast('Showing today');
+  }
+  
+  // ═══════════════════════════════════════════════════════════════════════════
   // RENDER CALENDAR GRID
   // ═══════════════════════════════════════════════════════════════════════════
   
   function renderCalendar() {
-    var y = current.getFullYear();
-    var m = current.getMonth();
-    var todayStr = toDateStr(new Date());
+    var y = state.currentYear;
+    var m = state.currentMonth;
+    var todayStr = getTodayStr();
     
+    // Update title
     titleEl.textContent = monthNames[m] + ' ' + y;
     
     var first = new Date(y, m, 1);
@@ -1213,7 +1305,7 @@
     
     // Build event map
     var eventByDate = {};
-    events.forEach(function(ev) {
+    state.events.forEach(function(ev) {
       if (ev.date) {
         if (!eventByDate[ev.date]) eventByDate[ev.date] = [];
         eventByDate[ev.date].push(ev);
@@ -1231,7 +1323,7 @@
     var prevMonth = new Date(y, m, 0);
     var prevDays = prevMonth.getDate();
     for (var i = 0; i < startDay; i++) {
-      html += '<div class="cal-cell other" data-date=""><div class="cal-cell-day"><span class="cal-day-num">' + (prevDays - startDay + i + 1) + '</span></div></div>';
+      html += '<div class="cal-cell other"><div class="cal-cell-day"><span class="cal-day-num">' + (prevDays - startDay + i + 1) + '</span></div></div>';
     }
     
     // Current month days
@@ -1239,23 +1331,24 @@
       var dateStr = y + '-' + String(m + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
       var dayEvents = (eventByDate[dateStr] || []).slice();
       
-      // Sort by time
+      // Sort by time (all-day first, then by time)
       dayEvents.sort(function(a, b) {
-        var ta = a.time_start || '00:00';
-        var tb = b.time_start || '00:00';
-        return ta.localeCompare(tb);
+        var timeA = formatTime(a.time_start) || '00:00';
+        var timeB = formatTime(b.time_start) || '00:00';
+        return timeA.localeCompare(timeB);
       });
       
       var isToday = dateStr === todayStr;
-      var isSelected = dateStr === selectedDate;
+      var isSelected = dateStr === state.selectedDate;
       var cls = 'cal-cell' + (isToday ? ' today' : '') + (isSelected ? ' selected' : '');
       
       var eventsHtml = '<div class="cal-events">';
       var maxVisible = 3;
       
       dayEvents.slice(0, maxVisible).forEach(function(ev) {
-        var timeStr = ev.time_start ? '<span class="cal-event-time">' + ev.time_start + '</span>' : '';
-        eventsHtml += '<div class="cal-event" draggable="true" data-id="' + ev.id + '">' + timeStr + escapeHtml(ev.title) + '</div>';
+        var time = formatTime(ev.time_start);
+        var timeHtml = time ? '<span class="cal-event-time">' + time + '</span>' : '';
+        eventsHtml += '<div class="cal-event" draggable="true" data-id="' + ev.id + '">' + timeHtml + escapeHtml(ev.title) + '</div>';
       });
       
       if (dayEvents.length > maxVisible) {
@@ -1267,7 +1360,7 @@
       html += '<div class="' + cls + '" data-date="' + dateStr + '">' +
         '<div class="cal-cell-day">' +
         '<span class="cal-day-num">' + d + '</span>' +
-        '<button type="button" class="cal-quick-add" data-date="' + dateStr + '"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>' +
+        '<button type="button" class="cal-quick-add" data-date="' + dateStr + '" aria-label="Add event on ' + dateStr + '"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>' +
         '</div>' +
         eventsHtml +
         '</div>';
@@ -1277,7 +1370,7 @@
     var total = startDay + daysInMonth;
     var rest = total % 7 ? 7 - (total % 7) : 0;
     for (var j = 0; j < rest; j++) {
-      html += '<div class="cal-cell other" data-date=""><div class="cal-cell-day"><span class="cal-day-num">' + (j + 1) + '</span></div></div>';
+      html += '<div class="cal-cell other"><div class="cal-cell-day"><span class="cal-day-num">' + (j + 1) + '</span></div></div>';
     }
     
     gridEl.innerHTML = html;
@@ -1290,39 +1383,63 @@
   // ═══════════════════════════════════════════════════════════════════════════
   
   function bindGridEvents() {
-    // Cell clicks
+    // Cell clicks (for days in current month)
     gridEl.querySelectorAll('.cal-cell:not(.other)').forEach(function(cell) {
       cell.addEventListener('click', function(e) {
         if (e.target.closest('.cal-event') || e.target.closest('.cal-quick-add')) return;
         var date = cell.dataset.date;
         if (date) {
-          selectedDate = date;
+          state.selectedDate = date;
+          renderCalendar(); // Re-render to show selection
           openModal(null, date);
         }
       });
       
-      // Drag over
+      // Drag and drop
       cell.addEventListener('dragover', function(e) {
         e.preventDefault();
         e.dataTransfer.dropEffect = 'move';
         cell.classList.add('drag-over');
       });
       
-      cell.addEventListener('dragleave', function() {
-        cell.classList.remove('drag-over');
+      cell.addEventListener('dragleave', function(e) {
+        // Only remove if we're actually leaving the cell
+        if (!cell.contains(e.relatedTarget)) {
+          cell.classList.remove('drag-over');
+        }
       });
       
       cell.addEventListener('drop', function(e) {
         e.preventDefault();
         cell.classList.remove('drag-over');
+        
         var eventId = e.dataTransfer.getData('text/plain');
         var newDate = cell.dataset.date;
-        if (eventId && newDate) {
-          api('PATCH', '/api/events/' + eventId, { date: newDate }).then(function() {
-            loadEvents().then(renderCalendar);
-            toast('Event moved');
-          });
+        
+        if (!eventId || !newDate) return;
+        
+        // Find the event to check if date actually changed
+        var event = state.events.find(function(ev) { return String(ev.id) === eventId; });
+        if (!event || event.date === newDate) {
+          // No change needed
+          gridEl.querySelectorAll('.drag-over').forEach(function(c) { c.classList.remove('drag-over'); });
+          return;
         }
+        
+        // Optimistically update UI
+        var oldDate = event.date;
+        event.date = newDate;
+        renderCalendar();
+        
+        // Persist to server
+        api('PATCH', '/api/events/' + eventId, { date: newDate }).then(function() {
+          toast('Event moved');
+        }).catch(function(err) {
+          // Rollback on error
+          event.date = oldDate;
+          renderCalendar();
+          toast('Failed to move event', 'error');
+        });
       });
     });
     
@@ -1331,28 +1448,38 @@
       btn.addEventListener('click', function(e) {
         e.stopPropagation();
         var date = btn.dataset.date;
-        openModal(null, date);
+        if (date) {
+          state.selectedDate = date;
+          openModal(null, date);
+        }
       });
     });
     
-    // Event drag
-    gridEl.querySelectorAll('.cal-event').forEach(function(ev) {
-      ev.addEventListener('dragstart', function(e) {
-        e.dataTransfer.setData('text/plain', ev.dataset.id);
+    // Event items - drag and click
+    gridEl.querySelectorAll('.cal-event').forEach(function(evEl) {
+      evEl.addEventListener('dragstart', function(e) {
+        e.dataTransfer.setData('text/plain', evEl.dataset.id);
         e.dataTransfer.effectAllowed = 'move';
-        ev.classList.add('dragging');
+        evEl.classList.add('dragging');
+        
+        // Add drag-over styling to valid drop targets
+        setTimeout(function() {
+          gridEl.querySelectorAll('.cal-cell:not(.other)').forEach(function(c) {
+            c.style.transition = 'background 0.15s ease';
+          });
+        }, 0);
       });
       
-      ev.addEventListener('dragend', function() {
-        ev.classList.remove('dragging');
+      evEl.addEventListener('dragend', function() {
+        evEl.classList.remove('dragging');
         gridEl.querySelectorAll('.drag-over').forEach(function(c) {
           c.classList.remove('drag-over');
         });
       });
       
-      ev.addEventListener('click', function(e) {
+      evEl.addEventListener('click', function(e) {
         e.stopPropagation();
-        var event = events.find(function(x) { return String(x.id) === ev.dataset.id; });
+        var event = state.events.find(function(x) { return String(x.id) === evEl.dataset.id; });
         if (event) {
           openModal(event);
         }
@@ -1361,36 +1488,56 @@
   }
   
   // ═══════════════════════════════════════════════════════════════════════════
-  // RENDER SCHEDULE LIST
+  // RENDER SCHEDULE LIST — Always Matches Selected Month
   // ═══════════════════════════════════════════════════════════════════════════
   
   function renderScheduleList() {
-    var y = current.getFullYear();
-    var m = current.getMonth();
-    var monthStr = String(m + 1).padStart(2, '0');
+    var y = state.currentYear;
+    var m = state.currentMonth;
+    var monthPrefix = y + '-' + String(m + 1).padStart(2, '0');
     
-    var filtered = events.filter(function(e) {
+    // Filter to current month
+    var filtered = state.events.filter(function(e) {
       if (!e.date) return false;
-      if (!e.date.startsWith(y + '-' + monthStr)) return false;
-      if (searchQuery) {
-        return (e.title || '').toLowerCase().indexOf(searchQuery.toLowerCase()) !== -1;
+      if (!e.date.startsWith(monthPrefix)) return false;
+      
+      // Case-insensitive search
+      if (state.searchQuery) {
+        var query = state.searchQuery.toLowerCase();
+        var title = (e.title || '').toLowerCase();
+        return title.indexOf(query) !== -1;
       }
       return true;
-    }).sort(function(a, b) {
-      var cmp = (a.date || '').localeCompare(b.date || '');
-      if (cmp) return cmp;
-      return (a.time_start || '00:00').localeCompare(b.time_start || '00:00');
     });
     
+    // Sort by date, then by time
+    filtered.sort(function(a, b) {
+      var dateCmp = (a.date || '').localeCompare(b.date || '');
+      if (dateCmp !== 0) return dateCmp;
+      var timeA = formatTime(a.time_start) || '99:99';
+      var timeB = formatTime(b.time_start) || '99:99';
+      return timeA.localeCompare(timeB);
+    });
+    
+    // Loading state
+    if (state.isLoading) {
+      listEl.innerHTML = '<div class="schedule-empty"><p class="schedule-empty-text">Loading events...</p></div>';
+      return;
+    }
+    
+    // Empty state
     if (filtered.length === 0) {
+      var emptyMsg = state.searchQuery ? 'No matching events.' : 'Your schedule is clear.';
       listEl.innerHTML = '<div class="schedule-empty">' +
-        '<p class="schedule-empty-text">' + (searchQuery ? 'No matching events.' : 'Your schedule is clear.') + '</p>' +
+        '<p class="schedule-empty-text">' + emptyMsg + '</p>' +
         '<p class="schedule-empty-hint">Add an event to start planning.</p></div>';
       return;
     }
     
+    // Render event list
     listEl.innerHTML = filtered.map(function(ev) {
-      var timeLabel = ev.time_start || 'All day';
+      var time = formatTime(ev.time_start);
+      var timeLabel = time || 'All day';
       
       return '<div class="schedule-event" data-id="' + ev.id + '">' +
         '<div class="schedule-event-indicator"></div>' +
@@ -1407,10 +1554,14 @@
     }).join('');
     
     // Bind list events
+    bindScheduleListEvents();
+  }
+  
+  function bindScheduleListEvents() {
     listEl.querySelectorAll('.schedule-event').forEach(function(item) {
       item.addEventListener('click', function(e) {
         if (e.target.closest('.schedule-event-btn')) return;
-        var event = events.find(function(x) { return String(x.id) === item.dataset.id; });
+        var event = state.events.find(function(x) { return String(x.id) === item.dataset.id; });
         if (event) openModal(event);
       });
     });
@@ -1418,7 +1569,7 @@
     listEl.querySelectorAll('.schedule-event-btn.edit').forEach(function(btn) {
       btn.addEventListener('click', function(e) {
         e.stopPropagation();
-        var event = events.find(function(x) { return String(x.id) === btn.dataset.id; });
+        var event = state.events.find(function(x) { return String(x.id) === btn.dataset.id; });
         if (event) openModal(event);
       });
     });
@@ -1426,60 +1577,71 @@
     listEl.querySelectorAll('.schedule-event-btn.delete').forEach(function(btn) {
       btn.addEventListener('click', function(e) {
         e.stopPropagation();
-        var id = btn.dataset.id;
-        if (confirm('Delete this event?')) {
-          api('DELETE', '/api/events/' + id).then(function() {
-            loadEvents().then(renderCalendar);
-            toast('Event deleted');
-          });
-        }
+        deleteEvent(btn.dataset.id);
       });
     });
   }
   
   // ═══════════════════════════════════════════════════════════════════════════
-  // MODAL
+  // MODAL — Proper Date Population & Validation
   // ═══════════════════════════════════════════════════════════════════════════
   
   function openModal(event, date) {
-    var titleEl = document.getElementById('modal-title');
-    var saveBtn = document.getElementById('modal-save');
+    var modalTitleEl = document.getElementById('modal-title');
     var formTitle = document.getElementById('event-title');
     var formDate = document.getElementById('event-date');
     var formTime = document.getElementById('event-time');
     var formNotes = document.getElementById('event-notes');
     var formId = document.getElementById('event-id');
     
+    // Reset saving state
+    state.isSaving = false;
+    saveBtn.disabled = false;
+    
     if (event) {
-      titleEl.textContent = 'Edit Event';
+      // Edit mode
+      modalTitleEl.textContent = 'Edit Event';
       saveBtn.textContent = 'Save Changes';
       formId.value = event.id;
       formTitle.value = event.title || '';
-      formDate.value = event.date || '';
-      formTime.value = event.time_start || '';
+      formDate.value = event.date || getTodayStr();
+      formTime.value = formatTime(event.time_start) || '';
       formNotes.value = event.notes || '';
-      editingEventId = event.id;
+      state.editingEventId = event.id;
     } else {
-      titleEl.textContent = 'Add Event';
+      // Create mode
+      modalTitleEl.textContent = 'Add Event';
       saveBtn.textContent = 'Add Event';
       formId.value = '';
       formTitle.value = '';
-      formDate.value = date || toDateStr(new Date());
+      // Use the provided date, or selected date, or today
+      formDate.value = date || state.selectedDate || getTodayStr();
       formTime.value = '';
       formNotes.value = '';
-      editingEventId = null;
+      state.editingEventId = null;
     }
     
     modalEl.classList.add('open');
-    formTitle.focus();
+    
+    // Focus title with slight delay for animation
+    setTimeout(function() {
+      formTitle.focus();
+      formTitle.select();
+    }, 100);
   }
   
   function closeModal() {
     modalEl.classList.remove('open');
-    editingEventId = null;
+    state.editingEventId = null;
+    state.isSaving = false;
+    saveBtn.disabled = false;
+    saveBtn.textContent = state.editingEventId ? 'Save Changes' : 'Add Event';
   }
   
   function saveEvent() {
+    // Prevent double-submission
+    if (state.isSaving) return;
+    
     var formTitle = document.getElementById('event-title');
     var formDate = document.getElementById('event-date');
     var formTime = document.getElementById('event-time');
@@ -1487,39 +1649,119 @@
     
     var title = (formTitle.value || '').trim();
     var date = formDate.value;
-    var time = formTime.value || null;
+    var time = (formTime.value || '').trim() || null;
     var notes = (formNotes.value || '').trim() || null;
     
-    if (!title || !date) {
-      toast('Title and date required', 'error');
+    // Validation
+    if (!title) {
+      toast('Please enter an event title', 'error');
+      formTitle.focus();
       return;
     }
+    
+    if (!date) {
+      toast('Please select a date', 'error');
+      formDate.focus();
+      return;
+    }
+    
+    // Validate time format if provided
+    if (time && !/^\d{2}:\d{2}$/.test(time)) {
+      toast('Invalid time format', 'error');
+      formTime.focus();
+      return;
+    }
+    
+    // Set saving state
+    state.isSaving = true;
+    saveBtn.disabled = true;
+    saveBtn.textContent = state.editingEventId ? 'Saving...' : 'Adding...';
     
     var payload = {
       title: title,
       date: date,
       notes: notes,
-      is_all_day: !time
+      is_all_day: !time,
+      time_start: time,
+      time_end: null
     };
-    if (time) payload.time_start = time;
     
+    var isEditing = !!state.editingEventId;
     var promise;
-    if (editingEventId) {
-      promise = api('PATCH', '/api/events/' + editingEventId, payload);
+    
+    if (isEditing) {
+      promise = api('PATCH', '/api/events/' + state.editingEventId, payload);
     } else {
       promise = api('POST', '/api/events', payload);
     }
     
-    promise.then(function() {
+    promise.then(function(result) {
       closeModal();
+      
+      // Update local state
+      if (isEditing) {
+        var idx = state.events.findIndex(function(e) { return String(e.id) === String(state.editingEventId); });
+        if (idx !== -1) {
+          state.events[idx] = Object.assign({}, state.events[idx], payload, { id: state.editingEventId });
+        }
+      } else if (result.id) {
+        state.events.push(Object.assign({}, payload, { id: result.id }));
+      }
+      
+      // Re-render
+      renderCalendar();
+      toast(isEditing ? 'Event updated' : 'Event added');
+      
+      // Reload to ensure consistency
       loadEvents().then(renderCalendar);
-      toast(editingEventId ? 'Event updated' : 'Event added');
+      
     }).catch(function(err) {
-      toast(err.message || 'Failed to save', 'error');
+      state.isSaving = false;
+      saveBtn.disabled = false;
+      saveBtn.textContent = isEditing ? 'Save Changes' : 'Add Event';
+      toast(err.message || 'Failed to save event', 'error');
     });
   }
   
-  // Modal event listeners
+  function deleteEvent(id) {
+    var event = state.events.find(function(e) { return String(e.id) === String(id); });
+    var title = event ? event.title : 'this event';
+    
+    if (!confirm('Delete "' + title + '"?')) return;
+    
+    // Optimistically remove from UI
+    var idx = state.events.findIndex(function(e) { return String(e.id) === String(id); });
+    var removed = idx !== -1 ? state.events.splice(idx, 1)[0] : null;
+    renderCalendar();
+    
+    api('DELETE', '/api/events/' + id).then(function() {
+      toast('Event deleted');
+    }).catch(function(err) {
+      // Rollback on error
+      if (removed) {
+        state.events.push(removed);
+        renderCalendar();
+      }
+      toast('Failed to delete event', 'error');
+    });
+  }
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // EVENT LISTENERS
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  // Navigation
+  document.getElementById('cal-prev').addEventListener('click', function() {
+    navigateMonth(-1);
+  });
+  
+  document.getElementById('cal-next').addEventListener('click', function() {
+    navigateMonth(1);
+  });
+  
+  document.getElementById('cal-today').addEventListener('click', goToToday);
+  
+  // Modal controls
   document.getElementById('modal-close').addEventListener('click', closeModal);
   document.getElementById('modal-cancel').addEventListener('click', closeModal);
   document.getElementById('modal-save').addEventListener('click', saveEvent);
@@ -1527,41 +1769,40 @@
     openModal(null);
   });
   
-  // Keyboard shortcuts
-  document.addEventListener('keydown', function(e) {
-    if (modalEl.classList.contains('open')) {
-      if (e.key === 'Escape') closeModal();
-      if (e.key === 'Enter' && e.ctrlKey) saveEvent();
-    }
-  });
-  
+  // Click outside modal to close
   modalEl.addEventListener('click', function(e) {
     if (e.target === modalEl) closeModal();
   });
   
-  // ═══════════════════════════════════════════════════════════════════════════
-  // NAVIGATION
-  // ═══════════════════════════════════════════════════════════════════════════
-  
-  document.getElementById('cal-prev').addEventListener('click', function() {
-    current.setMonth(current.getMonth() - 1);
-    renderCalendar();
+  // Keyboard shortcuts
+  document.addEventListener('keydown', function(e) {
+    if (modalEl.classList.contains('open')) {
+      if (e.key === 'Escape') {
+        closeModal();
+      } else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        saveEvent();
+      }
+    }
   });
   
-  document.getElementById('cal-next').addEventListener('click', function() {
-    current.setMonth(current.getMonth() + 1);
-    renderCalendar();
+  // Enter key in title field to save
+  document.getElementById('event-title').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      saveEvent();
+    }
   });
   
-  document.getElementById('cal-today').addEventListener('click', function() {
-    current = new Date();
-    renderCalendar();
-  });
-  
-  // Search
+  // Search with debounce
+  var searchTimeout = null;
   document.getElementById('schedule-search').addEventListener('input', function() {
-    searchQuery = this.value;
-    renderScheduleList();
+    var value = this.value;
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(function() {
+      state.searchQuery = value;
+      renderScheduleList();
+    }, 150);
   });
   
   // ═══════════════════════════════════════════════════════════════════════════
@@ -1575,11 +1816,12 @@
     dropdown.classList.toggle('open');
   });
   
-  document.addEventListener('click', function() {
-    dropdown.classList.remove('open');
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('.cal-actions-dropdown')) {
+      dropdown.classList.remove('open');
+    }
   });
   
-  // Action Panel
   function showActionPanel(title, content) {
     document.getElementById('action-panel-title').textContent = title;
     document.getElementById('action-panel-content').innerHTML = content;
@@ -1596,11 +1838,9 @@
   document.getElementById('action-optimize').addEventListener('click', function() {
     dropdown.classList.remove('open');
     
-    var y = current.getFullYear();
-    var m = current.getMonth();
-    var monthStr = String(m + 1).padStart(2, '0');
-    var inMonth = events.filter(function(e) {
-      return e.date && e.date.startsWith(y + '-' + monthStr);
+    var monthPrefix = state.currentYear + '-' + String(state.currentMonth + 1).padStart(2, '0');
+    var inMonth = state.events.filter(function(e) {
+      return e.date && e.date.startsWith(monthPrefix);
     });
     
     if (inMonth.length === 0) {
@@ -1631,10 +1871,17 @@
           if (btn.dataset.time) payload.time_start = btn.dataset.time;
           else payload.is_all_day = true;
           
+          btn.disabled = true;
+          btn.textContent = 'Applying...';
+          
           api('PATCH', '/api/events/' + btn.dataset.id, payload).then(function() {
             btn.closest('li').remove();
             loadEvents().then(renderCalendar);
             toast('Applied');
+          }).catch(function() {
+            btn.disabled = false;
+            btn.textContent = 'Apply';
+            toast('Failed to apply', 'error');
           });
         });
       });
@@ -1648,14 +1895,16 @@
     dropdown.classList.remove('open');
     showActionPanel('Week Summary', '<p style="color: var(--text-muted);">Generating summary...</p>');
     
+    var current = new Date(state.currentYear, state.currentMonth, 1);
     var weekStart = new Date(current);
     weekStart.setDate(weekStart.getDate() - weekStart.getDay());
     var weekEnd = new Date(weekStart);
     weekEnd.setDate(weekEnd.getDate() + 6);
     
-    var inWeek = events.filter(function(e) {
+    var inWeek = state.events.filter(function(e) {
       if (!e.date) return false;
-      var d = new Date(e.date);
+      var parts = e.date.split('-');
+      var d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
       return d >= weekStart && d <= weekEnd;
     });
     
@@ -1676,14 +1925,15 @@
     );
     
     document.getElementById('extract-btn').addEventListener('click', function() {
+      var btn = this;
       var text = document.getElementById('extract-text').value.trim();
       if (!text) {
         toast('Enter some text first', 'error');
         return;
       }
       
-      this.disabled = true;
-      this.textContent = 'Extracting...';
+      btn.disabled = true;
+      btn.textContent = 'Extracting...';
       
       api('POST', '/api/ai/calendar/extract', { text: text }).then(function(data) {
         var extracted = data.events || [];
@@ -1700,19 +1950,29 @@
         html += '</ul>';
         showActionPanel('Create from Text', html);
         
-        actionPanel.querySelectorAll('.action-apply-btn').forEach(function(btn) {
-          btn.addEventListener('click', function() {
-            var idx = parseInt(btn.dataset.idx);
-            var ev = extracted[idx];
-            if (!ev) return;
+        // Store extracted events for adding
+        window._extractedEvents = extracted;
+        
+        actionPanel.querySelectorAll('.action-apply-btn').forEach(function(addBtn) {
+          addBtn.addEventListener('click', function() {
+            var idx = parseInt(addBtn.dataset.idx);
+            var ev = window._extractedEvents[idx];
+            if (!ev || !ev.date || !ev.title) return;
+            
+            addBtn.disabled = true;
+            addBtn.textContent = 'Adding...';
             
             var payload = { date: ev.date, title: ev.title };
             if (ev.time_start) payload.time_start = ev.time_start;
             
             api('POST', '/api/events', payload).then(function() {
-              btn.closest('li').remove();
+              addBtn.closest('li').remove();
               loadEvents().then(renderCalendar);
               toast('Event added');
+            }).catch(function() {
+              addBtn.disabled = false;
+              addBtn.textContent = 'Add';
+              toast('Failed to add event', 'error');
             });
           });
         });
@@ -1726,7 +1986,16 @@
   // INITIALIZE
   // ═══════════════════════════════════════════════════════════════════════════
   
-  loadEvents().then(renderCalendar);
+  // Set initial selected date to today
+  state.selectedDate = getTodayStr();
+  
+  // Load events and render
+  loadEvents().then(function() {
+    renderCalendar();
+  }).catch(function() {
+    // Still render empty calendar on error
+    renderCalendar();
+  });
   
 })();
 </script>
