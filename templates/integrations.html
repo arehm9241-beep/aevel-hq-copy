@@ -1,71 +1,1594 @@
 {% extends "base_aevel.html" %}
 {% block title %}Integrations{% endblock %}
-{% block content %}
-<div class="page-header">
-  <h1>Integrations</h1>
-  <p class="subtitle">AI and external services</p>
-</div>
 
-<section class="section">
-  <h2 class="section-title">AI</h2>
-  <div class="card">
-    <div class="card-title">Routing & formatting</div>
-    <p style="margin: 0 0 1rem; font-size: 0.9375rem; color: var(--text-secondary);">AI is used only for request routing and output formatting. No business logic or calculations. Set GEMINI_API_KEY in environment to enable.</p>
-    <label class="toggle-wrap">
-      <span class="toggle-label">AI-assisted routing</span>
-      <input type="checkbox" id="ai-toggle" class="toggle-input" checked>
-      <span class="toggle-slider"></span>
-    </label>
-  </div>
-</section>
+{% block head %}
+<style>
+/* ═══════════════════════════════════════════════════════════════════════════
+   INTEGRATIONS & AUTOMATION — Mission Control Center
+   How Aevel connects to the outside world
+   ═══════════════════════════════════════════════════════════════════════════ */
 
-<section class="section">
-  <h2 class="section-title">Query</h2>
-  <div class="card">
-    <form id="ai-form">
-      <div class="form-group">
-        <label>Ask for route or summary</label>
-        <textarea class="textarea" id="ai-input" placeholder="e.g. Run full pipeline / Summarize last report" rows="3" aria-describedby="ai-output"></textarea>
-      </div>
-      <div style="display: flex; gap: 0.5rem; align-items: center;">
-        <button type="submit" class="btn btn-primary">Send</button>
-        <button type="button" class="btn btn-ghost" id="ai-clear">Clear</button>
-      </div>
-    </form>
-    <div id="ai-output" style="margin-top: 1rem; padding: 1rem; background: var(--bg-elevated); border-radius: var(--radius-sm); font-size: 0.875rem; color: var(--text-secondary); min-height: 60px; white-space: pre-wrap;"></div>
-  </div>
-</section>
+.integrations-page {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: var(--space-5);
+}
 
-<section class="section">
-  <h2 class="section-title">Delivery</h2>
-  <div class="card">
-    <div class="card-title">Webhook</div>
-    <p style="margin: 0; font-size: 0.9375rem; color: var(--text-secondary);">Configure DELIVERY_WEBHOOK_URL in environment to POST report payloads to an external endpoint.</p>
-  </div>
-</section>
+/* ─────────────────────────────────────────────────────────────────────────────
+   1. OVERVIEW HEADER
+   ───────────────────────────────────────────────────────────────────────────── */
+.integrations-header {
+  margin-bottom: var(--space-6);
+  padding-bottom: var(--space-5);
+  border-bottom: 1px solid var(--border);
+}
+
+.integrations-header h1 {
+  font-size: 24px;
+  font-weight: var(--weight-semibold);
+  color: var(--text);
+  letter-spacing: -0.02em;
+  margin: 0 0 var(--space-1) 0;
+}
+
+.integrations-subtitle {
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
+  margin: 0 0 var(--space-4) 0;
+}
+
+.status-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-raised);
+  border-radius: var(--radius-sm);
+}
+
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.status-dot.active { background: #78A878; }
+.status-dot.inactive { background: #A87878; }
+.status-dot.warning { background: #A89878; }
+
+.status-label {
+  color: var(--text-muted);
+}
+
+.status-value {
+  font-weight: var(--weight-medium);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   2. SECTION STYLING
+   ───────────────────────────────────────────────────────────────────────────── */
+.integration-section {
+  margin-bottom: var(--space-6);
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-4);
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.section-title h2 {
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+  color: var(--text);
+  margin: 0;
+}
+
+.section-badge {
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: var(--weight-medium);
+  border-radius: var(--radius-full);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.section-badge.active {
+  background: rgba(120, 168, 120, 0.15);
+  color: #78A878;
+}
+
+.section-badge.inactive {
+  background: rgba(168, 120, 120, 0.15);
+  color: #A87878;
+}
+
+.section-badge.beta {
+  background: rgba(168, 144, 120, 0.15);
+  color: #A89078;
+}
+
+.section-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+/* Integration Card */
+.integration-card {
+  background: var(--bg-raised);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  margin-bottom: var(--space-4);
+}
+
+.integration-card:last-child {
+  margin-bottom: 0;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-overlay);
+}
+
+.card-header-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.card-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-muted);
+  border-radius: var(--radius-sm);
+}
+
+.card-icon svg {
+  width: 20px;
+  height: 20px;
+  color: var(--accent);
+}
+
+.card-title-group h3 {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text);
+  margin: 0 0 2px 0;
+}
+
+.card-title-group p {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.card-body {
+  padding: var(--space-4);
+}
+
+/* Config Row */
+.config-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.config-row:last-child {
+  border-bottom: none;
+}
+
+.config-label {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.config-value {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.config-value code {
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-xs);
+  font-family: monospace;
+  background: var(--bg);
+  border-radius: var(--radius-xs);
+  color: var(--text-muted);
+}
+
+/* Button Styles */
+.int-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.int-btn-primary {
+  color: var(--bg);
+  background: var(--accent);
+  border: none;
+}
+
+.int-btn-primary:hover {
+  opacity: 0.9;
+}
+
+.int-btn-secondary {
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid var(--border);
+}
+
+.int-btn-secondary:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+.int-btn-ghost {
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  padding: var(--space-1) var(--space-2);
+}
+
+.int-btn-ghost:hover {
+  color: var(--text-secondary);
+}
+
+.int-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.int-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Toggle */
+.toggle-wrap {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  cursor: pointer;
+}
+
+.toggle-label {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.toggle-input {
+  display: none;
+}
+
+.toggle-slider {
+  width: 36px;
+  height: 20px;
+  background: var(--bg-overlay);
+  border-radius: var(--radius-full);
+  position: relative;
+  transition: background 0.2s ease;
+}
+
+.toggle-slider::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  background: var(--text-muted);
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.toggle-input:checked + .toggle-slider {
+  background: var(--accent);
+}
+
+.toggle-input:checked + .toggle-slider::after {
+  left: 18px;
+  background: var(--bg);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   3. AI CAPABILITIES CHECKLIST
+   ───────────────────────────────────────────────────────────────────────────── */
+.capabilities-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border);
+}
+
+@media (max-width: 700px) {
+  .capabilities-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.capability-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+.capability-check {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(120, 168, 120, 0.15);
+  border-radius: var(--radius-xs);
+  color: #78A878;
+  font-size: 10px;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   4. AI COMMAND CONSOLE
+   ───────────────────────────────────────────────────────────────────────────── */
+.command-console {
+  background: var(--bg-raised);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.console-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-overlay);
+}
+
+.console-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.console-title h3 {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text);
+  margin: 0;
+}
+
+.ai-badge {
+  padding: 2px 6px;
+  font-size: 9px;
+  font-weight: var(--weight-semibold);
+  background: var(--accent);
+  color: var(--bg);
+  border-radius: var(--radius-full);
+  text-transform: uppercase;
+}
+
+.console-body {
+  padding: var(--space-4);
+}
+
+.command-input-wrap {
+  position: relative;
+  margin-bottom: var(--space-4);
+}
+
+.command-input {
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  resize: none;
+  min-height: 80px;
+  line-height: 1.5;
+}
+
+.command-input::placeholder {
+  color: var(--text-muted);
+}
+
+.command-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.command-examples {
+  margin-bottom: var(--space-4);
+}
+
+.examples-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: var(--space-2);
+}
+
+.example-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.example-chip {
+  padding: var(--space-1) var(--space-2);
+  font-size: 11px;
+  color: var(--text-muted);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.example-chip:hover {
+  color: var(--text-secondary);
+  border-color: var(--border-strong);
+}
+
+.command-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+  padding: var(--space-3);
+  background: var(--bg);
+  border-radius: var(--radius-sm);
+}
+
+.option-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.option-label {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.option-select {
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+}
+
+.command-actions {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.console-output {
+  margin-top: var(--space-4);
+  padding: var(--space-4);
+  background: var(--bg);
+  border-radius: var(--radius-sm);
+  border-left: 2px solid var(--accent);
+  min-height: 80px;
+  display: none;
+}
+
+.console-output.visible {
+  display: block;
+}
+
+.output-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-3);
+}
+
+.output-title {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  color: var(--text);
+}
+
+.output-meta {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.output-content {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   5. DELIVERY CARDS GRID
+   ───────────────────────────────────────────────────────────────────────────── */
+.delivery-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-4);
+}
+
+@media (max-width: 700px) {
+  .delivery-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.delivery-card {
+  background: var(--bg-raised);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  padding: var(--space-4);
+  transition: border-color 0.15s ease;
+}
+
+.delivery-card:hover {
+  border-color: var(--border-strong);
+}
+
+.delivery-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--space-3);
+}
+
+.delivery-card-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.delivery-card-title h4 {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text);
+  margin: 0;
+}
+
+.delivery-card-title svg {
+  width: 16px;
+  height: 16px;
+  color: var(--accent);
+}
+
+.delivery-status {
+  padding: 2px 6px;
+  font-size: 9px;
+  font-weight: var(--weight-medium);
+  border-radius: var(--radius-full);
+  text-transform: uppercase;
+}
+
+.delivery-status.configured {
+  background: rgba(120, 168, 120, 0.15);
+  color: #78A878;
+}
+
+.delivery-status.not-configured {
+  background: rgba(140, 140, 140, 0.15);
+  color: #8A8A8A;
+}
+
+.delivery-card-body {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  margin-bottom: var(--space-3);
+}
+
+.delivery-card-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border);
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   6. EXTERNAL CONNECTORS
+   ───────────────────────────────────────────────────────────────────────────── */
+.connectors-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3);
+}
+
+@media (max-width: 700px) {
+  .connectors-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.connector-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-4);
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  text-align: center;
+  transition: all 0.15s ease;
+  cursor: default;
+}
+
+.connector-card.coming-soon {
+  opacity: 0.6;
+}
+
+.connector-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-overlay);
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--space-3);
+}
+
+.connector-icon svg {
+  width: 20px;
+  height: 20px;
+  color: var(--text-muted);
+}
+
+.connector-name {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text);
+  margin-bottom: var(--space-1);
+}
+
+.connector-status {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.connector-status.soon {
+  color: var(--accent);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   7. AUDIT LOG
+   ───────────────────────────────────────────────────────────────────────────── */
+.audit-log {
+  background: var(--bg-raised);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.audit-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-overlay);
+  border-bottom: 1px solid var(--border);
+}
+
+.audit-title {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text);
+}
+
+.audit-body {
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+.audit-entry {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border);
+}
+
+.audit-entry:last-child {
+  border-bottom: none;
+}
+
+.audit-time {
+  font-size: 10px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  min-width: 70px;
+}
+
+.audit-content {
+  flex: 1;
+}
+
+.audit-action {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+.audit-user {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.audit-outcome {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: var(--radius-full);
+}
+
+.audit-outcome.success {
+  background: rgba(120, 168, 120, 0.15);
+  color: #78A878;
+}
+
+.audit-outcome.error {
+  background: rgba(168, 120, 120, 0.15);
+  color: #A87878;
+}
+
+.audit-empty {
+  padding: var(--space-6);
+  text-align: center;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   8. PERMISSIONS PANEL
+   ───────────────────────────────────────────────────────────────────────────── */
+.permissions-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+}
+
+@media (max-width: 600px) {
+  .permissions-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.permission-card {
+  padding: var(--space-4);
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.permission-card h4 {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text);
+  margin: 0 0 var(--space-3) 0;
+}
+
+.permission-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.permission-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+.permission-badge {
+  padding: 1px 6px;
+  font-size: 9px;
+  border-radius: var(--radius-full);
+}
+
+.permission-badge.admin {
+  background: rgba(168, 144, 120, 0.15);
+  color: #A89078;
+}
+
+.permission-badge.team {
+  background: rgba(120, 144, 168, 0.15);
+  color: #7890A8;
+}
+
+/* Loading */
+.loading-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+</style>
 {% endblock %}
+
+{% block content %}
+<div class="integrations-page">
+  
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       1. OVERVIEW HEADER
+       ═══════════════════════════════════════════════════════════════════════ -->
+  <header class="integrations-header">
+    <h1>Integrations & Automation</h1>
+    <p class="integrations-subtitle">Connect Aevel to AI, data sources, and delivery endpoints</p>
+    
+    <div class="status-bar">
+      <div class="status-item">
+        <span class="status-dot" id="status-ai-dot"></span>
+        <span class="status-label">AI:</span>
+        <span class="status-value" id="status-ai">Checking...</span>
+      </div>
+      <div class="status-item">
+        <span class="status-dot" id="status-webhook-dot"></span>
+        <span class="status-label">Webhooks:</span>
+        <span class="status-value" id="status-webhook">Not configured</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">Last delivery:</span>
+        <span class="status-value" id="status-delivery">—</span>
+      </div>
+      <div class="status-item">
+        <span class="status-dot active" id="status-errors-dot"></span>
+        <span class="status-label">Errors:</span>
+        <span class="status-value" id="status-errors">None</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       SECTION 1: AI ENGINE (GEMINI)
+       ═══════════════════════════════════════════════════════════════════════ -->
+  <section class="integration-section">
+    <div class="section-header">
+      <div class="section-title">
+        <h2>AI Engine</h2>
+        <span class="section-badge" id="ai-status-badge">Checking</span>
+      </div>
+      <div class="section-actions">
+        <label class="toggle-wrap">
+          <span class="toggle-label">Enable AI</span>
+          <input type="checkbox" id="ai-toggle" class="toggle-input" checked>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </div>
+    
+    <div class="integration-card">
+      <div class="card-header">
+        <div class="card-header-left">
+          <div class="card-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/>
+              <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+          </div>
+          <div class="card-title-group">
+            <h3>Google Gemini</h3>
+            <p>AI-powered intelligence for summaries, routing, and insights</p>
+          </div>
+        </div>
+        <button class="int-btn int-btn-secondary" id="test-ai-btn">Test Connection</button>
+      </div>
+      
+      <div class="card-body">
+        <p style="font-size: var(--text-xs); color: var(--text-muted); margin: 0 0 var(--space-4) 0; line-height: 1.5;">
+          Aevel uses AI for summarization, routing, drafting, optimization suggestions, and report narration.
+          <strong>AI does not modify raw data or calculations.</strong>
+        </p>
+        
+        <div class="config-row">
+          <span class="config-label">Model</span>
+          <span class="config-value">Gemini 2.5 Flash</span>
+        </div>
+        <div class="config-row">
+          <span class="config-label">Status</span>
+          <span class="config-value" id="ai-connection-status">
+            <span class="status-dot" id="ai-conn-dot"></span>
+            <span id="ai-conn-text">Checking...</span>
+          </span>
+        </div>
+        <div class="config-row">
+          <span class="config-label">Environment Variable</span>
+          <span class="config-value"><code>GEMINI_API_KEY</code> <span id="ai-key-status">(checking...)</span></span>
+        </div>
+        <div class="config-row">
+          <span class="config-label">Usage Today</span>
+          <span class="config-value" id="ai-usage">— requests</span>
+        </div>
+        
+        <!-- AI Capabilities -->
+        <div class="capabilities-grid">
+          <div class="capability-item">
+            <span class="capability-check">✓</span>
+            <span>Summarize reports</span>
+          </div>
+          <div class="capability-item">
+            <span class="capability-check">✓</span>
+            <span>Extract insights</span>
+          </div>
+          <div class="capability-item">
+            <span class="capability-check">✓</span>
+            <span>Draft emails</span>
+          </div>
+          <div class="capability-item">
+            <span class="capability-check">✓</span>
+            <span>Route commands</span>
+          </div>
+          <div class="capability-item">
+            <span class="capability-check">✓</span>
+            <span>Generate narratives</span>
+          </div>
+          <div class="capability-item">
+            <span class="capability-check">✓</span>
+            <span>Suggest optimizations</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       SECTION 2: AI COMMAND CONSOLE
+       ═══════════════════════════════════════════════════════════════════════ -->
+  <section class="integration-section">
+    <div class="section-header">
+      <div class="section-title">
+        <h2>AI Command Console</h2>
+        <span class="ai-badge">AI</span>
+      </div>
+    </div>
+    
+    <div class="command-console">
+      <div class="console-header">
+        <div class="console-title">
+          <h3>Command Input</h3>
+        </div>
+        <span style="font-size: var(--text-xs); color: var(--text-muted);">Commands are parsed and routed to internal modules</span>
+      </div>
+      
+      <div class="console-body">
+        <div class="command-examples">
+          <div class="examples-label">Example commands</div>
+          <div class="example-chips">
+            <button class="example-chip" data-cmd="Summarize latest pipeline run">Summarize pipeline</button>
+            <button class="example-chip" data-cmd="Generate executive summary of last report">Executive summary</button>
+            <button class="example-chip" data-cmd="Draft email based on analytics insights">Draft email</button>
+            <button class="example-chip" data-cmd="Explain drop in conversions this week">Explain trends</button>
+          </div>
+        </div>
+        
+        <div class="command-input-wrap">
+          <textarea class="command-input" id="ai-input" placeholder="Enter a command... e.g., 'Summarize the latest report' or 'What changed this week?'" rows="3"></textarea>
+        </div>
+        
+        <div class="command-options">
+          <div class="option-group">
+            <span class="option-label">Execution:</span>
+            <select class="option-select" id="exec-mode">
+              <option value="preview">Preview only</option>
+              <option value="run">Run immediately</option>
+            </select>
+          </div>
+          <div class="option-group">
+            <span class="option-label">Output to:</span>
+            <select class="option-select" id="output-target">
+              <option value="screen">Screen</option>
+              <option value="report">New Report</option>
+              <option value="email">Email Draft</option>
+              <option value="task">New Task</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="command-actions">
+          <button class="int-btn int-btn-secondary" id="ai-clear">Clear</button>
+          <button class="int-btn int-btn-primary" id="ai-send">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="22" y1="2" x2="11" y2="13"/>
+              <polygon points="22,2 15,22 11,13 2,9 22,2"/>
+            </svg>
+            Send Command
+          </button>
+        </div>
+        
+        <div class="console-output" id="ai-output">
+          <div class="output-header">
+            <span class="output-title">Response</span>
+            <span class="output-meta" id="output-meta"></span>
+          </div>
+          <div class="output-content" id="output-content"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       SECTION 3: DATA DELIVERY & OUTPUTS
+       ═══════════════════════════════════════════════════════════════════════ -->
+  <section class="integration-section">
+    <div class="section-header">
+      <div class="section-title">
+        <h2>Data Delivery & Outputs</h2>
+      </div>
+    </div>
+    
+    <div class="delivery-grid">
+      <!-- Webhook -->
+      <div class="delivery-card">
+        <div class="delivery-card-header">
+          <div class="delivery-card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/>
+              <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>
+            </svg>
+            <h4>Webhook</h4>
+          </div>
+          <span class="delivery-status not-configured" id="webhook-status">Not Configured</span>
+        </div>
+        <p class="delivery-card-body">POST report payloads to an external endpoint. Set DELIVERY_WEBHOOK_URL in environment.</p>
+        <div class="delivery-card-meta">
+          <span>Last used: Never</span>
+          <button class="int-btn int-btn-ghost" id="test-webhook">Test</button>
+        </div>
+      </div>
+      
+      <!-- CSV Export -->
+      <div class="delivery-card">
+        <div class="delivery-card-header">
+          <div class="delivery-card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+              <polyline points="14,2 14,8 20,8"/>
+            </svg>
+            <h4>CSV Export</h4>
+          </div>
+          <span class="delivery-status configured">Available</span>
+        </div>
+        <p class="delivery-card-body">Export reports and analytics data as CSV files for spreadsheet analysis.</p>
+        <div class="delivery-card-meta">
+          <span>Always available</span>
+          <a href="/api/notes/export?format=csv" class="int-btn int-btn-ghost" download>Download</a>
+        </div>
+      </div>
+      
+      <!-- JSON Payload -->
+      <div class="delivery-card">
+        <div class="delivery-card-header">
+          <div class="delivery-card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="16,18 22,12 16,6"/>
+              <polyline points="8,6 2,12 8,18"/>
+            </svg>
+            <h4>JSON Payload</h4>
+          </div>
+          <span class="delivery-status configured">Available</span>
+        </div>
+        <p class="delivery-card-body">Structured JSON data for API integrations and programmatic access.</p>
+        <div class="delivery-card-meta">
+          <span>Via API endpoints</span>
+          <button class="int-btn int-btn-ghost">Docs</button>
+        </div>
+      </div>
+      
+      <!-- Internal Save -->
+      <div class="delivery-card">
+        <div class="delivery-card-header">
+          <div class="delivery-card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/>
+              <polyline points="17,21 17,13 7,13 7,21"/>
+              <polyline points="7,3 7,8 15,8"/>
+            </svg>
+            <h4>Internal Reports</h4>
+          </div>
+          <span class="delivery-status configured">Active</span>
+        </div>
+        <p class="delivery-card-body">Save generated reports directly to the Reports workspace for team access.</p>
+        <div class="delivery-card-meta">
+          <span>Default output</span>
+          <a href="/reports" class="int-btn int-btn-ghost">View Reports</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       SECTION 4: EXTERNAL SYSTEMS (FUTURE-READY)
+       ═══════════════════════════════════════════════════════════════════════ -->
+  <section class="integration-section">
+    <div class="section-header">
+      <div class="section-title">
+        <h2>External Systems</h2>
+        <span class="section-badge beta">Coming Soon</span>
+      </div>
+    </div>
+    
+    <div class="connectors-grid">
+      <div class="connector-card coming-soon">
+        <div class="connector-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+            <line x1="3" y1="9" x2="21" y2="9"/>
+            <line x1="9" y1="21" x2="9" y2="9"/>
+          </svg>
+        </div>
+        <div class="connector-name">Google Sheets</div>
+        <div class="connector-status soon">Coming soon</div>
+      </div>
+      
+      <div class="connector-card coming-soon">
+        <div class="connector-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14.5 10c-.83 0-1.5-.67-1.5-1.5v-5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5z"/>
+            <path d="M20.5 10H19V8.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
+            <path d="M9.5 14c.83 0 1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5S8 21.33 8 20.5v-5c0-.83.67-1.5 1.5-1.5z"/>
+            <path d="M3.5 14H5v1.5c0 .83-.67 1.5-1.5 1.5S2 16.33 2 15.5 2.67 14 3.5 14z"/>
+            <path d="M14 14.5c0-.83.67-1.5 1.5-1.5h5c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5h-5c-.83 0-1.5-.67-1.5-1.5z"/>
+            <path d="M15.5 19H14v1.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5-.67-1.5-1.5-1.5z"/>
+            <path d="M10 9.5C10 8.67 9.33 8 8.5 8h-5C2.67 8 2 8.67 2 9.5S2.67 11 3.5 11h5c.83 0 1.5-.67 1.5-1.5z"/>
+            <path d="M8.5 5H10V3.5C10 2.67 9.33 2 8.5 2S7 2.67 7 3.5 7.67 5 8.5 5z"/>
+          </svg>
+        </div>
+        <div class="connector-name">Slack</div>
+        <div class="connector-status soon">Coming soon</div>
+      </div>
+      
+      <div class="connector-card coming-soon">
+        <div class="connector-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+            <polyline points="22,6 12,13 2,6"/>
+          </svg>
+        </div>
+        <div class="connector-name">Email (SMTP)</div>
+        <div class="connector-status soon">Coming soon</div>
+      </div>
+      
+      <div class="connector-card coming-soon">
+        <div class="connector-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 4h16v16H4z"/>
+            <path d="M9 9h6v6H9z"/>
+            <line x1="9" y1="1" x2="9" y2="4"/>
+            <line x1="15" y1="1" x2="15" y2="4"/>
+            <line x1="9" y1="20" x2="9" y2="23"/>
+            <line x1="15" y1="20" x2="15" y2="23"/>
+            <line x1="20" y1="9" x2="23" y2="9"/>
+            <line x1="20" y1="14" x2="23" y2="14"/>
+            <line x1="1" y1="9" x2="4" y2="9"/>
+            <line x1="1" y1="14" x2="4" y2="14"/>
+          </svg>
+        </div>
+        <div class="connector-name">Notion</div>
+        <div class="connector-status soon">Coming soon</div>
+      </div>
+      
+      <div class="connector-card coming-soon">
+        <div class="connector-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 00-3-3.87"/>
+            <path d="M16 3.13a4 4 0 010 7.75"/>
+          </svg>
+        </div>
+        <div class="connector-name">CRM</div>
+        <div class="connector-status soon">Coming soon</div>
+      </div>
+      
+      <div class="connector-card coming-soon">
+        <div class="connector-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+            <line x1="8" y1="21" x2="16" y2="21"/>
+            <line x1="12" y1="17" x2="12" y2="21"/>
+          </svg>
+        </div>
+        <div class="connector-name">Zapier</div>
+        <div class="connector-status soon">Coming soon</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       SECTION 5: SECURITY & PERMISSIONS
+       ═══════════════════════════════════════════════════════════════════════ -->
+  <section class="integration-section">
+    <div class="section-header">
+      <div class="section-title">
+        <h2>Security & Permissions</h2>
+      </div>
+    </div>
+    
+    <div class="permissions-grid">
+      <div class="permission-card">
+        <h4>Integration Access</h4>
+        <div class="permission-list">
+          <div class="permission-item">
+            <span>Configure AI settings</span>
+            <span class="permission-badge admin">Admin only</span>
+          </div>
+          <div class="permission-item">
+            <span>Use AI commands</span>
+            <span class="permission-badge team">All team</span>
+          </div>
+          <div class="permission-item">
+            <span>Manage webhooks</span>
+            <span class="permission-badge admin">Admin only</span>
+          </div>
+          <div class="permission-item">
+            <span>Export data</span>
+            <span class="permission-badge team">All team</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="permission-card">
+        <h4>Data Access</h4>
+        <div class="permission-list">
+          <div class="permission-item">
+            <span>View all reports</span>
+            <span class="permission-badge team">All team</span>
+          </div>
+          <div class="permission-item">
+            <span>Edit team settings</span>
+            <span class="permission-badge admin">Admin only</span>
+          </div>
+          <div class="permission-item">
+            <span>Delete reports</span>
+            <span class="permission-badge admin">Admin only</span>
+          </div>
+          <div class="permission-item">
+            <span>View audit log</span>
+            <span class="permission-badge admin">Admin only</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Audit Log -->
+    <div class="audit-log" style="margin-top: var(--space-4);">
+      <div class="audit-header">
+        <span class="audit-title">Recent Activity</span>
+        <button class="int-btn int-btn-ghost" id="refresh-audit">Refresh</button>
+      </div>
+      <div class="audit-body" id="audit-body">
+        <div class="audit-empty">No recent integration activity</div>
+      </div>
+    </div>
+  </section>
+
+</div>
+{% endblock %}
+
 {% block scripts %}
 <script>
 (function() {
-  var storage = localStorage.getItem('blast_ai_enabled');
-  var toggle = document.getElementById('ai-toggle');
-  if (toggle) toggle.checked = storage !== 'false';
-  toggle.addEventListener('change', function() { localStorage.setItem('blast_ai_enabled', toggle.checked ? 'true' : 'false'); });
-  var out = document.getElementById('ai-output');
-  var aiInput = document.getElementById('ai-input');
-  document.getElementById('ai-form').addEventListener('submit', function(e) {
-    e.preventDefault();
-    var text = (aiInput.value || '').trim();
-    if (!text) return;
-    out.textContent = 'Loading…';
-    out.setAttribute('aria-busy', 'true');
-    fetch('/api/ai/query', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query: text }) })
+  'use strict';
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // UTILITIES
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  function escapeHtml(str) {
+    var div = document.createElement('div');
+    div.textContent = str || '';
+    return div.innerHTML;
+  }
+  
+  function apiRequest(method, path, body) {
+    var opts = { method: method, credentials: 'same-origin', headers: {} };
+    if (body !== undefined) {
+      opts.headers['Content-Type'] = 'application/json';
+      opts.body = JSON.stringify(body);
+    }
+    return fetch(path, opts).then(function(r) {
+      return r.json().then(function(data) {
+        if (!r.ok) throw new Error((data && data.error) || 'Request failed');
+        return data;
+      });
+    });
+  }
+  
+  function showToast(msg, type) {
+    if (typeof Aevel !== 'undefined' && Aevel.toast) {
+      Aevel.toast(msg, type);
+    }
+  }
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // CHECK AI STATUS
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  function checkAIStatus() {
+    fetch('/health', { credentials: 'same-origin' })
       .then(function(r) { return r.json(); })
-      .then(function(d) { out.textContent = d.message || JSON.stringify(d, null, 2); out.removeAttribute('aria-busy'); })
-      .catch(function(err) { out.textContent = 'Error: ' + (err.message || 'Request failed'); out.removeAttribute('aria-busy'); });
+      .then(function(data) {
+        var aiStatus = data.gemini_api;
+        var isConfigured = aiStatus === 'configured';
+        
+        // Update status bar
+        var aiDot = document.getElementById('status-ai-dot');
+        var aiText = document.getElementById('status-ai');
+        aiDot.className = 'status-dot ' + (isConfigured ? 'active' : 'inactive');
+        aiText.textContent = isConfigured ? 'Enabled' : 'Not configured';
+        
+        // Update AI section
+        var badge = document.getElementById('ai-status-badge');
+        badge.textContent = isConfigured ? 'Active' : 'Inactive';
+        badge.className = 'section-badge ' + (isConfigured ? 'active' : 'inactive');
+        
+        var connDot = document.getElementById('ai-conn-dot');
+        var connText = document.getElementById('ai-conn-text');
+        connDot.className = 'status-dot ' + (isConfigured ? 'active' : 'inactive');
+        connText.textContent = isConfigured ? 'Connected' : 'Missing key';
+        
+        var keyStatus = document.getElementById('ai-key-status');
+        keyStatus.textContent = isConfigured ? '(configured)' : '(not set)';
+        keyStatus.style.color = isConfigured ? '#78A878' : '#A87878';
+      })
+      .catch(function() {
+        document.getElementById('status-ai').textContent = 'Error';
+        document.getElementById('status-ai-dot').className = 'status-dot inactive';
+      });
+  }
+  
+  checkAIStatus();
+  
+  // Test AI connection
+  document.getElementById('test-ai-btn').addEventListener('click', function() {
+    var btn = this;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="loading-spinner"></span>';
+    
+    apiRequest('POST', '/api/ai/query', { query: 'test connection' })
+      .then(function(data) {
+        showToast('AI connection successful', 'success');
+        checkAIStatus();
+      })
+      .catch(function(err) {
+        showToast('AI connection failed: ' + err.message, 'error');
+      })
+      .finally(function() {
+        btn.disabled = false;
+        btn.textContent = 'Test Connection';
+      });
   });
-  var clearBtn = document.getElementById('ai-clear');
-  if (clearBtn) clearBtn.addEventListener('click', function() { out.textContent = ''; if (aiInput) aiInput.value = ''; });
+  
+  // AI toggle
+  var aiToggle = document.getElementById('ai-toggle');
+  var aiEnabled = localStorage.getItem('blast_ai_enabled');
+  aiToggle.checked = aiEnabled !== 'false';
+  
+  aiToggle.addEventListener('change', function() {
+    localStorage.setItem('blast_ai_enabled', aiToggle.checked ? 'true' : 'false');
+    showToast(aiToggle.checked ? 'AI enabled' : 'AI disabled', 'success');
+  });
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // AI COMMAND CONSOLE
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  var aiInput = document.getElementById('ai-input');
+  var aiOutput = document.getElementById('ai-output');
+  var outputContent = document.getElementById('output-content');
+  var outputMeta = document.getElementById('output-meta');
+  
+  // Example chips
+  document.querySelectorAll('.example-chip').forEach(function(chip) {
+    chip.addEventListener('click', function() {
+      aiInput.value = chip.getAttribute('data-cmd');
+      aiInput.focus();
+    });
+  });
+  
+  // Send command
+  document.getElementById('ai-send').addEventListener('click', function() {
+    var text = (aiInput.value || '').trim();
+    if (!text) {
+      showToast('Enter a command', 'error');
+      return;
+    }
+    
+    var btn = this;
+    btn.disabled = true;
+    var originalHtml = btn.innerHTML;
+    btn.innerHTML = '<span class="loading-spinner"></span> Processing...';
+    
+    var startTime = Date.now();
+    
+    apiRequest('POST', '/api/ai/query', { query: text })
+      .then(function(data) {
+        var elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
+        outputContent.textContent = data.message || JSON.stringify(data, null, 2);
+        outputMeta.textContent = elapsed + 's';
+        aiOutput.classList.add('visible');
+        
+        // Handle output target
+        var target = document.getElementById('output-target').value;
+        if (target !== 'screen' && data.message) {
+          handleOutputTarget(target, data.message, text);
+        }
+      })
+      .catch(function(err) {
+        outputContent.textContent = 'Error: ' + (err.message || 'Request failed');
+        outputMeta.textContent = 'Failed';
+        aiOutput.classList.add('visible');
+      })
+      .finally(function() {
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
+        logActivity('ai_command', text);
+      });
+  });
+  
+  function handleOutputTarget(target, content, command) {
+    if (target === 'report') {
+      apiRequest('POST', '/api/reports', {
+        title: 'AI Generated: ' + command.substring(0, 50),
+        body: JSON.stringify({ sections: { 'executive-summary': content } }),
+        report_type: 'insight'
+      }).then(function() {
+        showToast('Saved to Reports', 'success');
+      });
+    } else if (target === 'task') {
+      apiRequest('POST', '/api/tasks', {
+        title: command.substring(0, 100),
+        description: content,
+        status: 'todo'
+      }).then(function() {
+        showToast('Created as Task', 'success');
+      });
+    } else if (target === 'email') {
+      showToast('Email draft feature coming soon', 'info');
+    }
+  }
+  
+  // Clear
+  document.getElementById('ai-clear').addEventListener('click', function() {
+    aiInput.value = '';
+    aiOutput.classList.remove('visible');
+    outputContent.textContent = '';
+  });
+  
+  // Enter to send
+  aiInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      document.getElementById('ai-send').click();
+    }
+  });
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // AUDIT LOG
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  var auditLog = [];
+  
+  function logActivity(action, details) {
+    var entry = {
+      time: new Date().toISOString(),
+      action: action,
+      details: details,
+      outcome: 'success'
+    };
+    auditLog.unshift(entry);
+    if (auditLog.length > 20) auditLog.pop();
+    renderAuditLog();
+  }
+  
+  function renderAuditLog() {
+    var body = document.getElementById('audit-body');
+    
+    if (auditLog.length === 0) {
+      body.innerHTML = '<div class="audit-empty">No recent integration activity</div>';
+      return;
+    }
+    
+    body.innerHTML = auditLog.slice(0, 10).map(function(entry) {
+      var time = new Date(entry.time);
+      var timeStr = time.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+      var actionLabel = entry.action.replace(/_/g, ' ');
+      
+      return '<div class="audit-entry">' +
+        '<span class="audit-time">' + timeStr + '</span>' +
+        '<div class="audit-content">' +
+        '<div class="audit-action">' + escapeHtml(actionLabel) + '</div>' +
+        '<div class="audit-user">' + escapeHtml((entry.details || '').substring(0, 50)) + '</div>' +
+        '</div>' +
+        '<span class="audit-outcome ' + entry.outcome + '">' + entry.outcome + '</span>' +
+        '</div>';
+    }).join('');
+  }
+  
+  document.getElementById('refresh-audit').addEventListener('click', renderAuditLog);
+  
+  // Load from localStorage
+  try {
+    var savedLog = localStorage.getItem('aevel_audit_log');
+    if (savedLog) auditLog = JSON.parse(savedLog);
+    renderAuditLog();
+  } catch (e) {}
+  
+  // Save audit log periodically
+  setInterval(function() {
+    try {
+      localStorage.setItem('aevel_audit_log', JSON.stringify(auditLog.slice(0, 50)));
+    } catch (e) {}
+  }, 5000);
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // WEBHOOK TEST
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  document.getElementById('test-webhook').addEventListener('click', function() {
+    showToast('Webhook not configured. Set DELIVERY_WEBHOOK_URL in environment.', 'info');
+    logActivity('webhook_test', 'Test attempted (not configured)');
+  });
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // INITIAL LOG ENTRY
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  logActivity('page_view', 'Integrations page loaded');
+  
 })();
 </script>
 {% endblock %}
