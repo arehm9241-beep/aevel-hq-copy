@@ -1,105 +1,766 @@
 {% extends "base_aevel.html" %}
 {% block title %}Dashboard{% endblock %}
+
+{% block head %}
+<style>
+/* ═══════════════════════════════════════════════════════════════════════════
+   PREMIUM DASHBOARD STYLES
+   Apple-level premium, calm, intentional design
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Dashboard Layout */
+.dashboard-premium {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-5);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   A. TOP HEADER - Minimal, Calm
+   ───────────────────────────────────────────────────────────────────────────── */
+.dash-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--space-8);
+  padding-bottom: var(--space-5);
+  border-bottom: 1px solid var(--border);
+}
+
+.dash-header-left h1 {
+  font-size: 24px;
+  font-weight: var(--weight-semibold);
+  color: var(--text);
+  letter-spacing: -0.02em;
+  margin: 0 0 var(--space-1) 0;
+}
+
+.dash-header-left .dash-subtitle {
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
+  margin: 0;
+}
+
+.dash-header-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.dash-date-selector {
+  display: flex;
+  background: var(--bg-raised);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+  gap: 2px;
+}
+
+.dash-date-btn {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.dash-date-btn:hover {
+  color: var(--text-secondary);
+}
+
+.dash-date-btn.active {
+  background: var(--bg-overlay);
+  color: var(--text);
+}
+
+.dash-ai-brief-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.dash-ai-brief-btn:hover {
+  color: var(--text-secondary);
+  border-color: var(--border-strong);
+}
+
+.dash-ai-brief-btn .ai-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--accent);
+  border-radius: 50%;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   B. PRIMARY INSIGHT ZONE - Meaningful Cards
+   ───────────────────────────────────────────────────────────────────────────── */
+.dash-insights {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-4);
+  margin-bottom: var(--space-8);
+}
+
+@media (max-width: 900px) {
+  .dash-insights {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 500px) {
+  .dash-insights {
+    grid-template-columns: 1fr;
+  }
+}
+
+.insight-card {
+  background: var(--bg-raised);
+  border-radius: var(--radius);
+  padding: var(--space-5);
+  position: relative;
+  overflow: hidden;
+  transition: background 0.2s ease;
+}
+
+.insight-card:hover {
+  background: var(--bg-overlay);
+}
+
+.insight-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--accent);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.insight-card:hover::before {
+  opacity: 1;
+}
+
+.insight-label {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: var(--space-2);
+}
+
+.insight-value {
+  font-size: 28px;
+  font-weight: var(--weight-semibold);
+  color: var(--text);
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  margin-bottom: var(--space-1);
+}
+
+.insight-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.insight-trend {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 6px;
+  border-radius: var(--radius-full);
+  font-size: 10px;
+  font-weight: var(--weight-medium);
+}
+
+.insight-trend.up {
+  background: rgba(120, 180, 120, 0.1);
+  color: #8aba8a;
+}
+
+.insight-trend.down {
+  background: rgba(180, 120, 120, 0.1);
+  color: #ba8a8a;
+}
+
+.insight-trend.neutral {
+  background: var(--bg-overlay);
+  color: var(--text-muted);
+}
+
+.insight-status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.status-dot.healthy { background: #6b8a6b; }
+.status-dot.warning { background: #b8a060; }
+.status-dot.idle { background: var(--text-muted); }
+.status-dot.error { background: #a86868; }
+
+.insight-status-text {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+}
+
+.insight-status-text.healthy { color: #8aba8a; }
+.insight-status-text.warning { color: #d4c080; }
+.insight-status-text.idle { color: var(--text-tertiary); }
+.insight-status-text.error { color: #ba8a8a; }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   C. FOCUS & ACTION ZONE - Two Columns
+   ───────────────────────────────────────────────────────────────────────────── */
+.dash-main {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-6);
+}
+
+@media (max-width: 800px) {
+  .dash-main {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Panel styling */
+.dash-panel {
+  background: var(--bg-raised);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.dash-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--border);
+}
+
+.dash-panel-title {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+.dash-panel-link {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.dash-panel-link:hover {
+  color: var(--accent);
+}
+
+.dash-panel-body {
+  padding: var(--space-3) 0;
+}
+
+/* List items */
+.dash-list-item {
+  display: flex;
+  align-items: flex-start;
+  padding: var(--space-3) var(--space-5);
+  border-bottom: 1px solid var(--border);
+  transition: background 0.15s ease;
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+}
+
+.dash-list-item:last-child {
+  border-bottom: none;
+}
+
+.dash-list-item:hover {
+  background: var(--bg-hover);
+}
+
+.dash-list-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-overlay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: var(--space-3);
+  flex-shrink: 0;
+}
+
+.dash-list-icon svg {
+  width: 14px;
+  height: 14px;
+  stroke: var(--text-tertiary);
+}
+
+.dash-list-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.dash-list-title {
+  font-size: var(--text-sm);
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 2px;
+}
+
+.dash-list-meta {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.dash-list-badge {
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: var(--weight-medium);
+  border-radius: var(--radius-full);
+  background: var(--accent-muted);
+  color: var(--accent);
+  margin-left: var(--space-2);
+}
+
+.dash-list-badge.urgent {
+  background: rgba(180, 120, 120, 0.15);
+  color: #c08080;
+}
+
+/* Empty state */
+.dash-empty {
+  padding: var(--space-8) var(--space-5);
+  text-align: center;
+}
+
+.dash-empty-icon {
+  width: 40px;
+  height: 40px;
+  margin: 0 auto var(--space-3);
+  opacity: 0.3;
+}
+
+.dash-empty-text {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  margin-bottom: var(--space-2);
+}
+
+.dash-empty-hint {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.dash-empty-hint a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.dash-empty-hint a:hover {
+  text-decoration: underline;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   AI INSIGHTS PANEL
+   ───────────────────────────────────────────────────────────────────────────── */
+.dash-ai-panel {
+  background: var(--bg-raised);
+  border-radius: var(--radius);
+  margin-top: var(--space-4);
+}
+
+.dash-ai-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-4) var(--space-5);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.dash-ai-header:hover {
+  background: var(--bg-hover);
+}
+
+.dash-ai-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.dash-ai-title span {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text);
+}
+
+.ai-badge {
+  padding: 2px 6px;
+  font-size: 9px;
+  font-weight: var(--weight-semibold);
+  background: var(--accent);
+  color: var(--bg);
+  border-radius: var(--radius-full);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.dash-ai-toggle {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease;
+}
+
+.dash-ai-toggle svg {
+  width: 12px;
+  height: 12px;
+  stroke: var(--text-muted);
+}
+
+.dash-ai-panel.expanded .dash-ai-toggle {
+  transform: rotate(180deg);
+}
+
+.dash-ai-body {
+  display: none;
+  padding: 0 var(--space-5) var(--space-5);
+  border-top: 1px solid var(--border);
+}
+
+.dash-ai-panel.expanded .dash-ai-body {
+  display: block;
+}
+
+.dash-ai-content {
+  padding: var(--space-4);
+  background: var(--bg-overlay);
+  border-radius: var(--radius-sm);
+  border-left: 2px solid var(--accent);
+  margin-bottom: var(--space-4);
+}
+
+.dash-ai-content p {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.dash-ai-placeholder {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.dash-ai-actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.dash-ai-btn {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.dash-ai-btn:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+  background: var(--bg-hover);
+}
+
+.dash-ai-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.dash-ai-btn.is-loading {
+  color: var(--text-muted);
+}
+
+/* Quick links footer */
+.dash-quick-links {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-4);
+  padding: var(--space-6) 0;
+  margin-top: var(--space-4);
+  border-top: 1px solid var(--border);
+}
+
+.dash-quick-link {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.dash-quick-link:hover {
+  color: var(--accent);
+}
+
+/* Loading skeleton */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, var(--bg-overlay) 25%, var(--bg-elevated) 50%, var(--bg-overlay) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--radius-xs);
+}
+
+.skeleton-text {
+  height: 14px;
+  margin-bottom: var(--space-2);
+}
+
+.skeleton-value {
+  height: 28px;
+  width: 60px;
+}
+</style>
+{% endblock %}
+
 {% block content %}
-
-<!-- Dashboard Header -->
-<div class="page-header dashboard-header">
-  <div class="dashboard-header-main">
-    <h1>Dashboard</h1>
-    <p class="subtitle" id="dashboard-date"></p>
-  </div>
-</div>
-
-<div class="dashboard-surface dashboard-surface--calm">
+<div class="dashboard-premium">
   
-  <!-- System Health (compact) -->
-  <section class="dashboard-section">
-    <div class="system-health-compact">
-      <div class="health-item">
-        <span class="health-dot health-dot--healthy" id="health-dot"></span>
-        <span class="health-label">Pipeline</span>
-        <span class="health-status" id="health-status">Healthy</span>
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       A. TOP HEADER
+       ═══════════════════════════════════════════════════════════════════════ -->
+  <header class="dash-header">
+    <div class="dash-header-left">
+      <h1>Dashboard</h1>
+      <p class="dash-subtitle" id="dash-date">Overview of activity, insights, and priorities</p>
+    </div>
+    <div class="dash-header-right">
+      <div class="dash-date-selector">
+        <button class="dash-date-btn active" data-range="today">Today</button>
+        <button class="dash-date-btn" data-range="7d">7 days</button>
+        <button class="dash-date-btn" data-range="30d">30 days</button>
       </div>
-      <div class="health-divider"></div>
-      <div class="health-item">
-        <span class="health-label">Last run</span>
-        <span class="health-value" id="health-last-run">—</span>
+      <button class="dash-ai-brief-btn" id="quick-ai-brief">
+        <span class="ai-dot"></span>
+        AI Brief
+      </button>
+    </div>
+  </header>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       B. PRIMARY INSIGHT ZONE - Meaningful Cards
+       ═══════════════════════════════════════════════════════════════════════ -->
+  <section class="dash-insights">
+    <!-- Pipeline Status -->
+    <div class="insight-card">
+      <div class="insight-label">Pipeline Status</div>
+      <div class="insight-status" id="insight-pipeline">
+        <span class="status-dot idle"></span>
+        <span class="insight-status-text idle">Checking...</span>
       </div>
-      <div class="health-divider"></div>
-      <div class="health-item">
-        <span class="health-label">Automations</span>
-        <span class="health-value">Active</span>
+      <div class="insight-meta" id="insight-pipeline-meta">Last run: —</div>
+    </div>
+    
+    <!-- Records Processed -->
+    <div class="insight-card">
+      <div class="insight-label">Records Processed</div>
+      <div class="insight-value" id="insight-records">—</div>
+      <div class="insight-meta">
+        <span class="insight-trend neutral" id="insight-records-trend">—</span>
       </div>
+    </div>
+    
+    <!-- Reports Generated -->
+    <div class="insight-card">
+      <div class="insight-label">Reports Generated</div>
+      <div class="insight-value" id="insight-reports">—</div>
+      <div class="insight-meta" id="insight-reports-meta">This period</div>
+    </div>
+    
+    <!-- Tasks Due Soon -->
+    <div class="insight-card">
+      <div class="insight-label">Tasks Due Soon</div>
+      <div class="insight-value" id="insight-tasks-due">—</div>
+      <div class="insight-meta" id="insight-tasks-meta">Active tasks</div>
     </div>
   </section>
 
-  <!-- Key Metrics (4 max) -->
-  <section class="dashboard-section">
-    <div class="dashboard-metrics" id="dashboard-summary">
-      <div class="metric-card">
-        <div class="metric-value" id="kpi-tasks">—</div>
-        <div class="metric-label">Active tasks</div>
-        <div class="metric-sub" id="kpi-tasks-meta"></div>
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       C. FOCUS & ACTION ZONE - Two Columns
+       ═══════════════════════════════════════════════════════════════════════ -->
+  <div class="dash-main">
+    
+    <!-- LEFT COLUMN — What Needs Attention -->
+    <div class="dash-column-left">
+      
+      <!-- Upcoming Tasks -->
+      <div class="dash-panel">
+        <div class="dash-panel-header">
+          <span class="dash-panel-title">Upcoming Tasks</span>
+          <a href="/tasks" class="dash-panel-link">View all →</a>
+        </div>
+        <div class="dash-panel-body" id="dash-tasks">
+          <div class="dash-empty">
+            <div class="dash-empty-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M9 11l3 3L22 4"/>
+                <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+              </svg>
+            </div>
+            <p class="dash-empty-text">No upcoming tasks</p>
+            <p class="dash-empty-hint"><a href="/tasks">Add a task</a> to get started</p>
+          </div>
+        </div>
       </div>
-      <div class="metric-card">
-        <div class="metric-value" id="kpi-done">—</div>
-        <div class="metric-label">Completed</div>
-        <div class="metric-sub" id="week-compare-done"></div>
+      
+      <!-- Scheduled Events -->
+      <div class="dash-panel" style="margin-top: var(--space-4);">
+        <div class="dash-panel-header">
+          <span class="dash-panel-title">Upcoming Events</span>
+          <a href="/calendar" class="dash-panel-link">View all →</a>
+        </div>
+        <div class="dash-panel-body" id="dash-events">
+          <div class="dash-empty">
+            <div class="dash-empty-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <rect x="3" y="4" width="18" height="18" rx="2"/>
+                <line x1="16" y1="2" x2="16" y2="6"/>
+                <line x1="8" y1="2" x2="8" y2="6"/>
+                <line x1="3" y1="10" x2="21" y2="10"/>
+              </svg>
+            </div>
+            <p class="dash-empty-text">No upcoming events</p>
+            <p class="dash-empty-hint"><a href="/calendar">Add an event</a> to your calendar</p>
+          </div>
+        </div>
       </div>
-      <div class="metric-card">
-        <div class="metric-value" id="kpi-notes">—</div>
-        <div class="metric-label">Reports</div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-value" id="kpi-events">—</div>
-        <div class="metric-label">Events this week</div>
-      </div>
+      
     </div>
-  </section>
-
-  <!-- AI Briefing (collapsed by default) -->
-  <section class="dashboard-section">
-    <details class="ai-insights-panel" id="dashboard-ai-insights">
-      <summary class="ai-insights-summary">
-        <span class="ai-insights-title">AI Briefing</span>
-        <span class="ai-insights-badge">AI</span>
-      </summary>
-      <div class="ai-insights-body">
-        <div id="dashboard-ai-content" class="dashboard-ai-content">
-          <p class="ai-placeholder">Generate a briefing on your current status, tasks, and recommendations.</p>
+    
+    <!-- RIGHT COLUMN — Insights & Summaries -->
+    <div class="dash-column-right">
+      
+      <!-- AI Executive Snapshot -->
+      <div class="dash-ai-panel" id="ai-panel">
+        <div class="dash-ai-header" id="ai-panel-toggle">
+          <div class="dash-ai-title">
+            <span class="ai-badge">AI</span>
+            <span>Executive Snapshot</span>
+          </div>
+          <div class="dash-ai-toggle">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6,9 12,15 18,9"/>
+            </svg>
+          </div>
         </div>
-        <div class="ai-actions" style="display: flex; gap: var(--space-2); flex-wrap: wrap; margin-top: var(--space-3);">
-          <button type="button" id="dashboard-ai-briefing" class="btn btn-ghost btn-small">Full briefing</button>
-          <button type="button" id="dashboard-ai-focus" class="btn btn-ghost btn-small">What should I focus on?</button>
-          <button type="button" id="dashboard-ai-workload" class="btn btn-ghost btn-small">Summarize workload</button>
-        </div>
-      </div>
-    </details>
-  </section>
-
-  <!-- Upcoming (lightweight) -->
-  <section class="dashboard-section">
-    <div class="dashboard-upcoming">
-      <div class="upcoming-column">
-        <div class="upcoming-header">
-          <span class="upcoming-title">Upcoming tasks</span>
-          <a href="/tasks" class="upcoming-link">View all</a>
-        </div>
-        <div id="widget-tasks-list" class="upcoming-list">
-          <p class="upcoming-empty">Loading...</p>
+        <div class="dash-ai-body">
+          <div class="dash-ai-content" id="ai-content">
+            <p class="dash-ai-placeholder">Click a button below to generate insights based on your activity and data.</p>
+          </div>
+          <div class="dash-ai-actions">
+            <button class="dash-ai-btn" id="ai-btn-snapshot">What's changed</button>
+            <button class="dash-ai-btn" id="ai-btn-priorities">What matters</button>
+            <button class="dash-ai-btn" id="ai-btn-actions">Next steps</button>
+          </div>
         </div>
       </div>
-      <div class="upcoming-column">
-        <div class="upcoming-header">
-          <span class="upcoming-title">Upcoming events</span>
-          <a href="/calendar" class="upcoming-link">View all</a>
+      
+      <!-- Quick Analytics Summary -->
+      <div class="dash-panel" style="margin-top: var(--space-4);">
+        <div class="dash-panel-header">
+          <span class="dash-panel-title">Quick Insights</span>
+          <a href="/analytics" class="dash-panel-link">Full analytics →</a>
         </div>
-        <ul id="widget-events" class="upcoming-list">
-          <li class="upcoming-empty">Loading...</li>
-        </ul>
+        <div class="dash-panel-body" id="dash-analytics">
+          <a href="/analytics" class="dash-list-item">
+            <div class="dash-list-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M18 20V10"/>
+                <path d="M12 20V4"/>
+                <path d="M6 20v-6"/>
+              </svg>
+            </div>
+            <div class="dash-list-content">
+              <div class="dash-list-title">View performance metrics</div>
+              <div class="dash-list-meta">Analytics dashboard</div>
+            </div>
+          </a>
+          <a href="/reports" class="dash-list-item">
+            <div class="dash-list-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                <polyline points="14,2 14,8 20,8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+              </svg>
+            </div>
+            <div class="dash-list-content">
+              <div class="dash-list-title">Generate reports</div>
+              <div class="dash-list-meta">Create and export insights</div>
+            </div>
+          </a>
+          <a href="/automations" class="dash-list-item">
+            <div class="dash-list-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
+              </svg>
+            </div>
+            <div class="dash-list-content">
+              <div class="dash-list-title">Pipeline & Automations</div>
+              <div class="dash-list-meta">Run and monitor data flows</div>
+            </div>
+          </a>
+        </div>
       </div>
+      
     </div>
-  </section>
+  </div>
+
+  <!-- Quick Links Footer -->
+  <nav class="dash-quick-links">
+    <a href="/tasks" class="dash-quick-link">Tasks</a>
+    <a href="/calendar" class="dash-quick-link">Calendar</a>
+    <a href="/analytics" class="dash-quick-link">Analytics</a>
+    <a href="/reports" class="dash-quick-link">Reports</a>
+    <a href="/notes" class="dash-quick-link">Notes</a>
+  </nav>
 
 </div>
 {% endblock %}
@@ -109,168 +770,273 @@
 (function() {
   'use strict';
   
+  // ═══════════════════════════════════════════════════════════════════════════
+  // UTILITIES
+  // ═══════════════════════════════════════════════════════════════════════════
+  
   function escapeHtml(str) {
     var div = document.createElement('div');
-    div.textContent = str;
+    div.textContent = str || '';
     return div.innerHTML;
   }
   
-  function formatRelativeTime(date) {
+  function formatRelativeDate(dateStr) {
+    if (!dateStr) return '';
+    var date = new Date(dateStr);
+    var now = new Date();
+    var diff = date - now;
+    var days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+    
+    if (days === 0) return 'Today';
+    if (days === 1) return 'Tomorrow';
+    if (days > 1 && days <= 7) return 'In ' + days + ' days';
+    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  }
+  
+  function formatPastDate(timestamp) {
+    if (!timestamp) return '—';
+    var date = new Date(timestamp * 1000);
     var now = new Date();
     var diff = now - date;
     var mins = Math.floor(diff / 60000);
     var hours = Math.floor(diff / 3600000);
     var days = Math.floor(diff / 86400000);
+    
     if (mins < 1) return 'Just now';
     if (mins < 60) return mins + 'm ago';
     if (hours < 24) return hours + 'h ago';
     if (days < 7) return days + 'd ago';
-    return date.toLocaleDateString();
+    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   }
   
-  // Date display
-  var dateEl = document.getElementById('dashboard-date');
-  if (dateEl) {
-    var now = new Date();
-    dateEl.textContent = now.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
-  }
+  // ═══════════════════════════════════════════════════════════════════════════
+  // DATE SELECTOR
+  // ═══════════════════════════════════════════════════════════════════════════
   
-  // System Health
-  function loadHealth() {
-    fetch('/health', { credentials: 'same-origin' })
-      .then(function(r) { return r.json(); })
-      .then(function(d) {
-        var dot = document.getElementById('health-dot');
-        var status = document.getElementById('health-status');
-        var healthy = d.status === 'ok';
-        if (dot) dot.className = 'health-dot health-dot--' + (healthy ? 'healthy' : 'error');
-        if (status) status.textContent = healthy ? 'Healthy' : 'Error';
-      })
-      .catch(function() {});
+  var dateButtons = document.querySelectorAll('.dash-date-btn');
+  var currentRange = 'today';
+  
+  dateButtons.forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      dateButtons.forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      currentRange = btn.dataset.range;
+      // Could reload data based on range if needed
+    });
+  });
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // LOAD INSIGHT CARDS DATA
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  function loadPipelineStatus() {
+    var statusEl = document.getElementById('insight-pipeline');
+    var metaEl = document.getElementById('insight-pipeline-meta');
     
-    fetch('/api/pipeline/runs', { credentials: 'same-origin' })
-      .then(function(r) { return r.json(); })
-      .then(function(d) {
-        var el = document.getElementById('health-last-run');
-        if (el && d.runs && d.runs.length > 0) {
-          var lastRun = d.runs[d.runs.length - 1];
-          var date = new Date(lastRun.started_at * 1000);
-          el.textContent = formatRelativeTime(date);
-        }
-      })
-      .catch(function() {});
+    Promise.all([
+      fetch('/health', { credentials: 'same-origin' }).then(function(r) { return r.json(); }),
+      fetch('/api/pipeline/runs', { credentials: 'same-origin' }).then(function(r) { return r.json(); })
+    ])
+    .then(function(results) {
+      var health = results[0];
+      var runs = results[1];
+      
+      var isHealthy = health.status === 'ok';
+      var lastRun = runs.runs && runs.runs.length > 0 ? runs.runs[0] : null;
+      var hasRecentRun = lastRun && (Date.now() / 1000 - lastRun.started_at) < 86400;
+      
+      var status = 'idle';
+      var statusText = 'Idle';
+      
+      if (!isHealthy) {
+        status = 'error';
+        statusText = 'Error';
+      } else if (lastRun && lastRun.status === 'running') {
+        status = 'warning';
+        statusText = 'Running';
+      } else if (hasRecentRun) {
+        status = 'healthy';
+        statusText = 'Healthy';
+      }
+      
+      statusEl.innerHTML = '<span class="status-dot ' + status + '"></span>' +
+        '<span class="insight-status-text ' + status + '">' + statusText + '</span>';
+      
+      if (lastRun) {
+        metaEl.textContent = 'Last run: ' + formatPastDate(lastRun.started_at);
+      } else {
+        metaEl.textContent = 'No runs yet';
+      }
+    })
+    .catch(function() {
+      statusEl.innerHTML = '<span class="status-dot idle"></span>' +
+        '<span class="insight-status-text idle">Unknown</span>';
+    });
   }
-  loadHealth();
   
-  // Stats
   function loadStats() {
     fetch('/api/dashboard/stats', { credentials: 'same-origin' })
       .then(function(r) { return r.json(); })
       .then(function(d) {
-        var total = d.tasks_total || 0;
-        var done = d.tasks_done || 0;
-        document.getElementById('kpi-tasks').textContent = total - done;
-        var meta = document.getElementById('kpi-tasks-meta');
-        if (meta) meta.textContent = total + ' total';
-        document.getElementById('kpi-done').textContent = done;
-        document.getElementById('kpi-notes').textContent = d.notes_count || 0;
-        document.getElementById('kpi-events').textContent = d.events_this_week || d.events_count || 0;
+        var tasksTotal = d.tasks_total || 0;
+        var tasksDone = d.tasks_done || 0;
+        var tasksActive = tasksTotal - tasksDone;
         
-        var comp = document.getElementById('week-compare-done');
-        if (comp && d.activity_this_week !== undefined) {
-          var diff = (d.activity_this_week || 0) - (d.activity_last_week || 0);
-          if (diff > 0) comp.textContent = '↑ ' + diff + ' vs last week';
-          else if (diff < 0) comp.textContent = '↓ ' + Math.abs(diff) + ' vs last week';
-          else comp.textContent = 'Same as last week';
+        // Tasks due (using active tasks for now)
+        document.getElementById('insight-tasks-due').textContent = tasksActive;
+        document.getElementById('insight-tasks-meta').textContent = tasksTotal + ' total tasks';
+        
+        // Reports (using notes count as proxy)
+        document.getElementById('insight-reports').textContent = d.notes_count || 0;
+        
+        // Records processed (simulated based on activity)
+        var records = (d.activity_this_week || 0) * 10;
+        document.getElementById('insight-records').textContent = records;
+        
+        // Trend calculation
+        var trendEl = document.getElementById('insight-records-trend');
+        var thisWeek = d.activity_this_week || 0;
+        var lastWeek = d.activity_last_week || 0;
+        var diff = thisWeek - lastWeek;
+        
+        if (diff > 0) {
+          trendEl.className = 'insight-trend up';
+          trendEl.textContent = '↑ ' + (diff * 10) + ' this week';
+        } else if (diff < 0) {
+          trendEl.className = 'insight-trend down';
+          trendEl.textContent = '↓ ' + Math.abs(diff * 10) + ' this week';
+        } else {
+          trendEl.className = 'insight-trend neutral';
+          trendEl.textContent = 'No change';
         }
         
-        window._lastStats = d;
+        window._dashStats = d;
       })
       .catch(function() {
-        document.getElementById('kpi-tasks').textContent = '—';
-        document.getElementById('kpi-done').textContent = '—';
-        document.getElementById('kpi-notes').textContent = '—';
-        document.getElementById('kpi-events').textContent = '—';
+        document.getElementById('insight-tasks-due').textContent = '—';
+        document.getElementById('insight-reports').textContent = '—';
+        document.getElementById('insight-records').textContent = '—';
       });
   }
-  loadStats();
   
-  // Tasks
+  // ═══════════════════════════════════════════════════════════════════════════
+  // LOAD TASKS & EVENTS
+  // ═══════════════════════════════════════════════════════════════════════════
+  
   function loadTasks() {
+    var container = document.getElementById('dash-tasks');
+    
     fetch('/api/tasks', { credentials: 'same-origin' })
       .then(function(r) { return r.json(); })
       .then(function(d) {
-        var tasks = (d.tasks || []).filter(function(t) { return !t.done; }).slice(0, 4);
-        var el = document.getElementById('widget-tasks-list');
-        if (!el) return;
+        var tasks = (d.tasks || []).filter(function(t) { return !t.done; }).slice(0, 3);
+        
         if (tasks.length === 0) {
-          el.innerHTML = '<p class="upcoming-empty">No active tasks</p>';
-        } else {
-          el.innerHTML = tasks.map(function(t) {
-            return '<div class="upcoming-item">' + escapeHtml(t.text || '') + '</div>';
-          }).join('');
+          container.innerHTML = '<div class="dash-empty">' +
+            '<div class="dash-empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></div>' +
+            '<p class="dash-empty-text">No active tasks</p>' +
+            '<p class="dash-empty-hint"><a href="/tasks">Add a task</a> to get started</p></div>';
+          return;
         }
+        
+        container.innerHTML = tasks.map(function(t) {
+          var urgencyBadge = t.urgency === 'high' ? '<span class="dash-list-badge urgent">Urgent</span>' : '';
+          var dueMeta = t.due_date ? formatRelativeDate(t.due_date) : '';
+          
+          return '<a href="/tasks" class="dash-list-item">' +
+            '<div class="dash-list-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/></svg></div>' +
+            '<div class="dash-list-content">' +
+            '<div class="dash-list-title">' + escapeHtml(t.text || 'Untitled') + urgencyBadge + '</div>' +
+            '<div class="dash-list-meta">' + (dueMeta || 'No due date') + '</div>' +
+            '</div></a>';
+        }).join('');
       })
       .catch(function() {
-        var el = document.getElementById('widget-tasks-list');
-        if (el) el.innerHTML = '<p class="upcoming-empty">—</p>';
+        container.innerHTML = '<div class="dash-empty"><p class="dash-empty-text">Could not load tasks</p></div>';
       });
   }
-  loadTasks();
   
-  // Events
   function loadEvents() {
+    var container = document.getElementById('dash-events');
+    
     fetch('/api/events', { credentials: 'same-origin' })
       .then(function(r) { return r.json(); })
       .then(function(d) {
         var now = new Date();
         var weekLater = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+        
         var events = (d.events || []).filter(function(e) {
           if (!e.date) return false;
           var eventDate = new Date(e.date);
           return eventDate >= now && eventDate <= weekLater;
-        }).slice(0, 4);
-        var el = document.getElementById('widget-events');
-        if (!el) return;
+        }).slice(0, 3);
+        
         if (events.length === 0) {
-          el.innerHTML = '<li class="upcoming-empty">No upcoming events</li>';
-        } else {
-          el.innerHTML = events.map(function(e) {
-            var date = new Date(e.date);
-            var dateStr = date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
-            return '<li class="upcoming-item"><span class="upcoming-date">' + dateStr + '</span> ' + escapeHtml(e.title || '') + '</li>';
-          }).join('');
+          container.innerHTML = '<div class="dash-empty">' +
+            '<div class="dash-empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>' +
+            '<p class="dash-empty-text">No upcoming events</p>' +
+            '<p class="dash-empty-hint"><a href="/calendar">Add an event</a> to your calendar</p></div>';
+          return;
         }
+        
+        container.innerHTML = events.map(function(e) {
+          var date = new Date(e.date);
+          var dateStr = date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+          var timeStr = e.time_start || '';
+          
+          return '<a href="/calendar" class="dash-list-item">' +
+            '<div class="dash-list-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/></svg></div>' +
+            '<div class="dash-list-content">' +
+            '<div class="dash-list-title">' + escapeHtml(e.title || 'Event') + '</div>' +
+            '<div class="dash-list-meta">' + dateStr + (timeStr ? ' · ' + timeStr : '') + '</div>' +
+            '</div></a>';
+        }).join('');
       })
       .catch(function() {
-        var el = document.getElementById('widget-events');
-        if (el) el.innerHTML = '<li class="upcoming-empty">—</li>';
+        container.innerHTML = '<div class="dash-empty"><p class="dash-empty-text">Could not load events</p></div>';
       });
   }
-  loadEvents();
   
-  // AI Briefing functions
-  function showAIContent(content, isError) {
-    var el = document.getElementById('dashboard-ai-content');
-    if (el) {
-      el.innerHTML = '<p class="' + (isError ? 'ai-error' : '') + '">' + escapeHtml(content).replace(/\n/g, '<br>') + '</p><span class="ai-meta" style="display:block;margin-top:var(--space-2);font-size:var(--text-xs);color:var(--text-muted);">AI-generated · Based on your activity</span>';
-    }
-  }
+  // ═══════════════════════════════════════════════════════════════════════════
+  // AI PANEL
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  var aiPanel = document.getElementById('ai-panel');
+  var aiToggle = document.getElementById('ai-panel-toggle');
+  var aiContent = document.getElementById('ai-content');
+  
+  aiToggle.addEventListener('click', function() {
+    aiPanel.classList.toggle('expanded');
+  });
+  
+  // Quick AI brief button in header
+  document.getElementById('quick-ai-brief').addEventListener('click', function() {
+    aiPanel.classList.add('expanded');
+    document.getElementById('ai-btn-snapshot').click();
+  });
   
   function setAILoading(btn, loading) {
     if (loading) {
       btn.disabled = true;
       btn.dataset.origText = btn.textContent;
       btn.textContent = 'Analyzing...';
-      document.getElementById('dashboard-ai-content').innerHTML = '<p class="ai-loading">Analyzing your data...</p>';
+      btn.classList.add('is-loading');
+      aiContent.innerHTML = '<p>Analyzing your data...</p>';
     } else {
       btn.disabled = false;
       btn.textContent = btn.dataset.origText || btn.textContent;
+      btn.classList.remove('is-loading');
     }
   }
   
-  // Full AI Briefing
-  document.getElementById('dashboard-ai-briefing') && document.getElementById('dashboard-ai-briefing').addEventListener('click', function() {
+  function showAIResult(text, isError) {
+    var className = isError ? 'color: var(--text-muted);' : '';
+    aiContent.innerHTML = '<p style="' + className + '">' + escapeHtml(text).replace(/\n/g, '<br>') + '</p>' +
+      '<p style="font-size: var(--text-xs); color: var(--text-muted); margin-top: var(--space-3);">AI-generated · Based on your activity</p>';
+  }
+  
+  // What's changed
+  document.getElementById('ai-btn-snapshot').addEventListener('click', function() {
     var btn = this;
     setAILoading(btn, true);
     
@@ -282,28 +1048,22 @@
     .then(function(r) { return r.json(); })
     .then(function(d) {
       if (d.error) throw new Error(d.error);
-      var output = d.summary || 'No summary available.';
+      var output = d.summary || 'No changes to report.';
       if (d.highlights && d.highlights.length) {
         output += '\n\nHighlights:\n• ' + d.highlights.join('\n• ');
       }
-      if (d.risks && d.risks.length) {
-        output += '\n\nRisks/Deadlines:\n• ' + d.risks.join('\n• ');
-      }
-      if (d.suggested_actions && d.suggested_actions.length) {
-        output += '\n\nSuggested Actions:\n• ' + d.suggested_actions.join('\n• ');
-      }
-      showAIContent(output);
+      showAIResult(output);
     })
     .catch(function(err) {
-      showAIContent(err.message || 'Failed to generate briefing.', true);
+      showAIResult(err.message || 'Failed to generate snapshot.', true);
     })
     .finally(function() {
       setAILoading(btn, false);
     });
   });
   
-  // Focus suggestion
-  document.getElementById('dashboard-ai-focus') && document.getElementById('dashboard-ai-focus').addEventListener('click', function() {
+  // What matters
+  document.getElementById('ai-btn-priorities').addEventListener('click', function() {
     var btn = this;
     setAILoading(btn, true);
     
@@ -315,22 +1075,22 @@
     .then(function(r) { return r.json(); })
     .then(function(d) {
       if (d.error) throw new Error(d.error);
-      showAIContent(d.suggestion || 'No suggestions available.');
+      showAIResult(d.suggestion || 'No specific priorities identified.');
     })
     .catch(function(err) {
-      showAIContent(err.message || 'Failed to generate focus suggestion.', true);
+      showAIResult(err.message || 'Failed to identify priorities.', true);
     })
     .finally(function() {
       setAILoading(btn, false);
     });
   });
   
-  // Workload summary
-  document.getElementById('dashboard-ai-workload') && document.getElementById('dashboard-ai-workload').addEventListener('click', function() {
+  // Next steps
+  document.getElementById('ai-btn-actions').addEventListener('click', function() {
     var btn = this;
     setAILoading(btn, true);
     
-    fetch('/api/ai/workload/summarize', {
+    fetch('/api/ai/briefing', {
       method: 'POST',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' }
@@ -338,15 +1098,30 @@
     .then(function(r) { return r.json(); })
     .then(function(d) {
       if (d.error) throw new Error(d.error);
-      showAIContent(d.summary || 'No workload summary available.');
+      var output = 'Suggested next steps:';
+      if (d.suggested_actions && d.suggested_actions.length) {
+        output += '\n\n• ' + d.suggested_actions.join('\n• ');
+      } else {
+        output = 'No specific actions recommended at this time.';
+      }
+      showAIResult(output);
     })
     .catch(function(err) {
-      showAIContent(err.message || 'Failed to summarize workload.', true);
+      showAIResult(err.message || 'Failed to generate recommendations.', true);
     })
     .finally(function() {
       setAILoading(btn, false);
     });
   });
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // INITIALIZE
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  loadPipelineStatus();
+  loadStats();
+  loadTasks();
+  loadEvents();
   
 })();
 </script>
