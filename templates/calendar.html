@@ -1,47 +1,1733 @@
 {% extends "base_aevel.html" %}
 {% block title %}Calendar{% endblock %}
+
+{% block head %}
+<style>
+/* ═══════════════════════════════════════════════════════════════════════════
+   CALENDAR — PREMIUM OPS WORKSPACE
+   Notion × Linear × Superhuman energy
+   Clarity, speed, subtle visual hierarchy
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.calendar-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 24px;
+  min-height: calc(100vh - 80px);
+}
+
+@media (max-width: 1000px) {
+  .calendar-page {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   CALENDAR MAIN PANEL
+   ───────────────────────────────────────────────────────────────────────────── */
+.calendar-main {
+  background: var(--bg-raised);
+  border-radius: 16px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   ACTION BAR (HEADER)
+   ───────────────────────────────────────────────────────────────────────────── */
+.calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  gap: 16px;
+}
+
+.cal-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cal-nav-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.cal-nav-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.cal-nav-btn svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+}
+
+.cal-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  min-width: 160px;
+  text-align: center;
+  letter-spacing: -0.01em;
+}
+
+.cal-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cal-today-btn {
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.cal-today-btn:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+.cal-view-toggle {
+  display: flex;
+  background: var(--bg-overlay);
+  border-radius: 6px;
+  padding: 2px;
+}
+
+.cal-view-btn {
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.cal-view-btn:hover {
+  color: var(--text-secondary);
+}
+
+.cal-view-btn.active {
+  background: var(--bg-raised);
+  color: var(--text);
+}
+
+/* Actions Dropdown */
+.cal-actions-dropdown {
+  position: relative;
+}
+
+.cal-actions-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.cal-actions-btn:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+.cal-actions-btn svg {
+  width: 12px;
+  height: 12px;
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+}
+
+.cal-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 4px;
+  min-width: 180px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-8px);
+  transition: all 0.15s ease;
+  z-index: 100;
+}
+
+.cal-dropdown-menu.open {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.cal-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  transition: all 0.15s ease;
+}
+
+.cal-dropdown-item:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.cal-dropdown-item svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  fill: none;
+  opacity: 0.7;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   CALENDAR GRID
+   ───────────────────────────────────────────────────────────────────────────── */
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  flex: 1;
+  padding: 12px;
+}
+
+.cal-day-header {
+  padding: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.cal-cell {
+  min-height: 90px;
+  padding: 6px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.cal-cell:hover {
+  background: var(--bg-hover);
+  border-color: var(--border);
+}
+
+.cal-cell:hover .cal-quick-add {
+  opacity: 1;
+}
+
+.cal-cell.other {
+  opacity: 0.3;
+}
+
+.cal-cell.today {
+  background: var(--accent-muted);
+  border-color: var(--accent);
+}
+
+.cal-cell.today:hover {
+  background: var(--accent-muted);
+}
+
+.cal-cell.selected {
+  border-color: var(--accent);
+}
+
+.cal-cell-day {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.cal-day-num {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+}
+
+.cal-cell.today .cal-day-num {
+  background: var(--accent);
+  color: var(--bg);
+}
+
+.cal-quick-add {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-overlay);
+  border: none;
+  border-radius: 4px;
+  color: var(--text-muted);
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.15s ease;
+}
+
+.cal-quick-add:hover {
+  background: var(--accent);
+  color: var(--bg);
+}
+
+.cal-quick-add svg {
+  width: 12px;
+  height: 12px;
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+}
+
+.cal-events {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cal-event {
+  padding: 3px 6px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text);
+  background: var(--bg-overlay);
+  border-radius: 4px;
+  border-left: 2px solid var(--accent);
+  cursor: grab;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: all 0.15s ease;
+}
+
+.cal-event:hover {
+  background: var(--bg-hover);
+}
+
+.cal-event.dragging {
+  opacity: 0.5;
+  cursor: grabbing;
+}
+
+.cal-event-time {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-right: 4px;
+}
+
+.cal-event-more {
+  font-size: 10px;
+  color: var(--text-muted);
+  padding: 2px 6px;
+}
+
+/* Drag over state */
+.cal-cell.drag-over {
+  background: var(--accent-muted);
+  border-color: var(--accent);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   INLINE QUICK ADD
+   ───────────────────────────────────────────────────────────────────────────── */
+.cal-inline-add {
+  position: absolute;
+  top: 32px;
+  left: 4px;
+  right: 4px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  padding: 8px;
+  z-index: 50;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+}
+
+.cal-inline-add input {
+  width: 100%;
+  padding: 8px;
+  font-size: 13px;
+  background: var(--bg-overlay);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  outline: none;
+}
+
+.cal-inline-add input:focus {
+  border-color: var(--accent);
+}
+
+.cal-inline-add input::placeholder {
+  color: var(--text-muted);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   SCHEDULE OVERVIEW (RIGHT PANEL)
+   ───────────────────────────────────────────────────────────────────────────── */
+.schedule-panel {
+  background: var(--bg-raised);
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.schedule-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.schedule-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.schedule-add-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--bg);
+  background: var(--accent);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.schedule-add-btn:hover {
+  opacity: 0.9;
+}
+
+.schedule-add-btn svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+}
+
+/* Search & Filters */
+.schedule-filters {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.schedule-search {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 13px;
+  background: var(--bg-overlay);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.schedule-search:focus {
+  border-color: var(--accent);
+}
+
+.schedule-search::placeholder {
+  color: var(--text-muted);
+}
+
+/* Events List */
+.schedule-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.schedule-event {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 10px;
+  margin-bottom: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.schedule-event:hover {
+  background: var(--bg-hover);
+}
+
+.schedule-event-indicator {
+  width: 3px;
+  height: 40px;
+  background: var(--accent);
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.schedule-event-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.schedule-event-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.schedule-event-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.schedule-event-actions {
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.schedule-event:hover .schedule-event-actions {
+  opacity: 1;
+}
+
+.schedule-event-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-overlay);
+  border: none;
+  border-radius: 6px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.schedule-event-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.schedule-event-btn.delete:hover {
+  background: rgba(180, 100, 100, 0.2);
+  color: #c88;
+}
+
+.schedule-event-btn svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  fill: none;
+}
+
+/* Empty State */
+.schedule-empty {
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.schedule-empty-text {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.schedule-empty-hint {
+  font-size: 13px;
+  color: var(--text-tertiary);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   EVENT MODAL
+   ───────────────────────────────────────────────────────────────────────────── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+}
+
+.modal-overlay.open {
+  opacity: 1;
+  visibility: visible;
+}
+
+.event-modal {
+  background: var(--bg-elevated);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 420px;
+  margin: 24px;
+  transform: translateY(20px);
+  transition: transform 0.2s ease;
+}
+
+.modal-overlay.open .event-modal {
+  transform: translateY(0);
+}
+
+.modal-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.modal-close {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.modal-close:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.modal-close svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+}
+
+.modal-body {
+  padding: 24px;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.form-input {
+  width: 100%;
+  padding: 12px 14px;
+  font-size: 14px;
+  background: var(--bg-overlay);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.form-input:focus {
+  border-color: var(--accent);
+}
+
+.form-input::placeholder {
+  color: var(--text-muted);
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.form-textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+.modal-footer {
+  padding: 16px 24px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.modal-btn-primary {
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--bg);
+  background: var(--accent);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.modal-btn-primary:hover {
+  opacity: 0.9;
+}
+
+.modal-btn-secondary {
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.modal-btn-secondary:hover {
+  color: var(--text);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   ACTION PANEL (For AI features)
+   ───────────────────────────────────────────────────────────────────────────── */
+.action-panel {
+  margin: 0 12px 12px;
+  padding: 16px;
+  background: var(--bg-overlay);
+  border-radius: 10px;
+  border-left: 2px solid var(--accent);
+  display: none;
+}
+
+.action-panel.open {
+  display: block;
+}
+
+.action-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.action-panel-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.action-panel-close {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.action-panel-close:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.action-panel-content {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.action-panel-content p {
+  margin: 0 0 12px 0;
+}
+
+.action-panel-content ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.action-panel-content li {
+  padding: 8px 12px;
+  background: var(--bg-raised);
+  border-radius: 6px;
+  margin-bottom: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.action-apply-btn {
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--accent);
+  background: transparent;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.action-apply-btn:hover {
+  background: var(--accent);
+  color: var(--bg);
+}
+
+/* Textarea for extract */
+.action-textarea {
+  width: 100%;
+  min-height: 100px;
+  padding: 12px;
+  font-size: 13px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  resize: vertical;
+  margin-bottom: 12px;
+}
+
+.action-textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.action-btn {
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--bg);
+  background: var(--accent);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   INLINE EDIT (Event in list)
+   ───────────────────────────────────────────────────────────────────────────── */
+.inline-edit-row {
+  padding: 12px;
+  background: var(--bg-overlay);
+  border-radius: 10px;
+  margin-bottom: 4px;
+}
+
+.inline-edit-row .form-row {
+  margin-bottom: 8px;
+}
+
+.inline-edit-row input {
+  padding: 8px 10px;
+  font-size: 13px;
+}
+
+.inline-edit-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.inline-edit-save {
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--bg);
+  background: var(--accent);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.inline-edit-cancel {
+  padding: 6px 14px;
+  font-size: 13px;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.inline-edit-cancel:hover {
+  color: var(--text);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   RESPONSIVE
+   ───────────────────────────────────────────────────────────────────────────── */
+@media (max-width: 700px) {
+  .calendar-header {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  
+  .cal-header-actions {
+    order: 3;
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .cal-cell {
+    min-height: 70px;
+  }
+  
+  .cal-event {
+    font-size: 10px;
+    padding: 2px 4px;
+  }
+}
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="page-header">
-  <h1>Calendar</h1>
-  <p class="subtitle">Click a day to set date · Drag events between days · Click event to edit inline</p>
-</div>
-<section class="section">
-  <div class="card calendar-card">
-    <div class="calendar-toolbar">
-      <div class="cal-toolbar-center">
-        <button type="button" id="cal-prev" class="btn btn-secondary" aria-label="Previous month">← Prev</button>
-        <h2 id="cal-title" class="cal-month-title">—</h2>
-        <button type="button" id="cal-next" class="btn btn-secondary" aria-label="Next month">Next →</button>
+<div class="calendar-page">
+  
+  <!-- ═══════════════════════════════════════════════════════════════════════════
+       CALENDAR MAIN PANEL
+       ═══════════════════════════════════════════════════════════════════════════ -->
+  <div class="calendar-main">
+    
+    <!-- Action Bar -->
+    <div class="calendar-header">
+      <div class="cal-nav">
+        <button type="button" class="cal-nav-btn" id="cal-prev" aria-label="Previous month">
+          <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <h2 class="cal-title" id="cal-title">February 2026</h2>
+        <button type="button" class="cal-nav-btn" id="cal-next" aria-label="Next month">
+          <svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+        </button>
       </div>
-      <div class="cal-toolbar-actions">
-        <button type="button" id="cal-today" class="btn btn-ghost">Go to today</button>
-        <button type="button" id="cal-ai-optimize" class="btn btn-secondary btn-ai" title="AI suggests better time placement">Optimize schedule</button>
-        <button type="button" id="cal-ai-summarize" class="btn btn-secondary btn-ai">Summarize</button>
-        <button type="button" id="cal-ai-extract" class="btn btn-secondary btn-ai">Create from text</button>
+      
+      <div class="cal-header-actions">
+        <button type="button" class="cal-today-btn" id="cal-today">Today</button>
+        
+        <div class="cal-view-toggle">
+          <button type="button" class="cal-view-btn active" data-view="month">Month</button>
+          <button type="button" class="cal-view-btn" data-view="week">Week</button>
+          <button type="button" class="cal-view-btn" data-view="agenda">Agenda</button>
+        </div>
+        
+        <div class="cal-actions-dropdown">
+          <button type="button" class="cal-actions-btn" id="cal-actions-toggle">
+            Actions
+            <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <div class="cal-dropdown-menu" id="cal-dropdown">
+            <button type="button" class="cal-dropdown-item" id="action-optimize">
+              <svg viewBox="0 0 24 24"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+              Optimize schedule
+            </button>
+            <button type="button" class="cal-dropdown-item" id="action-summarize">
+              <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>
+              Summarize week
+            </button>
+            <button type="button" class="cal-dropdown-item" id="action-extract">
+              <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+              Create from text
+            </button>
+          </div>
+        </div>
       </div>
     </div>
-    <div id="cal-ai-panel" class="cal-ai-panel hidden"></div>
-    <div id="cal-grid" class="cal-grid"></div>
-    <div class="calendar-form-wrap">
-      <h3 class="section-title">Add event</h3>
-      <p class="text-secondary" style="font-size:0.875rem; margin-top:0.25rem;">Pick a date above or use the field below.</p>
-      <form id="cal-form" class="form-inline">
-        <input type="date" id="cal-date" class="input" required>
-        <input type="time" id="cal-time-input" class="input" placeholder="Time (optional)">
-        <input type="text" id="cal-title-input" class="input" placeholder="Event title" required>
-        <button type="submit" class="btn btn-primary">Add event</button>
-      </form>
-    </div>
-    <div class="events-list-wrap">
-      <h3 class="section-title">Events this month</h3>
-      <div class="form-inline" style="margin-bottom: 0.75rem;">
-        <input type="text" id="cal-filter" class="input" placeholder="Filter by title…" aria-label="Filter events" style="max-width: 240px;">
+    
+    <!-- Action Panel (for AI features) -->
+    <div class="action-panel" id="action-panel">
+      <div class="action-panel-header">
+        <span class="action-panel-title" id="action-panel-title">Action</span>
+        <button type="button" class="action-panel-close" id="action-panel-close">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+        </button>
       </div>
-      <ul id="events-list" class="events-list"></ul>
+      <div class="action-panel-content" id="action-panel-content"></div>
+    </div>
+    
+    <!-- Calendar Grid -->
+    <div class="cal-grid" id="cal-grid"></div>
+    
+  </div>
+  
+  <!-- ═══════════════════════════════════════════════════════════════════════════
+       SCHEDULE OVERVIEW PANEL
+       ═══════════════════════════════════════════════════════════════════════════ -->
+  <div class="schedule-panel">
+    <div class="schedule-header">
+      <span class="schedule-title">Schedule Overview</span>
+      <button type="button" class="schedule-add-btn" id="open-modal-btn">
+        <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+        Add
+      </button>
+    </div>
+    
+    <div class="schedule-filters">
+      <input type="text" class="schedule-search" id="schedule-search" placeholder="Search events...">
+    </div>
+    
+    <div class="schedule-list" id="schedule-list">
+      <div class="schedule-empty">
+        <p class="schedule-empty-text">Your schedule is clear.</p>
+        <p class="schedule-empty-hint">Add an event to start planning.</p>
+      </div>
     </div>
   </div>
-</section>
+  
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     EVENT MODAL
+     ═══════════════════════════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="event-modal">
+  <div class="event-modal">
+    <div class="modal-header">
+      <h3 class="modal-title" id="modal-title">Add Event</h3>
+      <button type="button" class="modal-close" id="modal-close">
+        <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <form id="event-form">
+        <input type="hidden" id="event-id">
+        
+        <div class="form-group">
+          <label class="form-label" for="event-title">Event Title</label>
+          <input type="text" class="form-input" id="event-title" placeholder="Meeting with team" required>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="event-date">Date</label>
+            <input type="date" class="form-input" id="event-date" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="event-time">Time (optional)</label>
+            <input type="time" class="form-input" id="event-time">
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label" for="event-notes">Description (optional)</label>
+          <textarea class="form-input form-textarea" id="event-notes" placeholder="Add details..."></textarea>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="modal-btn-secondary" id="modal-cancel">Cancel</button>
+      <button type="button" class="modal-btn-primary" id="modal-save">Add Event</button>
+    </div>
+  </div>
+</div>
 {% endblock %}
+
 {% block scripts %}
-<script src="{{ url_for('static', filename='js/calendar.js') }}"></script>
+<script>
+(function() {
+  'use strict';
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // STATE
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  var monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  var dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  var current = new Date();
+  var events = [];
+  var selectedDate = null;
+  var editingEventId = null;
+  var searchQuery = '';
+  
+  // DOM Elements
+  var gridEl = document.getElementById('cal-grid');
+  var titleEl = document.getElementById('cal-title');
+  var listEl = document.getElementById('schedule-list');
+  var modalEl = document.getElementById('event-modal');
+  var actionPanel = document.getElementById('action-panel');
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // API
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  function api(method, path, body) {
+    var opts = { method: method, credentials: 'same-origin', headers: { 'Content-Type': 'application/json' } };
+    if (body) opts.body = JSON.stringify(body);
+    return fetch(path, opts).then(function(r) {
+      return r.json().then(function(data) {
+        if (!r.ok) throw new Error(data.error || 'Request failed');
+        return data;
+      });
+    });
+  }
+  
+  function loadEvents() {
+    return api('GET', '/api/events').then(function(data) {
+      events = data.events || [];
+      return events;
+    });
+  }
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // UTILITIES
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  function toDateStr(d) {
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  
+  function escapeHtml(str) {
+    var div = document.createElement('div');
+    div.textContent = str || '';
+    return div.innerHTML;
+  }
+  
+  function formatEventDate(dateStr) {
+    if (!dateStr) return '';
+    var date = new Date(dateStr);
+    var today = new Date();
+    var todayStr = toDateStr(today);
+    
+    if (dateStr === todayStr) return 'Today';
+    
+    var tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    if (dateStr === toDateStr(tomorrow)) return 'Tomorrow';
+    
+    return date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+  }
+  
+  function toast(msg, type) {
+    if (typeof Aevel !== 'undefined' && Aevel.toast) {
+      Aevel.toast(msg, type || 'success');
+    }
+  }
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // RENDER CALENDAR GRID
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  function renderCalendar() {
+    var y = current.getFullYear();
+    var m = current.getMonth();
+    var todayStr = toDateStr(new Date());
+    
+    titleEl.textContent = monthNames[m] + ' ' + y;
+    
+    var first = new Date(y, m, 1);
+    var last = new Date(y, m + 1, 0);
+    var startDay = first.getDay();
+    var daysInMonth = last.getDate();
+    
+    // Build event map
+    var eventByDate = {};
+    events.forEach(function(ev) {
+      if (ev.date) {
+        if (!eventByDate[ev.date]) eventByDate[ev.date] = [];
+        eventByDate[ev.date].push(ev);
+      }
+    });
+    
+    var html = '';
+    
+    // Day headers
+    dayNames.forEach(function(d) {
+      html += '<div class="cal-day-header">' + d + '</div>';
+    });
+    
+    // Previous month padding
+    var prevMonth = new Date(y, m, 0);
+    var prevDays = prevMonth.getDate();
+    for (var i = 0; i < startDay; i++) {
+      html += '<div class="cal-cell other" data-date=""><div class="cal-cell-day"><span class="cal-day-num">' + (prevDays - startDay + i + 1) + '</span></div></div>';
+    }
+    
+    // Current month days
+    for (var d = 1; d <= daysInMonth; d++) {
+      var dateStr = y + '-' + String(m + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+      var dayEvents = (eventByDate[dateStr] || []).slice();
+      
+      // Sort by time
+      dayEvents.sort(function(a, b) {
+        var ta = a.time_start || '00:00';
+        var tb = b.time_start || '00:00';
+        return ta.localeCompare(tb);
+      });
+      
+      var isToday = dateStr === todayStr;
+      var isSelected = dateStr === selectedDate;
+      var cls = 'cal-cell' + (isToday ? ' today' : '') + (isSelected ? ' selected' : '');
+      
+      var eventsHtml = '<div class="cal-events">';
+      var maxVisible = 3;
+      
+      dayEvents.slice(0, maxVisible).forEach(function(ev) {
+        var timeStr = ev.time_start ? '<span class="cal-event-time">' + ev.time_start + '</span>' : '';
+        eventsHtml += '<div class="cal-event" draggable="true" data-id="' + ev.id + '">' + timeStr + escapeHtml(ev.title) + '</div>';
+      });
+      
+      if (dayEvents.length > maxVisible) {
+        eventsHtml += '<span class="cal-event-more">+' + (dayEvents.length - maxVisible) + ' more</span>';
+      }
+      
+      eventsHtml += '</div>';
+      
+      html += '<div class="' + cls + '" data-date="' + dateStr + '">' +
+        '<div class="cal-cell-day">' +
+        '<span class="cal-day-num">' + d + '</span>' +
+        '<button type="button" class="cal-quick-add" data-date="' + dateStr + '"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>' +
+        '</div>' +
+        eventsHtml +
+        '</div>';
+    }
+    
+    // Next month padding
+    var total = startDay + daysInMonth;
+    var rest = total % 7 ? 7 - (total % 7) : 0;
+    for (var j = 0; j < rest; j++) {
+      html += '<div class="cal-cell other" data-date=""><div class="cal-cell-day"><span class="cal-day-num">' + (j + 1) + '</span></div></div>';
+    }
+    
+    gridEl.innerHTML = html;
+    bindGridEvents();
+    renderScheduleList();
+  }
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // BIND GRID EVENTS
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  function bindGridEvents() {
+    // Cell clicks
+    gridEl.querySelectorAll('.cal-cell:not(.other)').forEach(function(cell) {
+      cell.addEventListener('click', function(e) {
+        if (e.target.closest('.cal-event') || e.target.closest('.cal-quick-add')) return;
+        var date = cell.dataset.date;
+        if (date) {
+          selectedDate = date;
+          openModal(null, date);
+        }
+      });
+      
+      // Drag over
+      cell.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        cell.classList.add('drag-over');
+      });
+      
+      cell.addEventListener('dragleave', function() {
+        cell.classList.remove('drag-over');
+      });
+      
+      cell.addEventListener('drop', function(e) {
+        e.preventDefault();
+        cell.classList.remove('drag-over');
+        var eventId = e.dataTransfer.getData('text/plain');
+        var newDate = cell.dataset.date;
+        if (eventId && newDate) {
+          api('PATCH', '/api/events/' + eventId, { date: newDate }).then(function() {
+            loadEvents().then(renderCalendar);
+            toast('Event moved');
+          });
+        }
+      });
+    });
+    
+    // Quick add buttons
+    gridEl.querySelectorAll('.cal-quick-add').forEach(function(btn) {
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var date = btn.dataset.date;
+        openModal(null, date);
+      });
+    });
+    
+    // Event drag
+    gridEl.querySelectorAll('.cal-event').forEach(function(ev) {
+      ev.addEventListener('dragstart', function(e) {
+        e.dataTransfer.setData('text/plain', ev.dataset.id);
+        e.dataTransfer.effectAllowed = 'move';
+        ev.classList.add('dragging');
+      });
+      
+      ev.addEventListener('dragend', function() {
+        ev.classList.remove('dragging');
+        gridEl.querySelectorAll('.drag-over').forEach(function(c) {
+          c.classList.remove('drag-over');
+        });
+      });
+      
+      ev.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var event = events.find(function(x) { return String(x.id) === ev.dataset.id; });
+        if (event) {
+          openModal(event);
+        }
+      });
+    });
+  }
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // RENDER SCHEDULE LIST
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  function renderScheduleList() {
+    var y = current.getFullYear();
+    var m = current.getMonth();
+    var monthStr = String(m + 1).padStart(2, '0');
+    
+    var filtered = events.filter(function(e) {
+      if (!e.date) return false;
+      if (!e.date.startsWith(y + '-' + monthStr)) return false;
+      if (searchQuery) {
+        return (e.title || '').toLowerCase().indexOf(searchQuery.toLowerCase()) !== -1;
+      }
+      return true;
+    }).sort(function(a, b) {
+      var cmp = (a.date || '').localeCompare(b.date || '');
+      if (cmp) return cmp;
+      return (a.time_start || '00:00').localeCompare(b.time_start || '00:00');
+    });
+    
+    if (filtered.length === 0) {
+      listEl.innerHTML = '<div class="schedule-empty">' +
+        '<p class="schedule-empty-text">' + (searchQuery ? 'No matching events.' : 'Your schedule is clear.') + '</p>' +
+        '<p class="schedule-empty-hint">Add an event to start planning.</p></div>';
+      return;
+    }
+    
+    listEl.innerHTML = filtered.map(function(ev) {
+      var timeLabel = ev.time_start || 'All day';
+      
+      return '<div class="schedule-event" data-id="' + ev.id + '">' +
+        '<div class="schedule-event-indicator"></div>' +
+        '<div class="schedule-event-content">' +
+        '<div class="schedule-event-title">' + escapeHtml(ev.title) + '</div>' +
+        '<div class="schedule-event-meta">' + formatEventDate(ev.date) + ' · ' + timeLabel + '</div>' +
+        '</div>' +
+        '<div class="schedule-event-actions">' +
+        '<button type="button" class="schedule-event-btn edit" data-id="' + ev.id + '" title="Edit">' +
+        '<svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>' +
+        '<button type="button" class="schedule-event-btn delete" data-id="' + ev.id + '" title="Delete">' +
+        '<svg viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></button>' +
+        '</div></div>';
+    }).join('');
+    
+    // Bind list events
+    listEl.querySelectorAll('.schedule-event').forEach(function(item) {
+      item.addEventListener('click', function(e) {
+        if (e.target.closest('.schedule-event-btn')) return;
+        var event = events.find(function(x) { return String(x.id) === item.dataset.id; });
+        if (event) openModal(event);
+      });
+    });
+    
+    listEl.querySelectorAll('.schedule-event-btn.edit').forEach(function(btn) {
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var event = events.find(function(x) { return String(x.id) === btn.dataset.id; });
+        if (event) openModal(event);
+      });
+    });
+    
+    listEl.querySelectorAll('.schedule-event-btn.delete').forEach(function(btn) {
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var id = btn.dataset.id;
+        if (confirm('Delete this event?')) {
+          api('DELETE', '/api/events/' + id).then(function() {
+            loadEvents().then(renderCalendar);
+            toast('Event deleted');
+          });
+        }
+      });
+    });
+  }
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // MODAL
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  function openModal(event, date) {
+    var titleEl = document.getElementById('modal-title');
+    var saveBtn = document.getElementById('modal-save');
+    var formTitle = document.getElementById('event-title');
+    var formDate = document.getElementById('event-date');
+    var formTime = document.getElementById('event-time');
+    var formNotes = document.getElementById('event-notes');
+    var formId = document.getElementById('event-id');
+    
+    if (event) {
+      titleEl.textContent = 'Edit Event';
+      saveBtn.textContent = 'Save Changes';
+      formId.value = event.id;
+      formTitle.value = event.title || '';
+      formDate.value = event.date || '';
+      formTime.value = event.time_start || '';
+      formNotes.value = event.notes || '';
+      editingEventId = event.id;
+    } else {
+      titleEl.textContent = 'Add Event';
+      saveBtn.textContent = 'Add Event';
+      formId.value = '';
+      formTitle.value = '';
+      formDate.value = date || toDateStr(new Date());
+      formTime.value = '';
+      formNotes.value = '';
+      editingEventId = null;
+    }
+    
+    modalEl.classList.add('open');
+    formTitle.focus();
+  }
+  
+  function closeModal() {
+    modalEl.classList.remove('open');
+    editingEventId = null;
+  }
+  
+  function saveEvent() {
+    var formTitle = document.getElementById('event-title');
+    var formDate = document.getElementById('event-date');
+    var formTime = document.getElementById('event-time');
+    var formNotes = document.getElementById('event-notes');
+    
+    var title = (formTitle.value || '').trim();
+    var date = formDate.value;
+    var time = formTime.value || null;
+    var notes = (formNotes.value || '').trim() || null;
+    
+    if (!title || !date) {
+      toast('Title and date required', 'error');
+      return;
+    }
+    
+    var payload = {
+      title: title,
+      date: date,
+      notes: notes,
+      is_all_day: !time
+    };
+    if (time) payload.time_start = time;
+    
+    var promise;
+    if (editingEventId) {
+      promise = api('PATCH', '/api/events/' + editingEventId, payload);
+    } else {
+      promise = api('POST', '/api/events', payload);
+    }
+    
+    promise.then(function() {
+      closeModal();
+      loadEvents().then(renderCalendar);
+      toast(editingEventId ? 'Event updated' : 'Event added');
+    }).catch(function(err) {
+      toast(err.message || 'Failed to save', 'error');
+    });
+  }
+  
+  // Modal event listeners
+  document.getElementById('modal-close').addEventListener('click', closeModal);
+  document.getElementById('modal-cancel').addEventListener('click', closeModal);
+  document.getElementById('modal-save').addEventListener('click', saveEvent);
+  document.getElementById('open-modal-btn').addEventListener('click', function() {
+    openModal(null);
+  });
+  
+  // Keyboard shortcuts
+  document.addEventListener('keydown', function(e) {
+    if (modalEl.classList.contains('open')) {
+      if (e.key === 'Escape') closeModal();
+      if (e.key === 'Enter' && e.ctrlKey) saveEvent();
+    }
+  });
+  
+  modalEl.addEventListener('click', function(e) {
+    if (e.target === modalEl) closeModal();
+  });
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // NAVIGATION
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  document.getElementById('cal-prev').addEventListener('click', function() {
+    current.setMonth(current.getMonth() - 1);
+    renderCalendar();
+  });
+  
+  document.getElementById('cal-next').addEventListener('click', function() {
+    current.setMonth(current.getMonth() + 1);
+    renderCalendar();
+  });
+  
+  document.getElementById('cal-today').addEventListener('click', function() {
+    current = new Date();
+    renderCalendar();
+  });
+  
+  // Search
+  document.getElementById('schedule-search').addEventListener('input', function() {
+    searchQuery = this.value;
+    renderScheduleList();
+  });
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ACTIONS DROPDOWN
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  var dropdown = document.getElementById('cal-dropdown');
+  
+  document.getElementById('cal-actions-toggle').addEventListener('click', function(e) {
+    e.stopPropagation();
+    dropdown.classList.toggle('open');
+  });
+  
+  document.addEventListener('click', function() {
+    dropdown.classList.remove('open');
+  });
+  
+  // Action Panel
+  function showActionPanel(title, content) {
+    document.getElementById('action-panel-title').textContent = title;
+    document.getElementById('action-panel-content').innerHTML = content;
+    actionPanel.classList.add('open');
+  }
+  
+  function closeActionPanel() {
+    actionPanel.classList.remove('open');
+  }
+  
+  document.getElementById('action-panel-close').addEventListener('click', closeActionPanel);
+  
+  // Optimize Schedule
+  document.getElementById('action-optimize').addEventListener('click', function() {
+    dropdown.classList.remove('open');
+    
+    var y = current.getFullYear();
+    var m = current.getMonth();
+    var monthStr = String(m + 1).padStart(2, '0');
+    var inMonth = events.filter(function(e) {
+      return e.date && e.date.startsWith(y + '-' + monthStr);
+    });
+    
+    if (inMonth.length === 0) {
+      showActionPanel('Optimize Schedule', '<p style="color: var(--text-muted);">No events this month to optimize.</p>');
+      return;
+    }
+    
+    showActionPanel('Optimize Schedule', '<p style="color: var(--text-muted);">Analyzing schedule...</p>');
+    
+    api('POST', '/api/ai/calendar/optimize', { events: inMonth }).then(function(data) {
+      var suggestions = data.suggestions || [];
+      if (suggestions.length === 0) {
+        showActionPanel('Optimize Schedule', '<p>Your schedule looks well organized.</p>');
+        return;
+      }
+      
+      var html = '<p style="margin-bottom: 12px;">Suggested changes:</p><ul>';
+      suggestions.forEach(function(s) {
+        html += '<li><span>' + escapeHtml(s.reason || 'Move event') + '</span>' +
+          '<button type="button" class="action-apply-btn" data-id="' + s.id + '" data-date="' + (s.suggested_date || '') + '" data-time="' + (s.suggested_time_start || '') + '">Apply</button></li>';
+      });
+      html += '</ul>';
+      showActionPanel('Optimize Schedule', html);
+      
+      actionPanel.querySelectorAll('.action-apply-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          var payload = { date: btn.dataset.date };
+          if (btn.dataset.time) payload.time_start = btn.dataset.time;
+          else payload.is_all_day = true;
+          
+          api('PATCH', '/api/events/' + btn.dataset.id, payload).then(function() {
+            btn.closest('li').remove();
+            loadEvents().then(renderCalendar);
+            toast('Applied');
+          });
+        });
+      });
+    }).catch(function(err) {
+      showActionPanel('Optimize Schedule', '<p style="color: var(--text-muted);">' + escapeHtml(err.message || 'Failed') + '</p>');
+    });
+  });
+  
+  // Summarize Week
+  document.getElementById('action-summarize').addEventListener('click', function() {
+    dropdown.classList.remove('open');
+    showActionPanel('Week Summary', '<p style="color: var(--text-muted);">Generating summary...</p>');
+    
+    var weekStart = new Date(current);
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+    var weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 6);
+    
+    var inWeek = events.filter(function(e) {
+      if (!e.date) return false;
+      var d = new Date(e.date);
+      return d >= weekStart && d <= weekEnd;
+    });
+    
+    api('POST', '/api/ai/calendar/summarize', { events: inWeek, scope: 'week' }).then(function(data) {
+      showActionPanel('Week Summary', '<p>' + escapeHtml(data.summary || 'No summary available.').replace(/\n/g, '<br>') + '</p>');
+    }).catch(function(err) {
+      showActionPanel('Week Summary', '<p style="color: var(--text-muted);">' + escapeHtml(err.message || 'Failed') + '</p>');
+    });
+  });
+  
+  // Create from Text
+  document.getElementById('action-extract').addEventListener('click', function() {
+    dropdown.classList.remove('open');
+    showActionPanel('Create from Text',
+      '<p style="margin-bottom: 12px;">Paste text with dates and times:</p>' +
+      '<textarea class="action-textarea" id="extract-text" placeholder="e.g. Meeting with John on Tuesday at 2pm..."></textarea>' +
+      '<button type="button" class="action-btn" id="extract-btn">Extract Events</button>'
+    );
+    
+    document.getElementById('extract-btn').addEventListener('click', function() {
+      var text = document.getElementById('extract-text').value.trim();
+      if (!text) {
+        toast('Enter some text first', 'error');
+        return;
+      }
+      
+      this.disabled = true;
+      this.textContent = 'Extracting...';
+      
+      api('POST', '/api/ai/calendar/extract', { text: text }).then(function(data) {
+        var extracted = data.events || [];
+        if (extracted.length === 0) {
+          showActionPanel('Create from Text', '<p style="color: var(--text-muted);">No events found in text.</p>');
+          return;
+        }
+        
+        var html = '<p style="margin-bottom: 12px;">Found ' + extracted.length + ' event(s):</p><ul>';
+        extracted.forEach(function(e, i) {
+          html += '<li><span>' + escapeHtml(e.title || 'Event') + ' - ' + (e.date || 'No date') + '</span>' +
+            '<button type="button" class="action-apply-btn" data-idx="' + i + '">Add</button></li>';
+        });
+        html += '</ul>';
+        showActionPanel('Create from Text', html);
+        
+        actionPanel.querySelectorAll('.action-apply-btn').forEach(function(btn) {
+          btn.addEventListener('click', function() {
+            var idx = parseInt(btn.dataset.idx);
+            var ev = extracted[idx];
+            if (!ev) return;
+            
+            var payload = { date: ev.date, title: ev.title };
+            if (ev.time_start) payload.time_start = ev.time_start;
+            
+            api('POST', '/api/events', payload).then(function() {
+              btn.closest('li').remove();
+              loadEvents().then(renderCalendar);
+              toast('Event added');
+            });
+          });
+        });
+      }).catch(function(err) {
+        showActionPanel('Create from Text', '<p style="color: var(--text-muted);">' + escapeHtml(err.message || 'Failed') + '</p>');
+      });
+    });
+  });
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // INITIALIZE
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  loadEvents().then(renderCalendar);
+  
+})();
+</script>
 {% endblock %}
