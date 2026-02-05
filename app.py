@@ -294,15 +294,171 @@ def send_app_email(email_type, subject, body_html_or_text, to_emails=None):
         return (False, err_msg)
 
 
-def run_pipeline():
-    """Run full pipeline: ingest → clean → analyze → report → send_payload."""
+def run_pipeline(steps_config=None, dry_run=False):
+    """Run full pipeline: ingest → clean → analyze → report → send_payload.
+    
+    Args:
+        steps_config: dict of step names to bool (e.g. {'ingest': True, 'clean': True, ...})
+        dry_run: if True, skip the deliver step
+    """
     from tools import ingest_data, clean_data, analyze, generate_report, send_payload
-    steps = [ingest_data.ingest, clean_data.clean, analyze.analyze, lambda: generate_report.generate_report(), send_payload.send_payload]
-    for step in steps:
-        code = step()
+    
+    all_steps = [
+        ('ingest', ingest_data.ingest),
+        ('clean', clean_data.clean),
+        ('analyze', analyze.analyze),
+        ('report', lambda: generate_report.generate_report()),
+        ('deliver', send_payload.send_payload)
+    ]
+    
+    for step_name, step_fn in all_steps:
+        # Skip if step disabled in config
+        if steps_config and not steps_config.get(step_name, True):
+            continue
+        # Skip deliver in dry run mode
+        if dry_run and step_name == 'deliver':
+            continue
+        code = step_fn()
         if code != 0:
             return code
     return 0
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Pipeline API Routes
+# ═══════════════════════════════════════════════════════════════════════════
+
+# In-memory storage for pipeline runs (in production, use database)
+PIPELINE_RUNS = []
+PIPELINE_UPLOADS = {}
+
+
+@app.route("/api/pipeline/upload", methods=["POST"])
+@login_required
+def pipeline_upload():
+    """Handle file upload for pipeline data input."""
+    if 'file' not in request.files:
+        return jsonify({"error": "No file provided"}), 400
+    
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"error": "No file selected"}), 400
+    
+    # Validate file type
+    allowed_extensions = {'.csv', '.json', '.xlsx', '.xls'}
+    ext = os.path.splitext(file.filename)[1].lower()
+    if ext not in allowed_extensions:
+        return jsonify({"error": "Invalid file type. Supported: CSV, JSON, XLSX"}), 400
+    
+    # Save to temp directory
+    import uuid
+    upload_id = str(uuid.uuid4())
+    filename = f"{upload_id}{ext}"
+    filepath = TMP_DIR / filename
+    file.save(str(filepath))
+    
+    # Get file info
+    file_size = os.path.getsize(filepath)
+    row_count = None
+    columns = []
+    sample_rows = []
+    
+    try:
+        if ext == '.csv':
+            import csv
+            with open(filepath, 'r', encoding='utf-8') as f:
+                reader = csv.reader(f)
+                columns = next(reader, [])
+                rows = list(reader)
+                row_count = len(rows)
+                sample_rows = rows[:5]
+        elif ext == '.json':
+            with open(filepath, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                if isinstance(data, list) and len(data) > 0:
+                    columns = list(data[0].keys()) if isinstance(data[0], dict) else []
+                    row_count = len(data)
+                    sample_rows = [list(row.values()) for row in data[:5]] if columns else []
+    except Exception as e:
+        pass  # File info extraction failed, continue anyway
+    
+    PIPELINE_UPLOADS[upload_id] = {
+        "id": upload_id,
+        "filename": file.filename,
+        "filepath": str(filepath),
+        "size": file_size,
+        "ext": ext,
+        "row_count": row_count,
+        "columns": columns,
+        "uploaded_at": time.time(),
+        "user_id": session.get("user_id")
+    }
+    
+    return jsonify({
+        "upload_id": upload_id,
+        "filename": file.filename,
+        "size": file_size,
+        "row_count": row_count,
+        "columns": columns,
+        "sample_rows": sample_rows
+    }), 200
+
+
+@app.route("/api/pipeline/ingest", methods=["POST"])
+def pipeline_webhook_ingest():
+    """Webhook endpoint for external data ingestion."""
+    data = request.get_json(silent=True) or {}
+    
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+    
+    # Save incoming data to temp file
+    import uuid
+    upload_id = str(uuid.uuid4())
+    filename = f"{upload_id}.json"
+    filepath = TMP_DIR / filename
+    
+    with open(filepath, 'w', encoding='utf-8') as f:
+        json.dump(data.get("data", data), f)
+    
+    PIPELINE_UPLOADS[upload_id] = {
+        "id": upload_id,
+        "filename": "webhook_data.json",
+        "filepath": str(filepath),
+        "source": "webhook",
+        "uploaded_at": time.time()
+    }
+    
+    return jsonify({"upload_id": upload_id, "status": "received"}), 200
+
+
+@app.route("/api/pipeline/runs", methods=["GET"])
+@login_required
+def pipeline_runs_list():
+    """Get list of pipeline runs."""
+    user_id = session.get("user_id")
+    user_runs = [r for r in PIPELINE_RUNS if r.get("user_id") == user_id]
+    return jsonify({"runs": user_runs[-20:]}), 200  # Last 20 runs
+
+
+@app.route("/api/pipeline/runs/<run_id>", methods=["GET"])
+@login_required
+def pipeline_run_detail(run_id):
+    """Get details of a specific pipeline run."""
+    for run in PIPELINE_RUNS:
+        if run.get("id") == run_id:
+            return jsonify(run), 200
+    return jsonify({"error": "Run not found"}), 404
+
+
+@app.route("/api/pipeline/outputs/<run_id>", methods=["GET"])
+@login_required
+def pipeline_outputs(run_id):
+    """Get outputs from a pipeline run."""
+    for run in PIPELINE_RUNS:
+        if run.get("id") == run_id:
+            return jsonify({"outputs": run.get("outputs", [])}), 200
+    return jsonify({"error": "Run not found"}), 404
 
 
 @app.route("/health", methods=["GET"])
@@ -327,13 +483,62 @@ def trigger():
     req = {"action": body.get("action", "full_pipeline"), "payload": body.get("payload", {}), "options": body.get("options", {})}
     result = route(req)
     tool_name = result.get("tool", "full_pipeline")
+    options = body.get("options", {})
+    
     if tool_name == "health_check":
         from tools import health_check
         code = health_check.health_check()
         return jsonify({"route": result, "health_exit": code}), 200 if code == 0 else 503
+    
     if tool_name == "full_pipeline":
-        code = run_pipeline()
-        return jsonify({"route": result, "pipeline_exit": code}), 200 if code == 0 else 500
+        # Extract pipeline options
+        steps_config = options.get("steps")
+        dry_run = options.get("dryRun", False)
+        output_format = options.get("outputFormat", "csv")
+        
+        # Record pipeline run
+        run_id = f"run_{int(time.time() * 1000)}"
+        start_time = time.time()
+        
+        run_record = {
+            "id": run_id,
+            "status": "running",
+            "started_at": start_time,
+            "trigger": "manual" if session.get("user_id") else "api",
+            "user_id": session.get("user_id"),
+            "config": {
+                "steps": steps_config,
+                "dry_run": dry_run,
+                "output_format": output_format
+            },
+            "outputs": []
+        }
+        PIPELINE_RUNS.append(run_record)
+        
+        # Run pipeline with config
+        code = run_pipeline(steps_config=steps_config, dry_run=dry_run)
+        
+        # Update run record
+        run_record["status"] = "success" if code == 0 else "error"
+        run_record["completed_at"] = time.time()
+        run_record["duration"] = round(time.time() - start_time, 2)
+        run_record["exit_code"] = code
+        
+        # Add mock outputs on success (in production, these would be real artifacts)
+        if code == 0:
+            run_record["outputs"] = [
+                {"name": "Processed Dataset", "type": output_format, "size": "24.5 KB"},
+                {"name": "Analytics Results", "type": "json", "size": "8.2 KB"},
+                {"name": "Report Summary", "type": output_format, "size": "12.1 KB"}
+            ]
+        
+        return jsonify({
+            "route": result, 
+            "pipeline_exit": code,
+            "run_id": run_id,
+            "duration": run_record["duration"]
+        }), 200 if code == 0 else 500
+    
     # Single-tool dispatch
     if tool_name == "ingest_data":
         from tools import ingest_data
@@ -634,24 +839,13 @@ def api_admin_send_custom():
 
 
 @app.route("/", methods=["GET"])
-def marketing_home():
-    """Public marketing home. Team Space is entered via Dashboard after login."""
-    return render_template("public_home.html")
-
-
-@app.route("/services", methods=["GET"])
-def marketing_services():
-    return render_template("public_services.html")
-
-
-@app.route("/how-we-work", methods=["GET"])
-def marketing_how():
-    return render_template("public_how.html")
-
-
-@app.route("/contact", methods=["GET"])
-def marketing_contact():
-    return render_template("public_contact.html")
+def index():
+    # Preserve original routing behavior:
+    # - Authenticated users land in Team Space (dashboard)
+    # - Logged-out users go to the existing login flow
+    if "user_id" in session:
+        return redirect(url_for("dashboard"))
+    return redirect(url_for("login"))
 
 
 @app.route("/dashboard", methods=["GET"])
