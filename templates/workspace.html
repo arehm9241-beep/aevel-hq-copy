@@ -1,34 +1,1129 @@
 {% extends "base_aevel.html" %}
-{% block title %}Workspace{% endblock %}
+{% block title %}Team Workspace{% endblock %}
+
+{% block head %}
+<style>
+/* ═══════════════════════════════════════════════════════════════════════════
+   WORKSPACE — SHARED KNOWLEDGE & OPERATING SPACE
+   Notion-lite: opinionated, focused, calm
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.workspace-page {
+  display: flex;
+  height: calc(100vh - 60px);
+  overflow: hidden;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   LEFT PANEL: PAGE LIST
+   ───────────────────────────────────────────────────────────────────────────── */
+.workspace-sidebar {
+  width: 280px;
+  background: var(--bg-raised);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.sidebar-header {
+  padding: 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sidebar-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+.sidebar-subtitle {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.new-page-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--bg);
+  background: var(--accent);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.new-page-btn:hover {
+  opacity: 0.9;
+}
+
+.new-page-btn svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+}
+
+/* Page List */
+.page-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+}
+
+.page-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.page-item:hover {
+  background: var(--bg-hover);
+}
+
+.page-item.active {
+  background: var(--bg-overlay);
+}
+
+.page-item.active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 20px;
+  background: var(--accent);
+  border-radius: 0 2px 2px 0;
+}
+
+.page-icon {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-overlay);
+  border-radius: 6px;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.page-icon svg {
+  width: 14px;
+  height: 14px;
+  stroke: var(--text-muted);
+  stroke-width: 1.5;
+  fill: none;
+}
+
+.page-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.page-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.page-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 1px;
+}
+
+.page-actions {
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.page-item:hover .page-actions {
+  opacity: 1;
+}
+
+.page-action-btn {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.page-action-btn:hover {
+  background: var(--bg-overlay);
+  color: var(--text);
+}
+
+.page-action-btn.delete:hover {
+  background: rgba(180, 100, 100, 0.2);
+  color: #c88;
+}
+
+.page-action-btn svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  fill: none;
+}
+
+/* Empty State */
+.sidebar-empty {
+  padding: 32px 20px;
+  text-align: center;
+}
+
+.sidebar-empty-text {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   RIGHT PANEL: PAGE CONTENT
+   ───────────────────────────────────────────────────────────────────────────── */
+.workspace-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+/* Empty State */
+.content-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+}
+
+.content-empty-icon {
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-raised);
+  border-radius: 16px;
+  margin-bottom: 20px;
+}
+
+.content-empty-icon svg {
+  width: 28px;
+  height: 28px;
+  stroke: var(--text-muted);
+  stroke-width: 1.5;
+  fill: none;
+}
+
+.content-empty-title {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.content-empty-hint {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+/* Editor */
+.editor-container {
+  flex: 1;
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.editor-container.active {
+  display: flex;
+}
+
+/* Editor Header */
+.editor-header {
+  padding: 24px 48px 0;
+  flex-shrink: 0;
+}
+
+.editor-title-input {
+  width: 100%;
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: 0;
+  letter-spacing: -0.02em;
+}
+
+.editor-title-input::placeholder {
+  color: var(--text-muted);
+}
+
+.editor-meta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 8px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.editor-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.editor-meta-item svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  fill: none;
+}
+
+.save-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.save-indicator.visible {
+  opacity: 1;
+}
+
+.save-indicator.saving {
+  color: var(--accent);
+}
+
+.save-indicator.saved {
+  color: #6b8a6b;
+}
+
+/* Editor Body */
+.editor-body {
+  flex: 1;
+  padding: 24px 48px 48px;
+  overflow-y: auto;
+}
+
+.editor-content {
+  width: 100%;
+  min-height: 400px;
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  outline: none;
+  resize: none;
+  font-family: inherit;
+}
+
+.editor-content::placeholder {
+  color: var(--text-muted);
+}
+
+/* Formatting Toolbar */
+.format-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 48px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-raised);
+}
+
+.format-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.format-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.format-btn.active {
+  background: var(--bg-overlay);
+  color: var(--accent);
+}
+
+.format-btn svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  fill: none;
+}
+
+.format-divider {
+  width: 1px;
+  height: 20px;
+  background: var(--border);
+  margin: 0 8px;
+}
+
+/* Editor Footer */
+.editor-footer {
+  padding: 16px 48px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--bg-raised);
+}
+
+.delete-page-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  font-size: 13px;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.delete-page-btn:hover {
+  color: #c88;
+  border-color: rgba(180, 100, 100, 0.4);
+  background: rgba(180, 100, 100, 0.1);
+}
+
+.delete-page-btn svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  fill: none;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   RENAME MODAL
+   ───────────────────────────────────────────────────────────────────────────── */
+.rename-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+}
+
+.rename-modal.open {
+  opacity: 1;
+  visibility: visible;
+}
+
+.rename-modal-content {
+  background: var(--bg-elevated);
+  border-radius: 12px;
+  padding: 24px;
+  width: 100%;
+  max-width: 360px;
+  margin: 24px;
+  transform: translateY(20px);
+  transition: transform 0.2s ease;
+}
+
+.rename-modal.open .rename-modal-content {
+  transform: translateY(0);
+}
+
+.rename-modal-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 16px;
+}
+
+.rename-input {
+  width: 100%;
+  padding: 12px 14px;
+  font-size: 14px;
+  background: var(--bg-overlay);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  outline: none;
+  margin-bottom: 16px;
+}
+
+.rename-input:focus {
+  border-color: var(--accent);
+}
+
+.rename-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.rename-btn {
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.rename-btn.primary {
+  color: var(--bg);
+  background: var(--accent);
+  border: none;
+}
+
+.rename-btn.secondary {
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+}
+
+.rename-btn.secondary:hover {
+  color: var(--text);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   RESPONSIVE
+   ───────────────────────────────────────────────────────────────────────────── */
+@media (max-width: 800px) {
+  .workspace-sidebar {
+    width: 220px;
+  }
+  
+  .editor-header,
+  .editor-body,
+  .format-toolbar,
+  .editor-footer {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+  
+  .editor-title-input {
+    font-size: 26px;
+  }
+}
+
+@media (max-width: 600px) {
+  .workspace-page {
+    flex-direction: column;
+    height: auto;
+    min-height: calc(100vh - 60px);
+  }
+  
+  .workspace-sidebar {
+    width: 100%;
+    max-height: 40vh;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+  
+  .workspace-content {
+    min-height: 60vh;
+  }
+}
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="page-header">
-  <h1>Workspace</h1>
-  <p class="subtitle">Shared team pages</p>
-</div>
-<section class="section">
-  <div class="card">
-    <div class="workspace-toolbar">
-      <button type="button" id="workspace-new" class="btn btn-primary">New page</button>
+<div class="workspace-page">
+  
+  <!-- ═══════════════════════════════════════════════════════════════════════════
+       LEFT PANEL: PAGE LIST
+       ═══════════════════════════════════════════════════════════════════════════ -->
+  <aside class="workspace-sidebar">
+    <div class="sidebar-header">
+      <div>
+        <div class="sidebar-title">Pages</div>
+        <div class="sidebar-subtitle">Shared team docs</div>
+      </div>
+      <button type="button" class="new-page-btn" id="new-page-btn">
+        <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+        New
+      </button>
     </div>
-    <div class="workspace-layout">
-      <aside class="workspace-sidebar">
-        <ul id="workspace-list" class="workspace-page-list"></ul>
-      </aside>
-      <div class="workspace-editor-wrap">
-        <div id="workspace-empty" class="workspace-empty">Select a page or create one.</div>
-        <div id="workspace-editor" class="workspace-editor hidden">
-          <input type="text" id="workspace-title" class="input workspace-title-input" placeholder="Page title">
-          <textarea id="workspace-body" class="textarea workspace-body-input" placeholder="Write here… (shared with the team)"></textarea>
-          <div class="workspace-editor-actions">
-            <button type="button" id="workspace-save" class="btn btn-primary">Save</button>
-            <button type="button" id="workspace-delete" class="btn btn-danger">Delete page</button>
+    
+    <div class="page-list" id="page-list">
+      <div class="sidebar-empty">
+        <p class="sidebar-empty-text">Create your first shared page for notes, plans, or references.</p>
+      </div>
+    </div>
+  </aside>
+  
+  <!-- ═══════════════════════════════════════════════════════════════════════════
+       RIGHT PANEL: PAGE CONTENT
+       ═══════════════════════════════════════════════════════════════════════════ -->
+  <main class="workspace-content">
+    
+    <!-- Empty State -->
+    <div class="content-empty" id="content-empty">
+      <div class="content-empty-icon">
+        <svg viewBox="0 0 24 24">
+          <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+          <path d="M14 2v6h6"/>
+          <path d="M16 13H8"/>
+          <path d="M16 17H8"/>
+          <path d="M10 9H8"/>
+        </svg>
+      </div>
+      <div class="content-empty-title">Select a page or create one</div>
+      <div class="content-empty-hint">Start collaborating with your team</div>
+    </div>
+    
+    <!-- Editor -->
+    <div class="editor-container" id="editor-container">
+      
+      <!-- Editor Header -->
+      <div class="editor-header">
+        <input type="text" class="editor-title-input" id="editor-title" placeholder="Untitled page">
+        <div class="editor-meta">
+          <div class="editor-meta-item" id="meta-updated">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+            <span>Just now</span>
+          </div>
+          <div class="save-indicator" id="save-indicator">
+            <span id="save-text">Saving...</span>
           </div>
         </div>
       </div>
+      
+      <!-- Formatting Toolbar -->
+      <div class="format-toolbar">
+        <button type="button" class="format-btn" data-format="heading" title="Heading">
+          <svg viewBox="0 0 24 24"><path d="M4 12h8M4 18V6M12 18V6M20 18V6l-4 6 4 6"/></svg>
+        </button>
+        <button type="button" class="format-btn" data-format="bold" title="Bold">
+          <svg viewBox="0 0 24 24"><path d="M6 4h8a4 4 0 014 4 4 4 0 01-4 4H6z"/><path d="M6 12h9a4 4 0 014 4 4 4 0 01-4 4H6z"/></svg>
+        </button>
+        <button type="button" class="format-btn" data-format="italic" title="Italic">
+          <svg viewBox="0 0 24 24"><line x1="19" y1="4" x2="10" y2="4"/><line x1="14" y1="20" x2="5" y2="20"/><line x1="15" y1="4" x2="9" y2="20"/></svg>
+        </button>
+        
+        <div class="format-divider"></div>
+        
+        <button type="button" class="format-btn" data-format="bullet" title="Bullet list">
+          <svg viewBox="0 0 24 24"><line x1="9" y1="6" x2="20" y2="6"/><line x1="9" y1="12" x2="20" y2="12"/><line x1="9" y1="18" x2="20" y2="18"/><circle cx="4" cy="6" r="1.5" fill="currentColor"/><circle cx="4" cy="12" r="1.5" fill="currentColor"/><circle cx="4" cy="18" r="1.5" fill="currentColor"/></svg>
+        </button>
+        <button type="button" class="format-btn" data-format="number" title="Numbered list">
+          <svg viewBox="0 0 24 24"><line x1="10" y1="6" x2="21" y2="6"/><line x1="10" y1="12" x2="21" y2="12"/><line x1="10" y1="18" x2="21" y2="18"/><text x="3" y="7" font-size="7" fill="currentColor" stroke="none">1</text><text x="3" y="13" font-size="7" fill="currentColor" stroke="none">2</text><text x="3" y="19" font-size="7" fill="currentColor" stroke="none">3</text></svg>
+        </button>
+        <button type="button" class="format-btn" data-format="checklist" title="Checklist">
+          <svg viewBox="0 0 24 24"><rect x="3" y="5" width="4" height="4" rx="1"/><path d="M11 7h10"/><rect x="3" y="14" width="4" height="4" rx="1"/><path d="M4 16l1.5 1.5L7 15"/><path d="M11 16h10"/></svg>
+        </button>
+        
+        <div class="format-divider"></div>
+        
+        <button type="button" class="format-btn" data-format="link" title="Link">
+          <svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+        </button>
+        <button type="button" class="format-btn" data-format="callout" title="Callout">
+          <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        </button>
+      </div>
+      
+      <!-- Editor Body -->
+      <div class="editor-body">
+        <textarea class="editor-content" id="editor-content" placeholder="Write something...
+
+Use this space for:
+• Team SOPs and processes
+• Meeting notes and decisions
+• Strategy documents
+• Client notes
+• Project documentation
+
+Start typing to begin..."></textarea>
+      </div>
+      
+      <!-- Editor Footer -->
+      <div class="editor-footer">
+        <button type="button" class="delete-page-btn" id="delete-page-btn">
+          <svg viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+          Delete page
+        </button>
+        <div class="editor-meta-item">
+          <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+          <span>Team shared</span>
+        </div>
+      </div>
+      
+    </div>
+  </main>
+  
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     RENAME MODAL
+     ═══════════════════════════════════════════════════════════════════════════ -->
+<div class="rename-modal" id="rename-modal">
+  <div class="rename-modal-content">
+    <div class="rename-modal-title">Rename page</div>
+    <input type="text" class="rename-input" id="rename-input" placeholder="Page title">
+    <div class="rename-actions">
+      <button type="button" class="rename-btn secondary" id="rename-cancel">Cancel</button>
+      <button type="button" class="rename-btn primary" id="rename-save">Rename</button>
     </div>
   </div>
-</section>
+</div>
 {% endblock %}
+
 {% block scripts %}
-<script src="{{ url_for('static', filename='js/workspace.js') }}"></script>
+<script>
+(function() {
+  'use strict';
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // STATE
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  var pages = [];
+  var currentPageId = null;
+  var saveTimeout = null;
+  var isDirty = false;
+  var renamingPageId = null;
+  
+  // DOM Elements
+  var pageListEl = document.getElementById('page-list');
+  var contentEmptyEl = document.getElementById('content-empty');
+  var editorContainerEl = document.getElementById('editor-container');
+  var editorTitleEl = document.getElementById('editor-title');
+  var editorContentEl = document.getElementById('editor-content');
+  var saveIndicatorEl = document.getElementById('save-indicator');
+  var saveTextEl = document.getElementById('save-text');
+  var metaUpdatedEl = document.getElementById('meta-updated');
+  var renameModalEl = document.getElementById('rename-modal');
+  var renameInputEl = document.getElementById('rename-input');
+  
+  // Page icons (subtle variety)
+  var pageIcons = ['📄', '📝', '📋', '📑', '📌', '🗒️', '📓', '📔'];
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // API
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  function api(method, path, body) {
+    var opts = { method: method, credentials: 'same-origin', headers: { 'Content-Type': 'application/json' } };
+    if (body) opts.body = JSON.stringify(body);
+    return fetch(path, opts).then(function(r) {
+      return r.json().then(function(data) {
+        if (!r.ok) throw new Error(data.error || 'Request failed');
+        return data;
+      });
+    });
+  }
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // UTILITIES
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  function escapeHtml(str) {
+    var div = document.createElement('div');
+    div.textContent = str || '';
+    return div.innerHTML;
+  }
+  
+  function formatDate(timestamp) {
+    if (!timestamp) return 'Just now';
+    var date = new Date(timestamp);
+    var now = new Date();
+    var diff = now - date;
+    var mins = Math.floor(diff / 60000);
+    var hours = Math.floor(diff / 3600000);
+    var days = Math.floor(diff / 86400000);
+    
+    if (mins < 1) return 'Just now';
+    if (mins < 60) return mins + 'm ago';
+    if (hours < 24) return hours + 'h ago';
+    if (days < 7) return days + 'd ago';
+    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  }
+  
+  function getPageIcon(index) {
+    return pageIcons[index % pageIcons.length];
+  }
+  
+  function toast(msg, type) {
+    if (typeof Aevel !== 'undefined' && Aevel.toast) {
+      Aevel.toast(msg, type || 'success');
+    }
+  }
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // LOAD PAGES
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  function loadPages() {
+    return api('GET', '/api/workspace').then(function(data) {
+      pages = data.pages || [];
+      renderPageList();
+      return pages;
+    });
+  }
+  
+  function renderPageList() {
+    if (pages.length === 0) {
+      pageListEl.innerHTML = '<div class="sidebar-empty">' +
+        '<p class="sidebar-empty-text">Create your first shared page for notes, plans, or references.</p></div>';
+      return;
+    }
+    
+    pageListEl.innerHTML = pages.map(function(page, index) {
+      var isActive = page.id === currentPageId;
+      var icon = getPageIcon(index);
+      var title = page.title || 'Untitled';
+      var updated = formatDate(page.updated_at);
+      
+      return '<div class="page-item' + (isActive ? ' active' : '') + '" data-id="' + page.id + '">' +
+        '<div class="page-icon">' + icon + '</div>' +
+        '<div class="page-info">' +
+        '<div class="page-name">' + escapeHtml(title) + '</div>' +
+        '<div class="page-meta">Updated ' + updated + '</div>' +
+        '</div>' +
+        '<div class="page-actions">' +
+        '<button type="button" class="page-action-btn rename" data-id="' + page.id + '" title="Rename">' +
+        '<svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>' +
+        '<button type="button" class="page-action-btn delete" data-id="' + page.id + '" title="Delete">' +
+        '<svg viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></button>' +
+        '</div></div>';
+    }).join('');
+    
+    // Bind events
+    pageListEl.querySelectorAll('.page-item').forEach(function(item) {
+      item.addEventListener('click', function(e) {
+        if (e.target.closest('.page-action-btn')) return;
+        selectPage(item.dataset.id);
+      });
+    });
+    
+    pageListEl.querySelectorAll('.page-action-btn.rename').forEach(function(btn) {
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        openRenameModal(btn.dataset.id);
+      });
+    });
+    
+    pageListEl.querySelectorAll('.page-action-btn.delete').forEach(function(btn) {
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        deletePage(btn.dataset.id);
+      });
+    });
+  }
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SELECT PAGE
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  function selectPage(id) {
+    // Save current page first if dirty
+    if (isDirty && currentPageId) {
+      saveCurrentPage();
+    }
+    
+    currentPageId = id;
+    
+    api('GET', '/api/workspace/' + id).then(function(page) {
+      if (page.error) return;
+      
+      editorTitleEl.value = page.title || '';
+      editorContentEl.value = page.body || '';
+      
+      var updated = formatDate(page.updated_at);
+      metaUpdatedEl.querySelector('span').textContent = 'Updated ' + updated;
+      
+      contentEmptyEl.style.display = 'none';
+      editorContainerEl.classList.add('active');
+      
+      isDirty = false;
+      renderPageList();
+      
+      // Focus editor
+      editorContentEl.focus();
+    });
+  }
+  
+  function showEmpty() {
+    currentPageId = null;
+    editorContainerEl.classList.remove('active');
+    contentEmptyEl.style.display = 'flex';
+    editorTitleEl.value = '';
+    editorContentEl.value = '';
+    isDirty = false;
+    renderPageList();
+  }
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // CREATE PAGE
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  function createPage() {
+    api('POST', '/api/workspace', { title: 'Untitled', body: '' }).then(function(page) {
+      if (page.id) {
+        loadPages().then(function() {
+          selectPage(page.id);
+          editorTitleEl.focus();
+          editorTitleEl.select();
+        });
+        toast('Page created');
+      }
+    });
+  }
+  
+  document.getElementById('new-page-btn').addEventListener('click', createPage);
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // AUTOSAVE
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  function showSaveIndicator(status) {
+    saveIndicatorEl.classList.add('visible');
+    saveIndicatorEl.classList.remove('saving', 'saved');
+    
+    if (status === 'saving') {
+      saveIndicatorEl.classList.add('saving');
+      saveTextEl.textContent = 'Saving...';
+    } else if (status === 'saved') {
+      saveIndicatorEl.classList.add('saved');
+      saveTextEl.textContent = 'Saved';
+      setTimeout(function() {
+        saveIndicatorEl.classList.remove('visible');
+      }, 2000);
+    }
+  }
+  
+  function saveCurrentPage() {
+    if (!currentPageId) return;
+    
+    var title = editorTitleEl.value.trim() || 'Untitled';
+    var body = editorContentEl.value;
+    
+    showSaveIndicator('saving');
+    
+    api('PATCH', '/api/workspace/' + currentPageId, {
+      title: title,
+      body: body
+    }).then(function() {
+      isDirty = false;
+      showSaveIndicator('saved');
+      loadPages();
+    }).catch(function() {
+      toast('Failed to save', 'error');
+    });
+  }
+  
+  function scheduleSave() {
+    isDirty = true;
+    if (saveTimeout) clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(saveCurrentPage, 1000);
+  }
+  
+  editorTitleEl.addEventListener('input', scheduleSave);
+  editorContentEl.addEventListener('input', scheduleSave);
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // DELETE PAGE
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  function deletePage(id) {
+    var page = pages.find(function(p) { return String(p.id) === String(id); });
+    var title = page ? page.title : 'this page';
+    
+    if (!confirm('Delete "' + title + '"? This cannot be undone.')) return;
+    
+    api('DELETE', '/api/workspace/' + id).then(function() {
+      if (String(currentPageId) === String(id)) {
+        showEmpty();
+      }
+      loadPages();
+      toast('Page deleted');
+    });
+  }
+  
+  document.getElementById('delete-page-btn').addEventListener('click', function() {
+    if (currentPageId) deletePage(currentPageId);
+  });
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // RENAME MODAL
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  function openRenameModal(id) {
+    renamingPageId = id;
+    var page = pages.find(function(p) { return String(p.id) === String(id); });
+    renameInputEl.value = page ? page.title : '';
+    renameModalEl.classList.add('open');
+    renameInputEl.focus();
+    renameInputEl.select();
+  }
+  
+  function closeRenameModal() {
+    renameModalEl.classList.remove('open');
+    renamingPageId = null;
+  }
+  
+  function saveRename() {
+    if (!renamingPageId) return;
+    
+    var newTitle = renameInputEl.value.trim() || 'Untitled';
+    
+    api('PATCH', '/api/workspace/' + renamingPageId, { title: newTitle }).then(function() {
+      if (String(currentPageId) === String(renamingPageId)) {
+        editorTitleEl.value = newTitle;
+      }
+      loadPages();
+      closeRenameModal();
+      toast('Renamed');
+    });
+  }
+  
+  document.getElementById('rename-cancel').addEventListener('click', closeRenameModal);
+  document.getElementById('rename-save').addEventListener('click', saveRename);
+  
+  renameInputEl.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') saveRename();
+    if (e.key === 'Escape') closeRenameModal();
+  });
+  
+  renameModalEl.addEventListener('click', function(e) {
+    if (e.target === renameModalEl) closeRenameModal();
+  });
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // FORMAT TOOLBAR
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  document.querySelectorAll('.format-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var format = btn.dataset.format;
+      var textarea = editorContentEl;
+      var start = textarea.selectionStart;
+      var end = textarea.selectionEnd;
+      var text = textarea.value;
+      var selected = text.substring(start, end);
+      var insert = '';
+      
+      switch(format) {
+        case 'heading':
+          insert = '\n## ' + (selected || 'Heading') + '\n';
+          break;
+        case 'bold':
+          insert = '**' + (selected || 'bold text') + '**';
+          break;
+        case 'italic':
+          insert = '*' + (selected || 'italic text') + '*';
+          break;
+        case 'bullet':
+          insert = '\n• ' + (selected || 'List item') + '\n';
+          break;
+        case 'number':
+          insert = '\n1. ' + (selected || 'List item') + '\n';
+          break;
+        case 'checklist':
+          insert = '\n☐ ' + (selected || 'Task') + '\n';
+          break;
+        case 'link':
+          insert = '[' + (selected || 'link text') + '](url)';
+          break;
+        case 'callout':
+          insert = '\n> 💡 ' + (selected || 'Note or callout') + '\n';
+          break;
+      }
+      
+      textarea.value = text.substring(0, start) + insert + text.substring(end);
+      textarea.focus();
+      textarea.setSelectionRange(start + insert.length, start + insert.length);
+      scheduleSave();
+    });
+  });
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // KEYBOARD SHORTCUTS
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  document.addEventListener('keydown', function(e) {
+    // Ctrl/Cmd + S to save
+    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+      e.preventDefault();
+      if (currentPageId) saveCurrentPage();
+    }
+    
+    // Ctrl/Cmd + N to create new page
+    if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+      e.preventDefault();
+      createPage();
+    }
+    
+    // Escape to close modal
+    if (e.key === 'Escape' && renameModalEl.classList.contains('open')) {
+      closeRenameModal();
+    }
+  });
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // INITIALIZE
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  loadPages();
+  
+})();
+</script>
 {% endblock %}
