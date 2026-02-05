@@ -2,381 +2,100 @@
 {% block title %}Dashboard{% endblock %}
 {% block content %}
 
-<!-- ═══════════════════════════════════════════════════════════════════════════
-     1. DASHBOARD HEADER
-     ═══════════════════════════════════════════════════════════════════════════ -->
+<!-- Dashboard Header -->
 <div class="page-header dashboard-header">
   <div class="dashboard-header-main">
     <h1>Dashboard</h1>
-    <p class="subtitle">System overview and recent activity</p>
-  </div>
-  <div class="dashboard-header-meta">
-    <div class="dashboard-date" id="dashboard-date"></div>
-    <div class="dashboard-time-range">
-      <button class="time-range-btn active" data-range="today">Today</button>
-      <button class="time-range-btn" data-range="week">Week</button>
-      <button class="time-range-btn" data-range="month">Month</button>
-    </div>
+    <p class="subtitle" id="dashboard-date"></p>
   </div>
 </div>
 
-<div class="dashboard-surface">
+<div class="dashboard-surface dashboard-surface--calm">
   
-  <!-- ═══════════════════════════════════════════════════════════════════════════
-       2. SYSTEM HEALTH & STATUS
-       ═══════════════════════════════════════════════════════════════════════════ -->
+  <!-- System Health (compact) -->
   <section class="dashboard-section">
-    <div class="system-health-grid">
-      <div class="health-card">
-        <div class="health-card-icon health-icon--pipeline">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-          </svg>
-        </div>
-        <div class="health-card-content">
-          <div class="health-card-label">Pipeline Status</div>
-          <div class="health-card-status" id="health-pipeline">
-            <span class="health-dot health-dot--healthy"></span>
-            <span class="health-text">Healthy</span>
-          </div>
-        </div>
+    <div class="system-health-compact">
+      <div class="health-item">
+        <span class="health-dot health-dot--healthy" id="health-dot"></span>
+        <span class="health-label">Pipeline</span>
+        <span class="health-status" id="health-status">Healthy</span>
       </div>
-      
-      <div class="health-card">
-        <div class="health-card-icon health-icon--clock">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"/>
-            <polyline points="12 6 12 12 16 14"/>
-          </svg>
-        </div>
-        <div class="health-card-content">
-          <div class="health-card-label">Last Run</div>
-          <div class="health-card-value" id="health-last-run">—</div>
-        </div>
+      <div class="health-divider"></div>
+      <div class="health-item">
+        <span class="health-label">Last run</span>
+        <span class="health-value" id="health-last-run">—</span>
       </div>
-      
-      <div class="health-card">
-        <div class="health-card-icon health-icon--automation">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/>
-          </svg>
-        </div>
-        <div class="health-card-content">
-          <div class="health-card-label">Automations</div>
-          <div class="health-card-status" id="health-automation">
-            <span class="health-dot health-dot--active"></span>
-            <span class="health-text">Active</span>
-          </div>
-        </div>
-      </div>
-      
-      <div class="health-card">
-        <div class="health-card-icon health-icon--alerts">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-          </svg>
-        </div>
-        <div class="health-card-content">
-          <div class="health-card-label">Alerts</div>
-          <div class="health-card-value" id="health-alerts">0 active</div>
-        </div>
+      <div class="health-divider"></div>
+      <div class="health-item">
+        <span class="health-label">Automations</span>
+        <span class="health-value">Active</span>
       </div>
     </div>
   </section>
 
-  <!-- ═══════════════════════════════════════════════════════════════════════════
-       3. KEY METRICS SNAPSHOT
-       ═══════════════════════════════════════════════════════════════════════════ -->
+  <!-- Key Metrics (4 max) -->
   <section class="dashboard-section">
-    <div class="section-header-row">
-      <h2 class="section-title">Key Metrics</h2>
-    </div>
-    
-    <div class="dashboard-summary" id="dashboard-summary">
-      <div class="dashboard-summary-item" data-metric="tasks">
-        <div class="metric-icon">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M9 11l3 3L22 4"/>
-            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
-          </svg>
-        </div>
-        <div class="metric-content">
-          <div class="card-value" id="kpi-tasks"><span class="skeleton" style="display:inline-block;width:2rem;height:1.5rem;vertical-align:middle;"></span></div>
-          <div class="card-meta" id="kpi-tasks-meta">Active tasks</div>
-        </div>
-        <div class="metric-trend">
-          <div class="kpi-sparkline" id="sparkline-tasks"></div>
-        </div>
+    <div class="dashboard-metrics" id="dashboard-summary">
+      <div class="metric-card">
+        <div class="metric-value" id="kpi-tasks">—</div>
+        <div class="metric-label">Active tasks</div>
+        <div class="metric-sub" id="kpi-tasks-meta"></div>
       </div>
-      
-      <div class="dashboard-summary-item" data-metric="done">
-        <div class="metric-icon">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"/>
-            <path d="M9 12l2 2 4-4"/>
-          </svg>
-        </div>
-        <div class="metric-content">
-          <div class="card-value" id="kpi-done"><span class="skeleton" style="display:inline-block;width:2rem;height:1.5rem;vertical-align:middle;"></span></div>
-          <div class="card-meta">Completed</div>
-        </div>
-        <div class="metric-trend">
-          <div class="kpi-week-compare" id="week-compare-done"></div>
-        </div>
+      <div class="metric-card">
+        <div class="metric-value" id="kpi-done">—</div>
+        <div class="metric-label">Completed</div>
+        <div class="metric-sub" id="week-compare-done"></div>
       </div>
-      
-      <div class="dashboard-summary-item" data-metric="reports">
-        <div class="metric-icon">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-            <polyline points="14 2 14 8 20 8"/>
-            <line x1="16" y1="13" x2="8" y2="13"/>
-            <line x1="16" y1="17" x2="8" y2="17"/>
-          </svg>
-        </div>
-        <div class="metric-content">
-          <div class="card-value" id="kpi-notes"><span class="skeleton" style="display:inline-block;width:2rem;height:1.5rem;vertical-align:middle;"></span></div>
-          <div class="card-meta">Reports</div>
-        </div>
-        <div class="metric-trend">
-          <div class="kpi-sparkline" id="sparkline-notes"></div>
-        </div>
+      <div class="metric-card">
+        <div class="metric-value" id="kpi-notes">—</div>
+        <div class="metric-label">Reports</div>
       </div>
-      
-      <div class="dashboard-summary-item" data-metric="events">
-        <div class="metric-icon">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-            <line x1="16" y1="2" x2="16" y2="6"/>
-            <line x1="8" y1="2" x2="8" y2="6"/>
-            <line x1="3" y1="10" x2="21" y2="10"/>
-          </svg>
-        </div>
-        <div class="metric-content">
-          <div class="card-value" id="kpi-events"><span class="skeleton" style="display:inline-block;width:2rem;height:1.5rem;vertical-align:middle;"></span></div>
-          <div class="card-meta">Events</div>
-        </div>
-        <div class="metric-trend">
-          <div class="kpi-context" id="kpi-context"></div>
-        </div>
-      </div>
-      
-      <div class="dashboard-summary-item" data-metric="pipelines">
-        <div class="metric-icon">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polygon points="5 3 19 12 5 21 5 3"/>
-          </svg>
-        </div>
-        <div class="metric-content">
-          <div class="card-value" id="kpi-pipelines">1</div>
-          <div class="card-meta">Active pipelines</div>
-        </div>
-      </div>
-      
-      <div class="dashboard-summary-item" data-metric="scheduled">
-        <div class="metric-icon">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"/>
-            <polyline points="12 6 12 12 16 14"/>
-          </svg>
-        </div>
-        <div class="metric-content">
-          <div class="card-value" id="kpi-scheduled">0</div>
-          <div class="card-meta">Scheduled runs</div>
-        </div>
+      <div class="metric-card">
+        <div class="metric-value" id="kpi-events">—</div>
+        <div class="metric-label">Events this week</div>
       </div>
     </div>
   </section>
 
-  <!-- ═══════════════════════════════════════════════════════════════════════════
-       4. AI INSIGHTS & RECOMMENDATIONS
-       ═══════════════════════════════════════════════════════════════════════════ -->
+  <!-- AI Insights (collapsed by default) -->
   <section class="dashboard-section">
-    <div class="dashboard-ai-insights" id="dashboard-ai-insights">
-      <div class="dashboard-ai-header">
-        <div class="ai-header-left">
-          <span class="dashboard-ai-label">AI Insights</span>
-          <span class="ai-powered-badge">Powered by AI</span>
+    <details class="ai-insights-panel" id="dashboard-ai-insights">
+      <summary class="ai-insights-summary">
+        <span class="ai-insights-title">AI Insights</span>
+        <span class="ai-insights-badge">AI</span>
+      </summary>
+      <div class="ai-insights-body">
+        <div id="dashboard-ai-content" class="dashboard-ai-content">
+          <p class="ai-placeholder">Click to generate insights based on your activity.</p>
         </div>
-        <div class="ai-header-actions">
-          <button type="button" id="dashboard-ai-dismiss" class="btn btn-ghost btn-small" style="display:none;">Dismiss</button>
-          <button type="button" id="dashboard-ai-refresh" class="btn btn-secondary btn-small">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/>
-              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
-            </svg>
-            Generate
-          </button>
+        <button type="button" id="dashboard-ai-refresh" class="btn btn-ghost btn-small">Generate insights</button>
+      </div>
+    </details>
+  </section>
+
+  <!-- Upcoming (lightweight) -->
+  <section class="dashboard-section">
+    <div class="dashboard-upcoming">
+      <div class="upcoming-column">
+        <div class="upcoming-header">
+          <span class="upcoming-title">Upcoming tasks</span>
+          <a href="/tasks" class="upcoming-link">View all</a>
+        </div>
+        <div id="widget-tasks-list" class="upcoming-list">
+          <p class="upcoming-empty">Loading...</p>
         </div>
       </div>
-      <div id="dashboard-ai-content" class="dashboard-ai-content">
-        <div class="ai-insights-placeholder">
-          <p>Click "Generate" to get AI-powered insights about your data and activity.</p>
+      <div class="upcoming-column">
+        <div class="upcoming-header">
+          <span class="upcoming-title">Upcoming events</span>
+          <a href="/calendar" class="upcoming-link">View all</a>
         </div>
-      </div>
-      <div class="dashboard-ai-suggestions" id="dashboard-ai-suggestions" style="display:none;">
-        <div class="ai-suggestions-title">Recommendations</div>
-        <div class="ai-suggestions-list" id="ai-suggestions-list"></div>
+        <ul id="widget-events" class="upcoming-list">
+          <li class="upcoming-empty">Loading...</li>
+        </ul>
       </div>
     </div>
   </section>
-
-  <!-- Summary insights bar (existing) -->
-  <div class="dashboard-insights" id="dashboard-insights" style="margin-bottom: var(--space-4); font-size: var(--text-sm); color: var(--text-secondary);"></div>
-
-  <!-- ═══════════════════════════════════════════════════════════════════════════
-       7. QUICK ACTIONS
-       ═══════════════════════════════════════════════════════════════════════════ -->
-  <section class="dashboard-section">
-    <div class="section-header-row">
-      <h2 class="section-title">Quick Actions</h2>
-    </div>
-    
-    <div class="quick-actions-grid">
-      <a href="/automations" class="quick-action-card">
-        <div class="quick-action-icon">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polygon points="5 3 19 12 5 21 5 3"/>
-          </svg>
-        </div>
-        <span class="quick-action-label">Run Pipeline</span>
-      </a>
-      
-      <a href="/automations" class="quick-action-card">
-        <div class="quick-action-icon">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-            <polyline points="17 8 12 3 7 8"/>
-            <line x1="12" y1="3" x2="12" y2="15"/>
-          </svg>
-        </div>
-        <span class="quick-action-label">Upload Data</span>
-      </a>
-      
-      <a href="/reports" class="quick-action-card">
-        <div class="quick-action-icon">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-            <polyline points="14 2 14 8 20 8"/>
-            <line x1="12" y1="18" x2="12" y2="12"/>
-            <line x1="9" y1="15" x2="15" y2="15"/>
-          </svg>
-        </div>
-        <span class="quick-action-label">Create Report</span>
-      </a>
-      
-      <button type="button" class="quick-action-card" id="quick-add-task">
-        <div class="quick-action-icon">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M9 11l3 3L22 4"/>
-            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
-          </svg>
-        </div>
-        <span class="quick-action-label">Add Task</span>
-      </button>
-      
-      <a href="/calendar" class="quick-action-card">
-        <div class="quick-action-icon">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-            <line x1="16" y1="2" x2="16" y2="6"/>
-            <line x1="8" y1="2" x2="8" y2="6"/>
-            <line x1="3" y1="10" x2="21" y2="10"/>
-          </svg>
-        </div>
-        <span class="quick-action-label">Schedule Event</span>
-      </a>
-      
-      <a href="/notes" class="quick-action-card">
-        <div class="quick-action-icon">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-          </svg>
-        </div>
-        <span class="quick-action-label">Create Note</span>
-      </a>
-    </div>
-  </section>
-
-  <!-- ═══════════════════════════════════════════════════════════════════════════
-       5 & 6. ACTIVITY, EVENTS & TASKS
-       ═══════════════════════════════════════════════════════════════════════════ -->
-  <div class="dashboard-activity" id="dashboard-activity">
-    <!-- Schedule & Tasks Block -->
-    <div class="dashboard-block">
-      <div class="dashboard-block-title">Schedule & Tasks</div>
-      
-      <!-- Mini Calendar -->
-      <div class="cal-mini" id="cal-mini"></div>
-      
-      <!-- Upcoming Events -->
-      <div class="widget-section">
-        <div class="widget-section-header">
-          <span class="widget-section-title">Upcoming Events</span>
-          <a href="/calendar" class="widget-section-link">View all</a>
-        </div>
-        <ul class="widget-events-list" id="widget-events"></ul>
-      </div>
-      
-      <!-- Tasks Overview -->
-      <div class="widget-section">
-        <div class="widget-section-header">
-          <span class="widget-section-title">Tasks Due</span>
-          <a href="/tasks" class="widget-section-link">View all</a>
-        </div>
-        <div class="tasks-summary-bar" id="tasks-summary-bar">
-          <div class="tasks-summary-item">
-            <span class="tasks-summary-count" id="tasks-due-today">0</span>
-            <span class="tasks-summary-label">Today</span>
-          </div>
-          <div class="tasks-summary-item tasks-summary-item--overdue">
-            <span class="tasks-summary-count" id="tasks-overdue">0</span>
-            <span class="tasks-summary-label">Overdue</span>
-          </div>
-          <div class="tasks-summary-item tasks-summary-item--completed">
-            <span class="tasks-summary-count" id="tasks-recent-done">0</span>
-            <span class="tasks-summary-label">Done this week</span>
-          </div>
-        </div>
-        <form class="form-inline" id="widget-task-form" style="margin-top: 1rem;">
-          <input type="text" class="input" id="widget-task-input" placeholder="Quick add task..." aria-label="New task" style="flex:1;min-width:0;margin-bottom:0;">
-          <button type="submit" class="btn btn-primary btn-small">Add</button>
-        </form>
-        <div id="widget-tasks-list" class="widget-tasks-list"></div>
-      </div>
-    </div>
-    
-    <!-- Recent Activity Block -->
-    <div class="dashboard-block">
-      <div class="dashboard-block-title">Recent Activity</div>
-      
-      <!-- Activity Feed -->
-      <div class="activity-feed" id="activity-feed">
-        <div class="activity-feed-empty">Loading activity...</div>
-      </div>
-      
-      <!-- Detailed Activity Table (collapsible) -->
-      <details class="activity-timeline-details">
-        <summary class="activity-timeline-summary">Full activity log</summary>
-        <div class="table-wrap">
-          <table class="table" id="recent-table">
-            <thead>
-              <tr>
-                <th>Action</th>
-                <th>Resource</th>
-                <th>When</th>
-              </tr>
-            </thead>
-            <tbody id="recent-tbody">
-              <tr><td colspan="3" class="cell-primary">Loading…</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </details>
-    </div>
-  </div>
 
 </div>
 {% endblock %}
@@ -385,16 +104,6 @@
 <script>
 (function() {
   'use strict';
-  
-  // ═══════════════════════════════════════════════════════════════════════════
-  // Utilities
-  // ═══════════════════════════════════════════════════════════════════════════
-  function api(method, path, body) {
-    if (typeof Aevel !== 'undefined' && Aevel.api) return Aevel.api(method, path, body);
-    var opts = { method: method, credentials: 'same-origin', headers: {} };
-    if (body) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
-    return fetch(path, opts).then(function(r) { return r.json().then(function(d) { if (!r.ok) throw new Error(d.error || 'Failed'); return d; }); });
-  }
   
   function escapeHtml(str) {
     var div = document.createElement('div');
@@ -415,436 +124,153 @@
     return date.toLocaleDateString();
   }
   
-  // ═══════════════════════════════════════════════════════════════════════════
-  // Dashboard Header
-  // ═══════════════════════════════════════════════════════════════════════════
-  function updateDate() {
-    var el = document.getElementById('dashboard-date');
-    if (el) {
-      var now = new Date();
-      el.textContent = now.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
-    }
+  // Date display
+  var dateEl = document.getElementById('dashboard-date');
+  if (dateEl) {
+    var now = new Date();
+    dateEl.textContent = now.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
   }
-  updateDate();
   
-  // Time range selector
-  document.querySelectorAll('.time-range-btn').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      document.querySelectorAll('.time-range-btn').forEach(function(b) { b.classList.remove('active'); });
-      btn.classList.add('active');
-      // Could trigger data reload for different ranges
-    });
-  });
-
-  // ═══════════════════════════════════════════════════════════════════════════
   // System Health
-  // ═══════════════════════════════════════════════════════════════════════════
-  function loadSystemHealth() {
+  function loadHealth() {
     fetch('/health', { credentials: 'same-origin' })
       .then(function(r) { return r.json(); })
       .then(function(d) {
-        var pipelineEl = document.getElementById('health-pipeline');
-        if (pipelineEl) {
-          var healthy = d.status === 'ok';
-          pipelineEl.innerHTML = '<span class="health-dot health-dot--' + (healthy ? 'healthy' : 'error') + '"></span>' +
-                                 '<span class="health-text">' + (healthy ? 'Healthy' : 'Error') + '</span>';
-        }
+        var dot = document.getElementById('health-dot');
+        var status = document.getElementById('health-status');
+        var healthy = d.status === 'ok';
+        if (dot) dot.className = 'health-dot health-dot--' + (healthy ? 'healthy' : 'error');
+        if (status) status.textContent = healthy ? 'Healthy' : 'Error';
       })
-      .catch(function() {
-        var pipelineEl = document.getElementById('health-pipeline');
-        if (pipelineEl) {
-          pipelineEl.innerHTML = '<span class="health-dot health-dot--warning"></span><span class="health-text">Unknown</span>';
-        }
-      });
+      .catch(function() {});
     
-    // Load last run info from pipeline runs if available
     fetch('/api/pipeline/runs', { credentials: 'same-origin' })
       .then(function(r) { return r.json(); })
       .then(function(d) {
-        var lastRunEl = document.getElementById('health-last-run');
-        if (lastRunEl && d.runs && d.runs.length > 0) {
+        var el = document.getElementById('health-last-run');
+        if (el && d.runs && d.runs.length > 0) {
           var lastRun = d.runs[d.runs.length - 1];
           var date = new Date(lastRun.started_at * 1000);
-          lastRunEl.textContent = formatRelativeTime(date);
+          el.textContent = formatRelativeTime(date);
         }
       })
       .catch(function() {});
   }
-  loadSystemHealth();
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // Preferences
-  // ═══════════════════════════════════════════════════════════════════════════
-  function applyPrefs(prefs) {
-    var summary = document.getElementById('dashboard-summary');
-    var activity = document.getElementById('dashboard-activity');
-    if (prefs.dashboard_kpis !== false && summary) summary.style.display = '';
-    else if (summary) summary.style.display = 'none';
-    if (prefs.dashboard_widgets !== false && activity) activity.style.display = '';
-    else if (activity) activity.style.display = 'none';
-  }
-  fetch('/api/preferences').then(function(r) { return r.json(); }).then(applyPrefs).catch(function() {});
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // Sparkline
-  // ═══════════════════════════════════════════════════════════════════════════
-  function sparkline(values, el, maxHeight) {
-    if (!el || !values || values.length === 0) return;
-    var max = Math.max.apply(null, values.concat([1]));
-    var w = 60, h = maxHeight || 24;
-    var pts = values.map(function(v, i) {
-      var x = (i / (values.length - 1 || 1)) * w;
-      var y = h - (v / max) * (h - 2) - 1;
-      return x + ',' + y;
-    }).join(' ');
-    el.innerHTML = '<svg width="' + w + '" height="' + h + '" class="sparkline-svg"><polyline fill="none" stroke="currentColor" stroke-width="1.5" points="' + pts + '"/></svg>';
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // Load Stats
-  // ═══════════════════════════════════════════════════════════════════════════
+  loadHealth();
+  
+  // Stats
   function loadStats() {
-    return fetch('/api/dashboard/stats', { credentials: 'same-origin' })
+    fetch('/api/dashboard/stats', { credentials: 'same-origin' })
       .then(function(r) { return r.json(); })
       .then(function(d) {
         var total = d.tasks_total || 0;
         var done = d.tasks_done || 0;
         document.getElementById('kpi-tasks').textContent = total - done;
-        document.getElementById('kpi-tasks-meta').textContent = total + ' total';
+        var meta = document.getElementById('kpi-tasks-meta');
+        if (meta) meta.textContent = total + ' total';
         document.getElementById('kpi-done').textContent = done;
         document.getElementById('kpi-notes').textContent = d.notes_count || 0;
-        document.getElementById('kpi-events').textContent = d.events_count || 0;
-
-        if (d.last_7_days && d.last_7_days.length) {
-          sparkline(d.last_7_days, document.getElementById('sparkline-tasks'), 20);
-        }
-        if (d.activity_this_week !== undefined && d.activity_last_week !== undefined) {
-          var diff = d.activity_this_week - d.activity_last_week;
-          var comp = document.getElementById('week-compare-done');
-          if (comp) {
-            if (diff > 0) {
-              comp.innerHTML = '<span class="trend-up">↑ ' + diff + '</span> vs last week';
-            } else if (diff < 0) {
-              comp.innerHTML = '<span class="trend-down">↓ ' + Math.abs(diff) + '</span> vs last week';
-            } else {
-              comp.textContent = 'Same as last week';
-            }
-          }
-        }
-        if (d.last_7_days && d.last_7_days.length) {
-          var maxVal = 0, maxIdx = 0;
-          d.last_7_days.forEach(function(v, i) { if (v > maxVal) { maxVal = v; maxIdx = i; } });
-          var dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-          var ctx = document.getElementById('kpi-context');
-          if (ctx && maxVal > 0) ctx.textContent = 'Most active: ' + dayNames[(new Date().getDay() - 6 + maxIdx + 7) % 7];
-        }
-
-        var insightsEl = document.getElementById('dashboard-insights');
-        if (insightsEl) {
-          var parts = [];
-          if ((d.tasks_due_soon || 0) > 0) parts.push(d.tasks_due_soon + ' task' + (d.tasks_due_soon === 1 ? '' : 's') + ' due this week');
-          if ((d.events_this_week || 0) > 0) parts.push(d.events_this_week + ' event' + (d.events_this_week === 1 ? '' : 's') + ' this week');
-          if ((d.activity_this_week || 0) !== (d.activity_last_week || 0)) {
-            var dlt = (d.activity_this_week || 0) - (d.activity_last_week || 0);
-            parts.push((dlt > 0 ? '+' : '') + dlt + ' actions vs last week');
-          }
-          insightsEl.textContent = parts.length ? parts.join(' · ') : '';
-          insightsEl.style.display = parts.length ? '' : 'none';
+        document.getElementById('kpi-events').textContent = d.events_this_week || d.events_count || 0;
+        
+        var comp = document.getElementById('week-compare-done');
+        if (comp && d.activity_this_week !== undefined) {
+          var diff = (d.activity_this_week || 0) - (d.activity_last_week || 0);
+          if (diff > 0) comp.textContent = '↑ ' + diff + ' vs last week';
+          else if (diff < 0) comp.textContent = '↓ ' + Math.abs(diff) + ' vs last week';
+          else comp.textContent = 'Same as last week';
         }
         
-        // Update task summary bar
-        document.getElementById('tasks-due-today').textContent = d.tasks_due_today || 0;
-        document.getElementById('tasks-overdue').textContent = d.tasks_overdue || 0;
-        document.getElementById('tasks-recent-done').textContent = d.tasks_done_this_week || done;
-
         window._lastStats = d;
       })
       .catch(function() {
         document.getElementById('kpi-tasks').textContent = '—';
-        document.getElementById('kpi-tasks-meta').textContent = '—';
         document.getElementById('kpi-done').textContent = '—';
         document.getElementById('kpi-notes').textContent = '—';
         document.getElementById('kpi-events').textContent = '—';
       });
   }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // Activity Feed & Recent Activity
-  // ═══════════════════════════════════════════════════════════════════════════
-  var actionLabels = { 
-    task_create: 'Task created', task_update: 'Task updated', task_delete: 'Task deleted', 
-    note_create: 'Report created', note_delete: 'Report deleted', 
-    event_create: 'Event added', event_update: 'Event updated', event_delete: 'Event deleted', 
-    workspace_create: 'Page created', workspace_update: 'Page updated', workspace_delete: 'Page deleted', 
-    flowchart_create: 'Flowchart created', flowchart_update: 'Flowchart updated', flowchart_delete: 'Flowchart deleted', 
-    community_note_create: 'Idea posted', community_note_delete: 'Idea removed', 
-    preferences_update: 'Settings updated', login: 'Signed in', register: 'Registered',
-    pipeline_run: 'Pipeline executed'
-  };
+  loadStats();
   
-  var actionIcons = {
-    task_create: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/></svg>',
-    note_create: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>',
-    event_create: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/></svg>',
-    login: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/></svg>',
-    pipeline_run: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>'
-  };
-
-  function loadRecent() {
-    fetch('/api/activity/recent', { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+  // Tasks
+  function loadTasks() {
+    fetch('/api/tasks', { credentials: 'same-origin' })
       .then(function(r) { return r.json(); })
-      .then(function(data) {
-        var items = data.items || [];
-        
-        // Activity Feed (visual cards)
-        var feedEl = document.getElementById('activity-feed');
-        if (feedEl) {
-          if (items.length === 0) {
-            feedEl.innerHTML = '<div class="activity-feed-empty"><p>No activity yet</p><p class="activity-feed-hint">Your actions will appear here</p></div>';
-          } else {
-            feedEl.innerHTML = items.slice(0, 8).map(function(r) {
-              var label = actionLabels[r.action] || r.action.replace(/_/g, ' ');
-              var icon = actionIcons[r.action] || actionIcons.task_create;
-              var when = r.created_at ? formatRelativeTime(new Date(r.created_at)) : '—';
-              return '<div class="activity-feed-item">' +
-                '<div class="activity-feed-icon">' + icon + '</div>' +
-                '<div class="activity-feed-content">' +
-                  '<span class="activity-feed-label">' + escapeHtml(label) + '</span>' +
-                  '<span class="activity-feed-time">' + when + '</span>' +
-                '</div>' +
-              '</div>';
-            }).join('');
-          }
-        }
-        
-        // Table view
-        var tbody = document.getElementById('recent-tbody');
-        if (!tbody) return;
-        if (items.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="3"><div class="empty-state"><p class="empty-state__title">No activity yet</p><p><a href="/tasks">Tasks</a> · <a href="/calendar">Calendar</a> · <a href="/reports">Reports</a></p></div></td></tr>';
+      .then(function(d) {
+        var tasks = (d.tasks || []).filter(function(t) { return !t.done; }).slice(0, 4);
+        var el = document.getElementById('widget-tasks-list');
+        if (!el) return;
+        if (tasks.length === 0) {
+          el.innerHTML = '<p class="upcoming-empty">No active tasks</p>';
         } else {
-          tbody.innerHTML = items.slice(0, 20).map(function(r) {
-            var label = actionLabels[r.action] || r.action.replace(/_/g, ' ');
-            var resource = (r.resource_type || '') + (r.resource_id ? ' #' + String(r.resource_id).slice(0, 8) : '');
-            var when = r.created_at ? new Date(r.created_at).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' }) : '—';
-            return '<tr><td class="cell-primary">' + escapeHtml(label || '—') + '</td><td>' + escapeHtml(resource || '—') + '</td><td class="activity-when">' + when + '</td></tr>';
+          el.innerHTML = tasks.map(function(t) {
+            return '<div class="upcoming-item">' + escapeHtml(t.text || '') + '</div>';
           }).join('');
         }
-        window._lastActivity = items;
       })
       .catch(function() {
-        var feedEl = document.getElementById('activity-feed');
-        if (feedEl) feedEl.innerHTML = '<div class="activity-feed-empty"><p>Failed to load activity</p></div>';
-        var tbody = document.getElementById('recent-tbody');
-        if (tbody) tbody.innerHTML = '<tr><td colspan="3" class="cell-primary">Failed to load. <a href="#" onclick="location.reload();return false;">Retry</a></td></tr>';
+        var el = document.getElementById('widget-tasks-list');
+        if (el) el.innerHTML = '<p class="upcoming-empty">—</p>';
       });
   }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // Widget Events
-  // ═══════════════════════════════════════════════════════════════════════════
-  function loadWidgetEvents() {
+  loadTasks();
+  
+  // Events
+  function loadEvents() {
     fetch('/api/events', { credentials: 'same-origin' })
       .then(function(r) { return r.json(); })
       .then(function(d) {
         var now = new Date();
         var weekLater = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-        var events = (d.events || []).filter(function(e) { 
+        var events = (d.events || []).filter(function(e) {
           if (!e.date) return false;
           var eventDate = new Date(e.date);
           return eventDate >= now && eventDate <= weekLater;
-        }).slice(0, 5);
+        }).slice(0, 4);
         var el = document.getElementById('widget-events');
         if (!el) return;
-        el.innerHTML = events.length ? events.map(function(e) { 
-          var date = new Date(e.date);
-          var dateStr = date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
-          return '<li><span class="date">' + dateStr + '</span><span>' + escapeHtml(e.title || '') + '</span></li>'; 
-        }).join('') : '<li class="empty">No upcoming events. <a href="/calendar">Add one</a></li>';
+        if (events.length === 0) {
+          el.innerHTML = '<li class="upcoming-empty">No upcoming events</li>';
+        } else {
+          el.innerHTML = events.map(function(e) {
+            var date = new Date(e.date);
+            var dateStr = date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+            return '<li class="upcoming-item"><span class="upcoming-date">' + dateStr + '</span> ' + escapeHtml(e.title || '') + '</li>';
+          }).join('');
+        }
       })
       .catch(function() {
         var el = document.getElementById('widget-events');
-        if (el) el.innerHTML = '<li class="empty">—</li>';
+        if (el) el.innerHTML = '<li class="upcoming-empty">—</li>';
       });
   }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // Widget Tasks
-  // ═══════════════════════════════════════════════════════════════════════════
-  function loadWidgetTasks() {
-    fetch('/api/tasks', { credentials: 'same-origin' })
-      .then(function(r) { return r.json(); })
-      .then(function(d) {
-        var tasks = (d.tasks || []).filter(function(t) { return !t.done; }).slice(0, 6);
-        var el = document.getElementById('widget-tasks-list');
-        if (!el) return;
-        el.innerHTML = tasks.length ? tasks.map(function(t) {
-          var dueClass = '';
-          if (t.due_date) {
-            var due = new Date(t.due_date);
-            var today = new Date();
-            today.setHours(0,0,0,0);
-            if (due < today) dueClass = ' task-overdue';
-            else if (due.toDateString() === today.toDateString()) dueClass = ' task-due-today';
-          }
-          return '<div class="task-row' + dueClass + '" data-id="' + (t.id || '') + '"><input type="checkbox" ' + (t.done ? 'checked' : '') + ' aria-label="Mark done"><span class="task-label">' + escapeHtml(t.text || '') + '</span>' + (t.due_date ? '<span class="task-due">' + t.due_date + '</span>' : '') + '</div>';
-        }).join('') : '<div class="empty">No active tasks. <a href="/tasks">Add one</a></div>';
-        el.querySelectorAll('input[type=checkbox]').forEach(function(cb) {
-          cb.addEventListener('change', function() {
-            var row = cb.closest('.task-row');
-            var id = row && row.getAttribute('data-id');
-            if (!id) return;
-            api('PATCH', '/api/tasks/' + id, { done: cb.checked }).then(function() { loadWidgetTasks(); loadStats(); loadRecent(); }).catch(function() {});
-          });
-        });
-      })
-      .catch(function() {
-        var el = document.getElementById('widget-tasks-list');
-        if (el) el.innerHTML = '<div class="empty">—</div>';
-      });
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // Mini Calendar
-  // ═══════════════════════════════════════════════════════════════════════════
-  function buildCalMini() {
-    var now = new Date();
-    var y = now.getFullYear();
-    var m = now.getMonth();
-    var first = new Date(y, m, 1);
-    var last = new Date(y, m + 1, 0);
-    var startDay = first.getDay();
-    var days = last.getDate();
-    var w = ['S','M','T','W','T','F','S'];
-    var html = w.map(function(d) { return '<div class="day head">' + d + '</div>'; }).join('');
-    for (var i = 0; i < startDay; i++) html += '<div class="day"></div>';
-    for (var d = 1; d <= days; d++) {
-      var cls = 'day';
-      if (d === now.getDate() && m === now.getMonth()) cls += ' today';
-      html += '<div class="' + cls + '">' + d + '</div>';
-    }
-    var el = document.getElementById('cal-mini');
-    if (el) el.innerHTML = html;
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
+  loadEvents();
+  
   // AI Insights
-  // ═══════════════════════════════════════════════════════════════════════════
-  function loadAIInsights() {
+  document.getElementById('dashboard-ai-refresh') && document.getElementById('dashboard-ai-refresh').addEventListener('click', function() {
+    var btn = this;
     var content = document.getElementById('dashboard-ai-content');
-    if (!content) return Promise.resolve();
-    var stats = window._lastStats || {};
+    btn.disabled = true;
+    btn.textContent = 'Generating...';
+    content.innerHTML = '<p class="ai-loading">Analyzing...</p>';
     
-    content.innerHTML = '<div class="ai-loading"><span class="spinner"></span> Analyzing your data...</div>';
-    
-    return fetch('/api/ai/dashboard/insights', {
+    fetch('/api/ai/dashboard/insights', {
       method: 'POST',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(stats)
-    }).then(function(r) { return r.json(); })
-      .then(function(d) {
-        var insights = d.insights || 'No insights available.';
-        content.innerHTML = '<div class="ai-insights-content"><p class="dashboard-ai-text">' + escapeHtml(insights).replace(/\n/g, '<br>') + '</p></div><div class="ai-insights-footer"><span class="dashboard-ai-badge">AI-generated · Based on your activity</span></div>';
-        
-        // Show dismiss button
-        var dismissBtn = document.getElementById('dashboard-ai-dismiss');
-        if (dismissBtn) dismissBtn.style.display = 'inline-flex';
-        
-        // Generate suggestions based on stats
-        generateSuggestions(stats);
-      })
-      .catch(function(err) {
-        content.innerHTML = '<div class="ai-insights-error"><p class="dashboard-ai-error">' + escapeHtml(err.message || 'Failed to generate insights') + '</p><p class="ai-error-hint">Check your AI integration settings</p></div>';
-      });
-  }
-  
-  function generateSuggestions(stats) {
-    var suggestions = [];
-    
-    if ((stats.tasks_total || 0) - (stats.tasks_done || 0) > 10) {
-      suggestions.push({ text: 'Review and prioritize tasks', action: '/tasks', icon: 'task' });
-    }
-    if ((stats.tasks_overdue || 0) > 0) {
-      suggestions.push({ text: 'Address overdue tasks', action: '/tasks', icon: 'alert' });
-    }
-    if ((stats.events_this_week || 0) > 5) {
-      suggestions.push({ text: 'Busy week ahead - check calendar', action: '/calendar', icon: 'calendar' });
-    }
-    if ((stats.notes_count || 0) === 0) {
-      suggestions.push({ text: 'Create your first report', action: '/reports', icon: 'report' });
-    }
-    
-    var suggestionsEl = document.getElementById('dashboard-ai-suggestions');
-    var listEl = document.getElementById('ai-suggestions-list');
-    
-    if (suggestions.length > 0 && suggestionsEl && listEl) {
-      listEl.innerHTML = suggestions.slice(0, 3).map(function(s) {
-        return '<a href="' + s.action + '" class="ai-suggestion-item"><span class="ai-suggestion-text">' + escapeHtml(s.text) + '</span><span class="ai-suggestion-arrow">→</span></a>';
-      }).join('');
-      suggestionsEl.style.display = 'block';
-    }
-  }
-
-  document.getElementById('dashboard-ai-refresh') && document.getElementById('dashboard-ai-refresh').addEventListener('click', function() {
-    var btn = this;
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span> Generating...';
-    fetch('/api/dashboard/stats', { credentials: 'same-origin' }).then(function(r) { return r.json(); })
-      .then(function(stats) { window._lastStats = stats; return loadAIInsights(); })
-      .catch(function() { document.getElementById('dashboard-ai-content').innerHTML = '<p class="dashboard-ai-error">Failed to load stats.</p>'; })
-      .finally(function() { 
-        btn.disabled = false; 
-        btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> Regenerate';
-      });
+      body: JSON.stringify(window._lastStats || {})
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      content.innerHTML = '<p>' + escapeHtml(d.insights || 'No insights available.').replace(/\n/g, '<br>') + '</p>';
+    })
+    .catch(function() {
+      content.innerHTML = '<p class="ai-error">Failed to generate insights.</p>';
+    })
+    .finally(function() {
+      btn.disabled = false;
+      btn.textContent = 'Regenerate';
+    });
   });
-  
-  document.getElementById('dashboard-ai-dismiss') && document.getElementById('dashboard-ai-dismiss').addEventListener('click', function() {
-    document.getElementById('dashboard-ai-content').innerHTML = '<div class="ai-insights-placeholder"><p>Click "Generate" to get new insights.</p></div>';
-    document.getElementById('dashboard-ai-suggestions').style.display = 'none';
-    this.style.display = 'none';
-  });
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // Quick Actions
-  // ═══════════════════════════════════════════════════════════════════════════
-  document.getElementById('quick-add-task') && document.getElementById('quick-add-task').addEventListener('click', function() {
-    var input = document.getElementById('widget-task-input');
-    if (input) input.focus();
-  });
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // Task Form
-  // ═══════════════════════════════════════════════════════════════════════════
-  document.getElementById('widget-task-form') && document.getElementById('widget-task-form').addEventListener('submit', function(e) {
-    e.preventDefault();
-    var input = document.getElementById('widget-task-input');
-    var text = (input && input.value || '').trim();
-    if (!text) return;
-    api('POST', '/api/tasks', { text: text }).then(function() {
-      input.value = '';
-      loadWidgetTasks();
-      loadStats();
-      loadRecent();
-      if (typeof Aevel !== 'undefined' && Aevel.toast) Aevel.toast('Task added', 'success');
-    }).catch(function() {});
-  });
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // Initialize
-  // ═══════════════════════════════════════════════════════════════════════════
-  loadStats();
-  loadRecent();
-  loadWidgetEvents();
-  loadWidgetTasks();
-  buildCalMini();
-  
-  // Auto-generate AI insights after stats load
-  setTimeout(function() {
-    if (window._lastStats) {
-      // Don't auto-generate, let user click
-    }
-  }, 1000);
   
 })();
 </script>
