@@ -954,10 +954,16 @@ def health():
     code = health_check.health_check()
     if code != 0:
         return jsonify({"status": "error", "message": "Health check failed"}), 503
+    
+    # Check if GEMINI_API_KEY is configured (don't expose the actual key)
+    gemini_key = os.environ.get("GEMINI_API_KEY", "")
+    gemini_status = "configured" if gemini_key and len(gemini_key) > 10 else "not_set"
+    
     return jsonify({
         "status": "ok",
         "tmp_dir": str(TMP_DIR),
         "data_source": "path" if os.environ.get("DATA_SOURCE_PATH") else ("url" if os.environ.get("DATA_SOURCE_URL") else "none"),
+        "gemini_api": gemini_status,
     }), 200
 
 
