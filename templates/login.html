@@ -7,9 +7,68 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/aevel.css') }}">
 </head>
 <body>
-  <div class="auth-page">
-    <div class="auth-brand" id="auth-brand">Aevel</div>
-    <div class="auth-card">
+  <div class="public-auth">
+    <header class="public-auth-header">
+      <a class="public-auth-logo" href="{{ url_for('login') }}">Aevel</a>
+      <nav class="public-auth-nav" aria-label="Public navigation">
+        <a class="public-auth-link" href="#home">Home</a>
+        <a class="public-auth-link" href="#services">Services</a>
+        <a class="public-auth-link" href="#how">How We Work</a>
+        <a class="public-auth-link" href="#contact">Contact</a>
+      </nav>
+      <button class="public-burger" id="public-burger" aria-label="Open menu" aria-expanded="false" aria-controls="public-menu">
+        <span></span><span></span>
+      </button>
+      <div class="public-menu" id="public-menu">
+        <div class="public-menu-inner">
+          <div class="public-menu-label">Team Space</div>
+          <a class="public-menu-primary" href="{{ url_for('dashboard') }}">Enter Team Space</a>
+          <a class="public-menu-secondary" href="{{ url_for('login') }}">Sign in</a>
+        </div>
+      </div>
+    </header>
+
+    <main class="public-auth-main" id="home">
+      <section class="public-auth-hero">
+        <p class="public-eyebrow">Premium analytics &amp; marketing intelligence</p>
+        <h1 class="public-hero-title">A calm command center for analytics operations.</h1>
+        <p class="public-hero-lead">
+          Aevel brings reporting, automation, and team workflows into one intentional space—so your team can ship with clarity.
+        </p>
+        <div class="public-hero-actions">
+          <a class="public-cta" href="{{ url_for('dashboard') }}">Team Space</a>
+          <a class="public-cta-ghost" href="#services">Explore services</a>
+        </div>
+        <div class="public-hero-grid" id="services">
+          <div class="public-hero-card">
+            <div class="public-hero-card-title">Data analytics</div>
+            <div class="public-hero-card-body">Dashboards, reporting systems, and KPI clarity built for decision velocity.</div>
+          </div>
+          <div class="public-hero-card">
+            <div class="public-hero-card-title">Marketing intelligence</div>
+            <div class="public-hero-card-body">Channel insights and performance narratives that stay aligned with delivery.</div>
+          </div>
+          <div class="public-hero-card">
+            <div class="public-hero-card-title">Automation</div>
+            <div class="public-hero-card-body">Repeatable workflows, alerts, and handoffs—without messy tool sprawl.</div>
+          </div>
+        </div>
+        <div class="public-how" id="how">
+          <div class="public-how-title">How we work</div>
+          <div class="public-how-steps">
+            <div class="public-how-step"><span>01</span>Discovery</div>
+            <div class="public-how-step"><span>02</span>Design</div>
+            <div class="public-how-step"><span>03</span>Implement</div>
+            <div class="public-how-step"><span>04</span>Iterate</div>
+          </div>
+        </div>
+        <div class="public-contact" id="contact">
+          <div class="public-contact-title">Contact</div>
+          <div class="public-contact-body">Email <a href="mailto:hello.aevel@zohomail.com">hello.aevel@zohomail.com</a></div>
+        </div>
+      </section>
+
+      <aside class="auth-card public-auth-card">
       {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
           {% for category, message in messages %}
@@ -37,10 +96,28 @@
           Don't have an account? <a href="{{ url_for('register') }}">Create one</a>
         </p>
       </div>
-    </div>
+      </aside>
+    </main>
   </div>
   <script>
   (function() {
+    var burger = document.getElementById('public-burger');
+    var menu = document.getElementById('public-menu');
+    function setOpen(open) {
+      if (!burger || !menu) return;
+      burger.classList.toggle('is-open', open);
+      menu.classList.toggle('is-open', open);
+      burger.setAttribute('aria-expanded', open ? 'true' : 'false');
+    }
+    if (burger && menu) {
+      burger.addEventListener('click', function() {
+        setOpen(!burger.classList.contains('is-open'));
+      });
+      document.addEventListener('click', function(e) {
+        if (!menu.contains(e.target) && !burger.contains(e.target)) setOpen(false);
+      });
+    }
+
     var form = document.getElementById('login-form');
     if (form) {
       form.addEventListener('submit', function(e) {
