@@ -4,208 +4,227 @@
 {% block head %}
 <style>
 /* ═══════════════════════════════════════════════════════════════════════════
-   PREMIUM DASHBOARD STYLES
-   Apple-level premium, calm, intentional design
+   DASHBOARD — DAILY DECISION HUB
+   Control room aesthetic: focused, expensive, calm, intentional
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* Dashboard Layout */
-.dashboard-premium {
+.dashboard {
   max-width: 1100px;
   margin: 0 auto;
-  padding: var(--space-6) var(--space-5);
+  padding: 32px 24px 80px;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   A. TOP HEADER - Minimal, Calm
+   1. COMMAND SUMMARY (TOP BAR)
    ───────────────────────────────────────────────────────────────────────────── */
-.dash-header {
+.command-bar {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: var(--space-8);
-  padding-bottom: var(--space-5);
+  align-items: center;
+  margin-bottom: 48px;
+  padding-bottom: 24px;
   border-bottom: 1px solid var(--border);
 }
 
-.dash-header-left h1 {
-  font-size: 24px;
-  font-weight: var(--weight-semibold);
+.command-greeting h1 {
+  font-size: 22px;
+  font-weight: 600;
   color: var(--text);
   letter-spacing: -0.02em;
-  margin: 0 0 var(--space-1) 0;
+  margin: 0 0 4px 0;
 }
 
-.dash-header-left .dash-subtitle {
-  font-size: var(--text-sm);
+.command-greeting p {
+  font-size: 14px;
   color: var(--text-tertiary);
   margin: 0;
 }
 
-.dash-header-right {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-}
-
-.dash-date-selector {
+.time-filter {
   display: flex;
   background: var(--bg-raised);
-  border-radius: var(--radius-sm);
-  padding: 2px;
+  border-radius: 8px;
+  padding: 3px;
   gap: 2px;
 }
 
-.dash-date-btn {
-  padding: var(--space-2) var(--space-3);
-  font-size: var(--text-xs);
-  color: var(--text-tertiary);
+.time-filter-btn {
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
   background: transparent;
   border: none;
-  border-radius: var(--radius-xs);
+  border-radius: 6px;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
-.dash-date-btn:hover {
+.time-filter-btn:hover {
   color: var(--text-secondary);
 }
 
-.dash-date-btn.active {
+.time-filter-btn.active {
   background: var(--bg-overlay);
   color: var(--text);
 }
 
-.dash-ai-brief-btn {
+/* ─────────────────────────────────────────────────────────────────────────────
+   2. EXECUTIVE SNAPSHOT (PRIMARY CARD)
+   ───────────────────────────────────────────────────────────────────────────── */
+.snapshot-card {
+  background: var(--bg-raised);
+  border-radius: 16px;
+  padding: 28px 32px;
+  margin-bottom: 32px;
+  position: relative;
+  border-left: 3px solid var(--accent);
+}
+
+.snapshot-header {
   display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  font-size: var(--text-xs);
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+}
+
+.snapshot-title {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
   color: var(--text-tertiary);
-  background: transparent;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: all 0.15s ease;
+  margin: 0;
 }
 
-.dash-ai-brief-btn:hover {
+.snapshot-insights {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 24px 0;
+}
+
+.snapshot-insights li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 0;
+  font-size: 15px;
   color: var(--text-secondary);
-  border-color: var(--border-strong);
+  line-height: 1.5;
+  border-bottom: 1px solid var(--border);
 }
 
-.dash-ai-brief-btn .ai-dot {
+.snapshot-insights li:last-child {
+  border-bottom: none;
+}
+
+.snapshot-insights .insight-dot {
   width: 6px;
   height: 6px;
   background: var(--accent);
   border-radius: 50%;
+  margin-top: 8px;
+  flex-shrink: 0;
+}
+
+.snapshot-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.btn-primary-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--bg);
+  background: var(--accent);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-decoration: none;
+}
+
+.btn-primary-action:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.btn-secondary-link {
+  font-size: 14px;
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.btn-secondary-link:hover {
+  color: var(--accent);
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   B. PRIMARY INSIGHT ZONE - Meaningful Cards
+   3. OPERATIONAL STATUS GRID
    ───────────────────────────────────────────────────────────────────────────── */
-.dash-insights {
+.status-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: var(--space-4);
-  margin-bottom: var(--space-8);
+  gap: 16px;
+  margin-bottom: 40px;
 }
 
 @media (max-width: 900px) {
-  .dash-insights {
+  .status-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
 @media (max-width: 500px) {
-  .dash-insights {
+  .status-grid {
     grid-template-columns: 1fr;
   }
 }
 
-.insight-card {
+.status-card {
   background: var(--bg-raised);
-  border-radius: var(--radius);
-  padding: var(--space-5);
-  position: relative;
-  overflow: hidden;
-  transition: background 0.2s ease;
+  border-radius: 12px;
+  padding: 20px 24px;
+  transition: background 0.15s ease;
 }
 
-.insight-card:hover {
+.status-card:hover {
   background: var(--bg-overlay);
 }
 
-.insight-card::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: var(--accent);
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-
-.insight-card:hover::before {
-  opacity: 1;
-}
-
-.insight-label {
-  font-size: var(--text-xs);
-  color: var(--text-tertiary);
+.status-label {
+  font-size: 11px;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  margin-bottom: var(--space-2);
+  color: var(--text-muted);
+  margin-bottom: 12px;
 }
 
-.insight-value {
-  font-size: 28px;
-  font-weight: var(--weight-semibold);
+.status-value {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.status-value .value {
+  font-size: 24px;
+  font-weight: 600;
   color: var(--text);
   letter-spacing: -0.02em;
-  line-height: 1.1;
-  margin-bottom: var(--space-1);
 }
 
-.insight-meta {
+.status-value .status-indicator {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  font-size: var(--text-xs);
-  color: var(--text-muted);
-}
-
-.insight-trend {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  padding: 2px 6px;
-  border-radius: var(--radius-full);
-  font-size: 10px;
-  font-weight: var(--weight-medium);
-}
-
-.insight-trend.up {
-  background: rgba(120, 180, 120, 0.1);
-  color: #8aba8a;
-}
-
-.insight-trend.down {
-  background: rgba(180, 120, 120, 0.1);
-  color: #ba8a8a;
-}
-
-.insight-trend.neutral {
-  background: var(--bg-overlay);
-  color: var(--text-muted);
-}
-
-.insight-status {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
+  gap: 6px;
 }
 
 .status-dot {
@@ -214,553 +233,449 @@
   border-radius: 50%;
 }
 
-.status-dot.healthy { background: #6b8a6b; }
-.status-dot.warning { background: #b8a060; }
 .status-dot.idle { background: var(--text-muted); }
+.status-dot.healthy { background: #6b8a6b; }
+.status-dot.running { background: #b8a060; }
 .status-dot.error { background: #a86868; }
 
-.insight-status-text {
-  font-size: var(--text-sm);
-  font-weight: var(--weight-medium);
+.status-text {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text);
 }
 
-.insight-status-text.healthy { color: #8aba8a; }
-.insight-status-text.warning { color: #d4c080; }
-.insight-status-text.idle { color: var(--text-tertiary); }
-.insight-status-text.error { color: #ba8a8a; }
+.status-text.idle { color: var(--text-tertiary); }
+.status-text.healthy { color: #8aba8a; }
+.status-text.running { color: #d4c080; }
+.status-text.error { color: #ba8a8a; }
+
+.status-context {
+  font-size: 12px;
+  color: var(--text-muted);
+}
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   C. FOCUS & ACTION ZONE - Two Columns
+   4. PRIORITIES PANEL (TASKS + EVENTS)
    ───────────────────────────────────────────────────────────────────────────── */
-.dash-main {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-6);
+.priorities-section {
+  margin-bottom: 48px;
 }
 
-@media (max-width: 800px) {
-  .dash-main {
+.priorities-header {
+  margin-bottom: 20px;
+}
+
+.priorities-header h2 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.priorities-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+@media (max-width: 700px) {
+  .priorities-grid {
     grid-template-columns: 1fr;
   }
 }
 
-/* Panel styling */
-.dash-panel {
+.priority-column {
   background: var(--bg-raised);
-  border-radius: var(--radius);
+  border-radius: 12px;
   overflow: hidden;
 }
 
-.dash-panel-header {
+.priority-column-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--space-4) var(--space-5);
+  padding: 16px 20px;
   border-bottom: 1px solid var(--border);
 }
 
-.dash-panel-title {
-  font-size: var(--text-sm);
-  font-weight: var(--weight-medium);
-  color: var(--text);
-  letter-spacing: -0.01em;
+.priority-column-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
 }
 
-.dash-panel-link {
-  font-size: var(--text-xs);
-  color: var(--text-tertiary);
+.priority-column-link {
+  font-size: 12px;
+  color: var(--text-muted);
   text-decoration: none;
   transition: color 0.15s ease;
 }
 
-.dash-panel-link:hover {
+.priority-column-link:hover {
   color: var(--accent);
 }
 
-.dash-panel-body {
-  padding: var(--space-3) 0;
+.priority-list {
+  padding: 8px 0;
 }
 
-/* List items */
-.dash-list-item {
+.priority-item {
   display: flex;
   align-items: flex-start;
-  padding: var(--space-3) var(--space-5);
-  border-bottom: 1px solid var(--border);
+  padding: 12px 20px;
+  gap: 12px;
   transition: background 0.15s ease;
   cursor: pointer;
   text-decoration: none;
   color: inherit;
 }
 
-.dash-list-item:last-child {
-  border-bottom: none;
-}
-
-.dash-list-item:hover {
+.priority-item:hover {
   background: var(--bg-hover);
 }
 
-.dash-list-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radius-sm);
-  background: var(--bg-overlay);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: var(--space-3);
+.priority-indicator {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  margin-top: 7px;
   flex-shrink: 0;
 }
 
-.dash-list-icon svg {
-  width: 14px;
-  height: 14px;
-  stroke: var(--text-tertiary);
+.priority-indicator.urgent {
+  background: var(--accent);
 }
 
-.dash-list-content {
+.priority-indicator.event {
+  background: #6b8a9b;
+}
+
+.priority-content {
   flex: 1;
   min-width: 0;
 }
 
-.dash-list-title {
-  font-size: var(--text-sm);
+.priority-title {
+  font-size: 14px;
   color: var(--text);
+  margin-bottom: 2px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  margin-bottom: 2px;
 }
 
-.dash-list-meta {
-  font-size: var(--text-xs);
+.priority-meta {
+  font-size: 12px;
   color: var(--text-muted);
 }
 
-.dash-list-badge {
-  padding: 2px 8px;
-  font-size: 10px;
-  font-weight: var(--weight-medium);
-  border-radius: var(--radius-full);
-  background: var(--accent-muted);
-  color: var(--accent);
-  margin-left: var(--space-2);
-}
-
-.dash-list-badge.urgent {
-  background: rgba(180, 120, 120, 0.15);
-  color: #c08080;
-}
-
-/* Empty state */
-.dash-empty {
-  padding: var(--space-8) var(--space-5);
+.priority-empty {
+  padding: 32px 20px;
   text-align: center;
 }
 
-.dash-empty-icon {
-  width: 40px;
-  height: 40px;
-  margin: 0 auto var(--space-3);
-  opacity: 0.3;
-}
-
-.dash-empty-text {
-  font-size: var(--text-sm);
+.priority-empty-text {
+  font-size: 14px;
   color: var(--text-muted);
-  margin-bottom: var(--space-2);
+  margin: 0 0 8px 0;
 }
 
-.dash-empty-hint {
-  font-size: var(--text-xs);
-  color: var(--text-muted);
-}
-
-.dash-empty-hint a {
+.priority-empty-link {
+  font-size: 13px;
   color: var(--accent);
   text-decoration: none;
 }
 
-.dash-empty-hint a:hover {
+.priority-empty-link:hover {
   text-decoration: underline;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   AI INSIGHTS PANEL
+   5. WORKFLOW LAUNCHER
    ───────────────────────────────────────────────────────────────────────────── */
-.dash-ai-panel {
-  background: var(--bg-raised);
-  border-radius: var(--radius);
-  margin-top: var(--space-4);
+.workflows-section {
+  margin-bottom: 32px;
 }
 
-.dash-ai-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: var(--space-4) var(--space-5);
-  cursor: pointer;
-  transition: background 0.15s ease;
+.workflows-header {
+  margin-bottom: 20px;
 }
 
-.dash-ai-header:hover {
-  background: var(--bg-hover);
-}
-
-.dash-ai-title {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.dash-ai-title span {
-  font-size: var(--text-sm);
-  font-weight: var(--weight-medium);
+.workflows-header h2 {
+  font-size: 16px;
+  font-weight: 600;
   color: var(--text);
-}
-
-.ai-badge {
-  padding: 2px 6px;
-  font-size: 9px;
-  font-weight: var(--weight-semibold);
-  background: var(--accent);
-  color: var(--bg);
-  border-radius: var(--radius-full);
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-}
-
-.dash-ai-toggle {
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: transform 0.2s ease;
-}
-
-.dash-ai-toggle svg {
-  width: 12px;
-  height: 12px;
-  stroke: var(--text-muted);
-}
-
-.dash-ai-panel.expanded .dash-ai-toggle {
-  transform: rotate(180deg);
-}
-
-.dash-ai-body {
-  display: none;
-  padding: 0 var(--space-5) var(--space-5);
-  border-top: 1px solid var(--border);
-}
-
-.dash-ai-panel.expanded .dash-ai-body {
-  display: block;
-}
-
-.dash-ai-content {
-  padding: var(--space-4);
-  background: var(--bg-overlay);
-  border-radius: var(--radius-sm);
-  border-left: 2px solid var(--accent);
-  margin-bottom: var(--space-4);
-}
-
-.dash-ai-content p {
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
-  line-height: 1.6;
   margin: 0;
-  white-space: pre-wrap;
+  letter-spacing: -0.01em;
 }
 
-.dash-ai-placeholder {
-  color: var(--text-muted);
-  font-style: italic;
+.workflows-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
 }
 
-.dash-ai-actions {
+@media (max-width: 900px) {
+  .workflows-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 500px) {
+  .workflows-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.workflow-card {
   display: flex;
-  gap: var(--space-2);
-  flex-wrap: wrap;
-}
-
-.dash-ai-btn {
-  padding: var(--space-2) var(--space-3);
-  font-size: var(--text-xs);
-  color: var(--text-secondary);
-  background: transparent;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.dash-ai-btn:hover {
-  color: var(--text);
-  border-color: var(--border-strong);
-  background: var(--bg-hover);
-}
-
-.dash-ai-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.dash-ai-btn.is-loading {
-  color: var(--text-muted);
-}
-
-/* Quick links footer */
-.dash-quick-links {
-  display: flex;
-  justify-content: center;
-  gap: var(--space-4);
-  padding: var(--space-6) 0;
-  margin-top: var(--space-4);
-  border-top: 1px solid var(--border);
-}
-
-.dash-quick-link {
-  font-size: var(--text-xs);
-  color: var(--text-muted);
+  flex-direction: column;
+  align-items: center;
+  padding: 28px 20px;
+  background: var(--bg-raised);
+  border-radius: 12px;
   text-decoration: none;
-  transition: color 0.15s ease;
+  transition: all 0.15s ease;
+  border: 1px solid transparent;
 }
 
-.dash-quick-link:hover {
-  color: var(--accent);
+.workflow-card:hover {
+  background: var(--bg-overlay);
+  border-color: var(--border);
+  transform: translateY(-2px);
 }
 
-/* Loading skeleton */
-@keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+.workflow-icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-overlay);
+  border-radius: 12px;
+  margin-bottom: 16px;
 }
 
-.skeleton {
-  background: linear-gradient(90deg, var(--bg-overlay) 25%, var(--bg-elevated) 50%, var(--bg-overlay) 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-  border-radius: var(--radius-xs);
+.workflow-icon svg {
+  width: 24px;
+  height: 24px;
+  stroke: var(--accent);
+  stroke-width: 1.5;
+  fill: none;
 }
 
-.skeleton-text {
-  height: 14px;
-  margin-bottom: var(--space-2);
+.workflow-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 4px;
+  text-align: center;
 }
 
-.skeleton-value {
-  height: 28px;
-  width: 60px;
+.workflow-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+  line-height: 1.4;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   LOADING STATES
+   ───────────────────────────────────────────────────────────────────────────── */
+@keyframes pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.8; }
+}
+
+.loading-text {
+  color: var(--text-muted);
+  animation: pulse 1.5s ease-in-out infinite;
 }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="dashboard-premium">
+<div class="dashboard">
   
-  <!-- ═══════════════════════════════════════════════════════════════════════
-       A. TOP HEADER
-       ═══════════════════════════════════════════════════════════════════════ -->
-  <header class="dash-header">
-    <div class="dash-header-left">
-      <h1>Dashboard</h1>
-      <p class="dash-subtitle" id="dash-date">Overview of activity, insights, and priorities</p>
+  <!-- ═══════════════════════════════════════════════════════════════════════════
+       1. COMMAND SUMMARY (TOP BAR)
+       ═══════════════════════════════════════════════════════════════════════════ -->
+  <header class="command-bar">
+    <div class="command-greeting">
+      <h1 id="greeting-text">Good morning</h1>
+      <p>Here's what needs attention today.</p>
     </div>
-    <div class="dash-header-right">
-      <div class="dash-date-selector">
-        <button class="dash-date-btn active" data-range="today">Today</button>
-        <button class="dash-date-btn" data-range="7d">7 days</button>
-        <button class="dash-date-btn" data-range="30d">30 days</button>
-      </div>
-      <button class="dash-ai-brief-btn" id="quick-ai-brief">
-        <span class="ai-dot"></span>
-        AI Brief
-      </button>
+    <div class="time-filter">
+      <button class="time-filter-btn active" data-range="today">Today</button>
+      <button class="time-filter-btn" data-range="7d">7 days</button>
+      <button class="time-filter-btn" data-range="30d">30 days</button>
     </div>
   </header>
 
-  <!-- ═══════════════════════════════════════════════════════════════════════
-       B. PRIMARY INSIGHT ZONE - Meaningful Cards
-       ═══════════════════════════════════════════════════════════════════════ -->
-  <section class="dash-insights">
-    <!-- Pipeline Status -->
-    <div class="insight-card">
-      <div class="insight-label">Pipeline Status</div>
-      <div class="insight-status" id="insight-pipeline">
-        <span class="status-dot idle"></span>
-        <span class="insight-status-text idle">Checking...</span>
-      </div>
-      <div class="insight-meta" id="insight-pipeline-meta">Last run: —</div>
+  <!-- ═══════════════════════════════════════════════════════════════════════════
+       2. EXECUTIVE SNAPSHOT (PRIMARY CARD)
+       ═══════════════════════════════════════════════════════════════════════════ -->
+  <section class="snapshot-card">
+    <div class="snapshot-header">
+      <h2 class="snapshot-title">Executive Snapshot</h2>
     </div>
-    
-    <!-- Records Processed -->
-    <div class="insight-card">
-      <div class="insight-label">Records Processed</div>
-      <div class="insight-value" id="insight-records">—</div>
-      <div class="insight-meta">
-        <span class="insight-trend neutral" id="insight-records-trend">—</span>
-      </div>
-    </div>
-    
-    <!-- Reports Generated -->
-    <div class="insight-card">
-      <div class="insight-label">Reports Generated</div>
-      <div class="insight-value" id="insight-reports">—</div>
-      <div class="insight-meta" id="insight-reports-meta">This period</div>
-    </div>
-    
-    <!-- Tasks Due Soon -->
-    <div class="insight-card">
-      <div class="insight-label">Tasks Due Soon</div>
-      <div class="insight-value" id="insight-tasks-due">—</div>
-      <div class="insight-meta" id="insight-tasks-meta">Active tasks</div>
+    <ul class="snapshot-insights" id="snapshot-list">
+      <li><span class="insight-dot"></span><span class="loading-text">Loading insights...</span></li>
+    </ul>
+    <div class="snapshot-actions">
+      <a href="/automations" class="btn-primary-action">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="5 3 19 12 5 21 5 3"/>
+        </svg>
+        Run pipeline
+      </a>
+      <a href="/analytics" class="btn-secondary-link">View analytics →</a>
     </div>
   </section>
 
-  <!-- ═══════════════════════════════════════════════════════════════════════
-       C. FOCUS & ACTION ZONE - Two Columns
-       ═══════════════════════════════════════════════════════════════════════ -->
-  <div class="dash-main">
-    
-    <!-- LEFT COLUMN — What Needs Attention -->
-    <div class="dash-column-left">
-      
-      <!-- Upcoming Tasks -->
-      <div class="dash-panel">
-        <div class="dash-panel-header">
-          <span class="dash-panel-title">Upcoming Tasks</span>
-          <a href="/tasks" class="dash-panel-link">View all →</a>
-        </div>
-        <div class="dash-panel-body" id="dash-tasks">
-          <div class="dash-empty">
-            <div class="dash-empty-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                <path d="M9 11l3 3L22 4"/>
-                <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
-              </svg>
-            </div>
-            <p class="dash-empty-text">No upcoming tasks</p>
-            <p class="dash-empty-hint"><a href="/tasks">Add a task</a> to get started</p>
-          </div>
+  <!-- ═══════════════════════════════════════════════════════════════════════════
+       3. OPERATIONAL STATUS GRID
+       ═══════════════════════════════════════════════════════════════════════════ -->
+  <section class="status-grid">
+    <!-- Pipeline Status -->
+    <div class="status-card">
+      <div class="status-label">Pipeline Status</div>
+      <div class="status-value">
+        <div class="status-indicator" id="status-pipeline">
+          <span class="status-dot idle"></span>
+          <span class="status-text idle">Checking...</span>
         </div>
       </div>
-      
-      <!-- Scheduled Events -->
-      <div class="dash-panel" style="margin-top: var(--space-4);">
-        <div class="dash-panel-header">
-          <span class="dash-panel-title">Upcoming Events</span>
-          <a href="/calendar" class="dash-panel-link">View all →</a>
-        </div>
-        <div class="dash-panel-body" id="dash-events">
-          <div class="dash-empty">
-            <div class="dash-empty-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                <rect x="3" y="4" width="18" height="18" rx="2"/>
-                <line x1="16" y1="2" x2="16" y2="6"/>
-                <line x1="8" y1="2" x2="8" y2="6"/>
-                <line x1="3" y1="10" x2="21" y2="10"/>
-              </svg>
-            </div>
-            <p class="dash-empty-text">No upcoming events</p>
-            <p class="dash-empty-hint"><a href="/calendar">Add an event</a> to your calendar</p>
-          </div>
-        </div>
-      </div>
-      
+      <div class="status-context" id="status-pipeline-context">—</div>
     </div>
     
-    <!-- RIGHT COLUMN — Insights & Summaries -->
-    <div class="dash-column-right">
-      
-      <!-- AI Executive Snapshot -->
-      <div class="dash-ai-panel" id="ai-panel">
-        <div class="dash-ai-header" id="ai-panel-toggle">
-          <div class="dash-ai-title">
-            <span class="ai-badge">AI</span>
-            <span>Executive Snapshot</span>
-          </div>
-          <div class="dash-ai-toggle">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="6,9 12,15 18,9"/>
-            </svg>
-          </div>
-        </div>
-        <div class="dash-ai-body">
-          <div class="dash-ai-content" id="ai-content">
-            <p class="dash-ai-placeholder">Click a button below to generate insights based on your activity and data.</p>
-          </div>
-          <div class="dash-ai-actions">
-            <button class="dash-ai-btn" id="ai-btn-snapshot">What's changed</button>
-            <button class="dash-ai-btn" id="ai-btn-priorities">What matters</button>
-            <button class="dash-ai-btn" id="ai-btn-actions">Next steps</button>
-          </div>
-        </div>
+    <!-- Records Processed -->
+    <div class="status-card">
+      <div class="status-label">Records Processed</div>
+      <div class="status-value">
+        <span class="value" id="status-records">—</span>
       </div>
-      
-      <!-- Quick Analytics Summary -->
-      <div class="dash-panel" style="margin-top: var(--space-4);">
-        <div class="dash-panel-header">
-          <span class="dash-panel-title">Quick Insights</span>
-          <a href="/analytics" class="dash-panel-link">Full analytics →</a>
-        </div>
-        <div class="dash-panel-body" id="dash-analytics">
-          <a href="/analytics" class="dash-list-item">
-            <div class="dash-list-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                <path d="M18 20V10"/>
-                <path d="M12 20V4"/>
-                <path d="M6 20v-6"/>
-              </svg>
-            </div>
-            <div class="dash-list-content">
-              <div class="dash-list-title">View performance metrics</div>
-              <div class="dash-list-meta">Analytics dashboard</div>
-            </div>
-          </a>
-          <a href="/reports" class="dash-list-item">
-            <div class="dash-list-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
-                <polyline points="14,2 14,8 20,8"/>
-                <line x1="16" y1="13" x2="8" y2="13"/>
-                <line x1="16" y1="17" x2="8" y2="17"/>
-              </svg>
-            </div>
-            <div class="dash-list-content">
-              <div class="dash-list-title">Generate reports</div>
-              <div class="dash-list-meta">Create and export insights</div>
-            </div>
-          </a>
-          <a href="/automations" class="dash-list-item">
-            <div class="dash-list-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                <circle cx="12" cy="12" r="3"/>
-                <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
-              </svg>
-            </div>
-            <div class="dash-list-content">
-              <div class="dash-list-title">Pipeline & Automations</div>
-              <div class="dash-list-meta">Run and monitor data flows</div>
-            </div>
-          </a>
-        </div>
-      </div>
-      
+      <div class="status-context" id="status-records-context">This period</div>
     </div>
-  </div>
+    
+    <!-- Reports Generated -->
+    <div class="status-card">
+      <div class="status-label">Reports Generated</div>
+      <div class="status-value">
+        <span class="value" id="status-reports">—</span>
+      </div>
+      <div class="status-context" id="status-reports-context">This period</div>
+    </div>
+    
+    <!-- Data Freshness -->
+    <div class="status-card">
+      <div class="status-label">Data Freshness</div>
+      <div class="status-value">
+        <span class="value" id="status-freshness">—</span>
+      </div>
+      <div class="status-context" id="status-freshness-context">Last updated</div>
+    </div>
+  </section>
 
-  <!-- Quick Links Footer -->
-  <nav class="dash-quick-links">
-    <a href="/tasks" class="dash-quick-link">Tasks</a>
-    <a href="/calendar" class="dash-quick-link">Calendar</a>
-    <a href="/analytics" class="dash-quick-link">Analytics</a>
-    <a href="/reports" class="dash-quick-link">Reports</a>
-    <a href="/notes" class="dash-quick-link">Notes</a>
-  </nav>
+  <!-- ═══════════════════════════════════════════════════════════════════════════
+       4. PRIORITIES PANEL (TASKS + EVENTS)
+       ═══════════════════════════════════════════════════════════════════════════ -->
+  <section class="priorities-section">
+    <div class="priorities-header">
+      <h2>What Needs Attention</h2>
+    </div>
+    <div class="priorities-grid">
+      
+      <!-- Tasks Column -->
+      <div class="priority-column">
+        <div class="priority-column-header">
+          <span class="priority-column-title">Tasks</span>
+          <a href="/tasks" class="priority-column-link">View all →</a>
+        </div>
+        <div class="priority-list" id="priority-tasks">
+          <div class="priority-empty">
+            <p class="priority-empty-text">No tasks require attention</p>
+            <a href="/tasks" class="priority-empty-link">Add a task →</a>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Events Column -->
+      <div class="priority-column">
+        <div class="priority-column-header">
+          <span class="priority-column-title">Events</span>
+          <a href="/calendar" class="priority-column-link">View all →</a>
+        </div>
+        <div class="priority-list" id="priority-events">
+          <div class="priority-empty">
+            <p class="priority-empty-text">No upcoming events</p>
+            <a href="/calendar" class="priority-empty-link">Add to calendar →</a>
+          </div>
+        </div>
+      </div>
+      
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════════
+       5. WORKFLOW LAUNCHER
+       ═══════════════════════════════════════════════════════════════════════════ -->
+  <section class="workflows-section">
+    <div class="workflows-header">
+      <h2>Workflows</h2>
+    </div>
+    <div class="workflows-grid">
+      
+      <a href="/analytics" class="workflow-card">
+        <div class="workflow-icon">
+          <svg viewBox="0 0 24 24">
+            <path d="M18 20V10"/>
+            <path d="M12 20V4"/>
+            <path d="M6 20v-6"/>
+          </svg>
+        </div>
+        <span class="workflow-title">Analytics</span>
+        <span class="workflow-desc">View performance & trends</span>
+      </a>
+      
+      <a href="/reports" class="workflow-card">
+        <div class="workflow-icon">
+          <svg viewBox="0 0 24 24">
+            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+            <polyline points="14,2 14,8 20,8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+          </svg>
+        </div>
+        <span class="workflow-title">Reports</span>
+        <span class="workflow-desc">Create, review, export insights</span>
+      </a>
+      
+      <a href="/automations" class="workflow-card">
+        <div class="workflow-icon">
+          <svg viewBox="0 0 24 24">
+            <path d="M4 14a1 1 0 01-.78-1.63l9.9-10.2a.5.5 0 01.86.46l-1.92 6.02A1 1 0 0013 10h7a1 1 0 01.78 1.63l-9.9 10.2a.5.5 0 01-.86-.46l1.92-6.02A1 1 0 0011 14H4z"/>
+          </svg>
+        </div>
+        <span class="workflow-title">Pipelines</span>
+        <span class="workflow-desc">Run and monitor data flows</span>
+      </a>
+      
+      <a href="/notes" class="workflow-card">
+        <div class="workflow-icon">
+          <svg viewBox="0 0 24 24">
+            <path d="M12 20h9"/>
+            <path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/>
+          </svg>
+        </div>
+        <span class="workflow-title">Notes</span>
+        <span class="workflow-desc">Capture ideas and observations</span>
+      </a>
+      
+    </div>
+  </section>
 
 </div>
 {% endblock %}
@@ -784,12 +699,13 @@
     if (!dateStr) return '';
     var date = new Date(dateStr);
     var now = new Date();
-    var diff = date - now;
-    var days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+    var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    var targetDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    var diff = Math.floor((targetDate - today) / (1000 * 60 * 60 * 24));
     
-    if (days === 0) return 'Today';
-    if (days === 1) return 'Tomorrow';
-    if (days > 1 && days <= 7) return 'In ' + days + ' days';
+    if (diff === 0) return 'Today';
+    if (diff === 1) return 'Tomorrow';
+    if (diff > 1 && diff <= 7) return 'In ' + diff + ' days';
     return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   }
   
@@ -810,39 +726,114 @@
   }
   
   // ═══════════════════════════════════════════════════════════════════════════
-  // DATE SELECTOR
+  // GREETING
   // ═══════════════════════════════════════════════════════════════════════════
   
-  var dateButtons = document.querySelectorAll('.dash-date-btn');
+  function setGreeting() {
+    var hour = new Date().getHours();
+    var greeting = 'Good evening';
+    if (hour < 12) greeting = 'Good morning';
+    else if (hour < 17) greeting = 'Good afternoon';
+    
+    document.getElementById('greeting-text').textContent = greeting;
+  }
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // TIME FILTER
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  var timeButtons = document.querySelectorAll('.time-filter-btn');
   var currentRange = 'today';
   
-  dateButtons.forEach(function(btn) {
+  timeButtons.forEach(function(btn) {
     btn.addEventListener('click', function() {
-      dateButtons.forEach(function(b) { b.classList.remove('active'); });
+      timeButtons.forEach(function(b) { b.classList.remove('active'); });
       btn.classList.add('active');
       currentRange = btn.dataset.range;
-      // Could reload data based on range if needed
+      loadAllData();
     });
   });
   
   // ═══════════════════════════════════════════════════════════════════════════
-  // LOAD INSIGHT CARDS DATA
+  // EXECUTIVE SNAPSHOT
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  function loadSnapshot() {
+    var list = document.getElementById('snapshot-list');
+    
+    Promise.all([
+      fetch('/api/pipeline/runs', { credentials: 'same-origin' }).then(r => r.json()).catch(() => ({ runs: [] })),
+      fetch('/api/dashboard/stats', { credentials: 'same-origin' }).then(r => r.json()).catch(() => ({})),
+      fetch('/api/tasks/stats', { credentials: 'same-origin' }).then(r => r.json()).catch(() => ({ open: 0, due_today: 0 }))
+    ])
+    .then(function(results) {
+      var pipelineData = results[0];
+      var stats = results[1];
+      var taskStats = results[2];
+      
+      var insights = [];
+      
+      // Pipeline insight
+      var runs = pipelineData.runs || [];
+      if (runs.length === 0) {
+        insights.push('No pipelines have run in the selected period');
+      } else {
+        var lastRun = runs[0];
+        var elapsed = (Date.now() / 1000) - (lastRun.started_at || 0);
+        if (elapsed < 86400) {
+          insights.push('Pipeline ran ' + formatPastDate(lastRun.started_at));
+        } else {
+          insights.push('Last pipeline run was ' + formatPastDate(lastRun.started_at));
+        }
+      }
+      
+      // Reporting insight
+      var notesCount = stats.notes_count || 0;
+      if (notesCount === 0) {
+        insights.push('Reporting activity is currently idle');
+      } else {
+        insights.push(notesCount + ' report' + (notesCount !== 1 ? 's' : '') + ' generated this period');
+      }
+      
+      // Task insight
+      if (taskStats.due_today > 0) {
+        insights.push(taskStats.due_today + ' task' + (taskStats.due_today !== 1 ? 's' : '') + ' due today');
+      } else if (taskStats.open > 0) {
+        insights.push(taskStats.open + ' open task' + (taskStats.open !== 1 ? 's' : '') + ' in queue');
+      } else {
+        insights.push('No urgent tasks due today');
+      }
+      
+      // System status
+      insights.push('System ready for new data');
+      
+      list.innerHTML = insights.map(function(text) {
+        return '<li><span class="insight-dot"></span><span>' + escapeHtml(text) + '</span></li>';
+      }).join('');
+    })
+    .catch(function() {
+      list.innerHTML = '<li><span class="insight-dot"></span><span>Unable to load insights</span></li>';
+    });
+  }
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // OPERATIONAL STATUS GRID
   // ═══════════════════════════════════════════════════════════════════════════
   
   function loadPipelineStatus() {
-    var statusEl = document.getElementById('insight-pipeline');
-    var metaEl = document.getElementById('insight-pipeline-meta');
+    var indicator = document.getElementById('status-pipeline');
+    var context = document.getElementById('status-pipeline-context');
     
     Promise.all([
-      fetch('/health', { credentials: 'same-origin' }).then(function(r) { return r.json(); }),
-      fetch('/api/pipeline/runs', { credentials: 'same-origin' }).then(function(r) { return r.json(); })
+      fetch('/health', { credentials: 'same-origin' }).then(r => r.json()).catch(() => ({ status: 'error' })),
+      fetch('/api/pipeline/runs', { credentials: 'same-origin' }).then(r => r.json()).catch(() => ({ runs: [] }))
     ])
     .then(function(results) {
       var health = results[0];
-      var runs = results[1];
+      var runs = results[1].runs || [];
       
       var isHealthy = health.status === 'ok';
-      var lastRun = runs.runs && runs.runs.length > 0 ? runs.runs[0] : null;
+      var lastRun = runs.length > 0 ? runs[0] : null;
       var hasRecentRun = lastRun && (Date.now() / 1000 - lastRun.started_at) < 86400;
       
       var status = 'idle';
@@ -852,25 +843,21 @@
         status = 'error';
         statusText = 'Error';
       } else if (lastRun && lastRun.status === 'running') {
-        status = 'warning';
+        status = 'running';
         statusText = 'Running';
       } else if (hasRecentRun) {
         status = 'healthy';
         statusText = 'Healthy';
       }
       
-      statusEl.innerHTML = '<span class="status-dot ' + status + '"></span>' +
-        '<span class="insight-status-text ' + status + '">' + statusText + '</span>';
+      indicator.innerHTML = '<span class="status-dot ' + status + '"></span>' +
+        '<span class="status-text ' + status + '">' + statusText + '</span>';
       
       if (lastRun) {
-        metaEl.textContent = 'Last run: ' + formatPastDate(lastRun.started_at);
+        context.textContent = 'Last run: ' + formatPastDate(lastRun.started_at);
       } else {
-        metaEl.textContent = 'No runs yet';
+        context.textContent = 'No runs yet';
       }
-    })
-    .catch(function() {
-      statusEl.innerHTML = '<span class="status-dot idle"></span>' +
-        '<span class="insight-status-text idle">Unknown</span>';
     });
   }
   
@@ -878,86 +865,102 @@
     fetch('/api/dashboard/stats', { credentials: 'same-origin' })
       .then(function(r) { return r.json(); })
       .then(function(d) {
-        var tasksTotal = d.tasks_total || 0;
-        var tasksDone = d.tasks_done || 0;
-        var tasksActive = tasksTotal - tasksDone;
-        
-        // Tasks due (using active tasks for now)
-        document.getElementById('insight-tasks-due').textContent = tasksActive;
-        document.getElementById('insight-tasks-meta').textContent = tasksTotal + ' total tasks';
-        
-        // Reports (using notes count as proxy)
-        document.getElementById('insight-reports').textContent = d.notes_count || 0;
-        
         // Records processed (simulated based on activity)
         var records = (d.activity_this_week || 0) * 10;
-        document.getElementById('insight-records').textContent = records;
+        document.getElementById('status-records').textContent = records;
         
-        // Trend calculation
-        var trendEl = document.getElementById('insight-records-trend');
         var thisWeek = d.activity_this_week || 0;
         var lastWeek = d.activity_last_week || 0;
         var diff = thisWeek - lastWeek;
         
         if (diff > 0) {
-          trendEl.className = 'insight-trend up';
-          trendEl.textContent = '↑ ' + (diff * 10) + ' this week';
+          document.getElementById('status-records-context').textContent = '↑ ' + (diff * 10) + ' this week';
         } else if (diff < 0) {
-          trendEl.className = 'insight-trend down';
-          trendEl.textContent = '↓ ' + Math.abs(diff * 10) + ' this week';
+          document.getElementById('status-records-context').textContent = '↓ ' + Math.abs(diff * 10) + ' this week';
         } else {
-          trendEl.className = 'insight-trend neutral';
-          trendEl.textContent = 'No change';
+          document.getElementById('status-records-context').textContent = 'No change';
         }
         
-        window._dashStats = d;
+        // Reports
+        document.getElementById('status-reports').textContent = d.notes_count || 0;
+        
+        // Data freshness - use last activity time
+        if (d.last_activity_time) {
+          var lastTime = new Date(d.last_activity_time);
+          var now = new Date();
+          var hoursAgo = Math.floor((now - lastTime) / 3600000);
+          
+          if (hoursAgo < 1) {
+            document.getElementById('status-freshness').textContent = 'Now';
+          } else if (hoursAgo < 24) {
+            document.getElementById('status-freshness').textContent = hoursAgo + 'h';
+          } else {
+            var daysAgo = Math.floor(hoursAgo / 24);
+            document.getElementById('status-freshness').textContent = daysAgo + 'd';
+          }
+          document.getElementById('status-freshness-context').textContent = 'Since last update';
+        } else {
+          document.getElementById('status-freshness').textContent = '—';
+          document.getElementById('status-freshness-context').textContent = 'No recent activity';
+        }
       })
       .catch(function() {
-        document.getElementById('insight-tasks-due').textContent = '—';
-        document.getElementById('insight-reports').textContent = '—';
-        document.getElementById('insight-records').textContent = '—';
+        document.getElementById('status-records').textContent = '—';
+        document.getElementById('status-reports').textContent = '—';
+        document.getElementById('status-freshness').textContent = '—';
       });
   }
   
   // ═══════════════════════════════════════════════════════════════════════════
-  // LOAD TASKS & EVENTS
+  // PRIORITIES PANEL
   // ═══════════════════════════════════════════════════════════════════════════
   
   function loadTasks() {
-    var container = document.getElementById('dash-tasks');
+    var container = document.getElementById('priority-tasks');
     
     fetch('/api/tasks', { credentials: 'same-origin' })
       .then(function(r) { return r.json(); })
       .then(function(d) {
-        var tasks = (d.tasks || []).filter(function(t) { return !t.done; }).slice(0, 3);
+        var tasks = (d.tasks || []).filter(function(t) { return !t.done; });
+        
+        // Sort by due date and urgency
+        tasks.sort(function(a, b) {
+          if (a.urgency === 'high' && b.urgency !== 'high') return -1;
+          if (b.urgency === 'high' && a.urgency !== 'high') return 1;
+          if (a.due_date && b.due_date) return new Date(a.due_date) - new Date(b.due_date);
+          if (a.due_date) return -1;
+          if (b.due_date) return 1;
+          return 0;
+        });
+        
+        tasks = tasks.slice(0, 4);
         
         if (tasks.length === 0) {
-          container.innerHTML = '<div class="dash-empty">' +
-            '<div class="dash-empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></div>' +
-            '<p class="dash-empty-text">No active tasks</p>' +
-            '<p class="dash-empty-hint"><a href="/tasks">Add a task</a> to get started</p></div>';
+          container.innerHTML = '<div class="priority-empty">' +
+            '<p class="priority-empty-text">No tasks require attention</p>' +
+            '<a href="/tasks" class="priority-empty-link">Add a task →</a></div>';
           return;
         }
         
         container.innerHTML = tasks.map(function(t) {
-          var urgencyBadge = t.urgency === 'high' ? '<span class="dash-list-badge urgent">Urgent</span>' : '';
-          var dueMeta = t.due_date ? formatRelativeDate(t.due_date) : '';
+          var isUrgent = t.urgency === 'high';
+          var dueMeta = t.due_date ? formatRelativeDate(t.due_date) : 'No due date';
           
-          return '<a href="/tasks" class="dash-list-item">' +
-            '<div class="dash-list-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/></svg></div>' +
-            '<div class="dash-list-content">' +
-            '<div class="dash-list-title">' + escapeHtml(t.text || 'Untitled') + urgencyBadge + '</div>' +
-            '<div class="dash-list-meta">' + (dueMeta || 'No due date') + '</div>' +
+          return '<a href="/tasks" class="priority-item">' +
+            '<span class="priority-indicator' + (isUrgent ? ' urgent' : '') + '"></span>' +
+            '<div class="priority-content">' +
+            '<div class="priority-title">' + escapeHtml(t.text || 'Untitled') + '</div>' +
+            '<div class="priority-meta">' + dueMeta + '</div>' +
             '</div></a>';
         }).join('');
       })
       .catch(function() {
-        container.innerHTML = '<div class="dash-empty"><p class="dash-empty-text">Could not load tasks</p></div>';
+        container.innerHTML = '<div class="priority-empty"><p class="priority-empty-text">Could not load tasks</p></div>';
       });
   }
   
   function loadEvents() {
-    var container = document.getElementById('dash-events');
+    var container = document.getElementById('priority-events');
     
     fetch('/api/events', { credentials: 'same-origin' })
       .then(function(r) { return r.json(); })
@@ -969,159 +972,50 @@
           if (!e.date) return false;
           var eventDate = new Date(e.date);
           return eventDate >= now && eventDate <= weekLater;
-        }).slice(0, 3);
+        }).slice(0, 4);
         
         if (events.length === 0) {
-          container.innerHTML = '<div class="dash-empty">' +
-            '<div class="dash-empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>' +
-            '<p class="dash-empty-text">No upcoming events</p>' +
-            '<p class="dash-empty-hint"><a href="/calendar">Add an event</a> to your calendar</p></div>';
+          container.innerHTML = '<div class="priority-empty">' +
+            '<p class="priority-empty-text">No upcoming events</p>' +
+            '<a href="/calendar" class="priority-empty-link">Add to calendar →</a></div>';
           return;
         }
         
         container.innerHTML = events.map(function(e) {
           var date = new Date(e.date);
-          var dateStr = date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
-          var timeStr = e.time_start || '';
+          var dateStr = formatRelativeDate(e.date);
           
-          return '<a href="/calendar" class="dash-list-item">' +
-            '<div class="dash-list-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/></svg></div>' +
-            '<div class="dash-list-content">' +
-            '<div class="dash-list-title">' + escapeHtml(e.title || 'Event') + '</div>' +
-            '<div class="dash-list-meta">' + dateStr + (timeStr ? ' · ' + timeStr : '') + '</div>' +
+          return '<a href="/calendar" class="priority-item">' +
+            '<span class="priority-indicator event"></span>' +
+            '<div class="priority-content">' +
+            '<div class="priority-title">' + escapeHtml(e.title || 'Event') + '</div>' +
+            '<div class="priority-meta">' + dateStr + '</div>' +
             '</div></a>';
         }).join('');
       })
       .catch(function() {
-        container.innerHTML = '<div class="dash-empty"><p class="dash-empty-text">Could not load events</p></div>';
+        container.innerHTML = '<div class="priority-empty"><p class="priority-empty-text">Could not load events</p></div>';
       });
   }
   
   // ═══════════════════════════════════════════════════════════════════════════
-  // AI PANEL
+  // LOAD ALL DATA
   // ═══════════════════════════════════════════════════════════════════════════
   
-  var aiPanel = document.getElementById('ai-panel');
-  var aiToggle = document.getElementById('ai-panel-toggle');
-  var aiContent = document.getElementById('ai-content');
-  
-  aiToggle.addEventListener('click', function() {
-    aiPanel.classList.toggle('expanded');
-  });
-  
-  // Quick AI brief button in header
-  document.getElementById('quick-ai-brief').addEventListener('click', function() {
-    aiPanel.classList.add('expanded');
-    document.getElementById('ai-btn-snapshot').click();
-  });
-  
-  function setAILoading(btn, loading) {
-    if (loading) {
-      btn.disabled = true;
-      btn.dataset.origText = btn.textContent;
-      btn.textContent = 'Analyzing...';
-      btn.classList.add('is-loading');
-      aiContent.innerHTML = '<p>Analyzing your data...</p>';
-    } else {
-      btn.disabled = false;
-      btn.textContent = btn.dataset.origText || btn.textContent;
-      btn.classList.remove('is-loading');
-    }
+  function loadAllData() {
+    loadSnapshot();
+    loadPipelineStatus();
+    loadStats();
+    loadTasks();
+    loadEvents();
   }
-  
-  function showAIResult(text, isError) {
-    var className = isError ? 'color: var(--text-muted);' : '';
-    aiContent.innerHTML = '<p style="' + className + '">' + escapeHtml(text).replace(/\n/g, '<br>') + '</p>' +
-      '<p style="font-size: var(--text-xs); color: var(--text-muted); margin-top: var(--space-3);">AI-generated · Based on your activity</p>';
-  }
-  
-  // What's changed
-  document.getElementById('ai-btn-snapshot').addEventListener('click', function() {
-    var btn = this;
-    setAILoading(btn, true);
-    
-    fetch('/api/ai/briefing', {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json' }
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(d) {
-      if (d.error) throw new Error(d.error);
-      var output = d.summary || 'No changes to report.';
-      if (d.highlights && d.highlights.length) {
-        output += '\n\nHighlights:\n• ' + d.highlights.join('\n• ');
-      }
-      showAIResult(output);
-    })
-    .catch(function(err) {
-      showAIResult(err.message || 'Failed to generate snapshot.', true);
-    })
-    .finally(function() {
-      setAILoading(btn, false);
-    });
-  });
-  
-  // What matters
-  document.getElementById('ai-btn-priorities').addEventListener('click', function() {
-    var btn = this;
-    setAILoading(btn, true);
-    
-    fetch('/api/ai/workload/focus', {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json' }
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(d) {
-      if (d.error) throw new Error(d.error);
-      showAIResult(d.suggestion || 'No specific priorities identified.');
-    })
-    .catch(function(err) {
-      showAIResult(err.message || 'Failed to identify priorities.', true);
-    })
-    .finally(function() {
-      setAILoading(btn, false);
-    });
-  });
-  
-  // Next steps
-  document.getElementById('ai-btn-actions').addEventListener('click', function() {
-    var btn = this;
-    setAILoading(btn, true);
-    
-    fetch('/api/ai/briefing', {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json' }
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(d) {
-      if (d.error) throw new Error(d.error);
-      var output = 'Suggested next steps:';
-      if (d.suggested_actions && d.suggested_actions.length) {
-        output += '\n\n• ' + d.suggested_actions.join('\n• ');
-      } else {
-        output = 'No specific actions recommended at this time.';
-      }
-      showAIResult(output);
-    })
-    .catch(function(err) {
-      showAIResult(err.message || 'Failed to generate recommendations.', true);
-    })
-    .finally(function() {
-      setAILoading(btn, false);
-    });
-  });
   
   // ═══════════════════════════════════════════════════════════════════════════
   // INITIALIZE
   // ═══════════════════════════════════════════════════════════════════════════
   
-  loadPipelineStatus();
-  loadStats();
-  loadTasks();
-  loadEvents();
+  setGreeting();
+  loadAllData();
   
 })();
 </script>
