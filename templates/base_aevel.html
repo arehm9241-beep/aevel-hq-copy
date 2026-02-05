@@ -107,6 +107,12 @@
               </a>
             </li>
             <li class="nav-item">
+              <a href="{{ url_for('email_composer_page') }}" class="{% if request.endpoint == 'email_composer_page' %}active{% endif %}">
+                <span class="icon"></span>
+                <span class="label">AI Email Composer</span>
+              </a>
+            </li>
+            <li class="nav-item">
               <a href="{{ url_for('integrations_page') }}" class="{% if request.endpoint == 'integrations_page' %}active{% endif %}">
                 <span class="icon"></span>
                 <span class="label">Integrations</span>

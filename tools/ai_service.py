@@ -530,3 +530,134 @@ Question: {query[:500]}
 Context: {ctx}
 """
     return _call_gemini(prompt, "answer_general_query", user_id, log_fn)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# AI EMAIL COMPOSER
+# ═══════════════════════════════════════════════════════════════════════════
+
+def generate_email_draft(
+    recipient_name: str,
+    recipient_email: str = "",
+    subject: str = "",
+    purpose: str = "follow-up",
+    tone: str = "professional",
+    context: str = "",
+    key_points: str = "",
+    user_id=None,
+    log_fn=None
+) -> tuple[dict | None, str | None]:
+    """Generate a polished email draft.
+    
+    Args:
+        recipient_name: Name of the email recipient
+        recipient_email: Email address (optional, for context)
+        subject: Subject line (optional - AI can suggest)
+        purpose: Email purpose (follow-up, introduction, proposal, etc.)
+        tone: Desired tone (professional, friendly, casual, persuasive, formal, urgent)
+        context: Additional context about the situation
+        key_points: Main points to include in the email
+        user_id: User ID for logging
+        log_fn: Logging function
+    
+    Returns:
+        Tuple of (result_dict, error_string)
+        result_dict contains: draft, subject, suggestions
+    """
+    
+    tone_descriptions = {
+        "professional": "polished and business-appropriate, confident but not stiff",
+        "friendly": "warm and personable while remaining appropriate for business",
+        "casual": "relaxed and conversational, like writing to a colleague",
+        "persuasive": "compelling and convincing, highlighting benefits",
+        "formal": "highly formal and traditional, suitable for official correspondence",
+        "urgent": "emphasizing importance and time-sensitivity without being demanding"
+    }
+    
+    purpose_descriptions = {
+        "follow-up": "following up on a previous conversation or meeting",
+        "introduction": "introducing yourself or making a first contact",
+        "proposal": "presenting an idea, offer, or business proposal",
+        "thank-you": "expressing gratitude and appreciation",
+        "request": "asking for something specific",
+        "update": "providing a status update or progress report",
+        "meeting": "requesting or scheduling a meeting",
+        "announcement": "sharing important news or information",
+        "apology": "apologizing for an issue and offering resolution",
+        "other": "general purpose email"
+    }
+    
+    tone_desc = tone_descriptions.get(tone, tone_descriptions["professional"])
+    purpose_desc = purpose_descriptions.get(purpose, purpose_descriptions["other"])
+    
+    subject_instruction = ""
+    if not subject:
+        subject_instruction = "Also suggest a compelling subject line."
+    
+    prompt = f"""You are an expert email writer. Generate a polished, ready-to-send email.
+
+RECIPIENT: {recipient_name}
+PURPOSE: {purpose_desc}
+TONE: {tone_desc}
+{f'ADDITIONAL CONTEXT: {context}' if context else ''}
+
+KEY POINTS TO INCLUDE:
+{key_points}
+
+REQUIREMENTS:
+- Write a complete email body (greeting to signature)
+- Match the specified tone exactly
+- Include all key points naturally
+- Keep it concise but complete (typically 3-5 paragraphs)
+- Use professional email structure
+- Do not include the subject line in the body
+- Sign off appropriately for the tone
+- Use "[Your Name]" as the signature placeholder
+
+{subject_instruction}
+
+Return ONLY valid JSON in this format:
+{{
+  "draft": "The complete email body text",
+  "subject": "{subject if subject else 'Suggested subject line'}",
+  "suggestions": ["1-2 optional suggestions to improve the email"]
+}}
+
+No markdown, no code blocks, just the JSON object.
+"""
+    
+    text, err = _call_gemini(prompt, "generate_email", user_id, log_fn)
+    if err:
+        return None, err
+    
+    try:
+        # Clean up response
+        text = text.strip()
+        if text.startswith("```"):
+            text = text.split("```")[1]
+            if text.startswith("json"):
+                text = text[4:]
+            text = text.strip()
+        if text.endswith("```"):
+            text = text[:-3].strip()
+        
+        result = json.loads(text)
+        
+        # Ensure required fields
+        if "draft" not in result:
+            return None, "AI response missing email draft"
+        
+        # Use provided subject if given
+        if subject:
+            result["subject"] = subject
+        elif "subject" not in result:
+            result["subject"] = f"Following up - {recipient_name}"
+        
+        if "suggestions" not in result:
+            result["suggestions"] = []
+        
+        return result, None
+        
+    except json.JSONDecodeError as e:
+        # If JSON parsing fails, try to extract the email content
+        return None, f"Could not parse AI response: {str(e)}"

@@ -1,0 +1,662 @@
+{% extends "base_aevel.html" %}
+{% block title %}AI Email Composer{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>AI Email Composer</h1>
+  <p class="subtitle">Create polished, professional emails with AI assistance</p>
+</div>
+
+<section class="section email-composer-section">
+  <div class="email-composer-grid">
+    <!-- Input Form -->
+    <div class="card email-form-card">
+      <div class="card-title">Compose Email</div>
+      
+      <form id="email-form">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="recipient-name">Recipient Name</label>
+            <input type="text" id="recipient-name" class="input" placeholder="John Smith" required>
+          </div>
+          <div class="form-group">
+            <label for="recipient-email">Recipient Email</label>
+            <input type="email" id="recipient-email" class="input" placeholder="john@company.com">
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="subject-line">Subject Line</label>
+          <input type="text" id="subject-line" class="input" placeholder="Enter subject or let AI suggest one">
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label for="email-purpose">Purpose</label>
+            <select id="email-purpose" class="input">
+              <option value="follow-up">Follow-up</option>
+              <option value="introduction">Introduction</option>
+              <option value="proposal">Proposal / Pitch</option>
+              <option value="thank-you">Thank You</option>
+              <option value="request">Request / Ask</option>
+              <option value="update">Status Update</option>
+              <option value="meeting">Meeting Request</option>
+              <option value="announcement">Announcement</option>
+              <option value="apology">Apology</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="email-tone">Tone / Style</label>
+            <select id="email-tone" class="input">
+              <option value="professional">Professional</option>
+              <option value="friendly">Friendly</option>
+              <option value="casual">Casual</option>
+              <option value="persuasive">Persuasive</option>
+              <option value="formal">Formal</option>
+              <option value="urgent">Urgent</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="email-context">Additional Context</label>
+          <input type="text" id="email-context" class="input" placeholder="e.g., Met at conference last week, discussing partnership">
+        </div>
+        
+        <div class="form-group">
+          <label for="key-points">Key Points to Include</label>
+          <textarea id="key-points" class="textarea" rows="4" placeholder="Enter the main points you want to convey...&#10;• Point 1&#10;• Point 2&#10;• Point 3"></textarea>
+        </div>
+        
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary" id="generate-btn">
+            <span class="ai-badge-sm">AI</span> Generate Draft
+          </button>
+          <button type="button" class="btn btn-ghost" id="clear-form-btn">Clear</button>
+        </div>
+      </form>
+    </div>
+    
+    <!-- Preview Panel -->
+    <div class="card email-preview-card">
+      <div class="card-header">
+        <div class="card-title">Email Preview</div>
+        <div class="preview-actions" id="preview-actions" style="display: none;">
+          <button type="button" class="btn btn-ghost btn-small" id="copy-btn" title="Copy to clipboard">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+            Copy
+          </button>
+          <button type="button" class="btn btn-ghost btn-small" id="download-btn" title="Download as HTML">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Download
+          </button>
+          <button type="button" class="btn btn-ghost btn-small" id="save-draft-btn" title="Save draft">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17,21 17,13 7,13 7,21"/><polyline points="7,3 7,8 15,8"/></svg>
+            Save
+          </button>
+        </div>
+      </div>
+      
+      <div class="email-preview-content" id="preview-content">
+        <div class="preview-placeholder">
+          <div class="placeholder-icon">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+              <polyline points="22,6 12,13 2,6"/>
+            </svg>
+          </div>
+          <p>Fill in the form and click "Generate Draft" to create your email</p>
+        </div>
+      </div>
+      
+      <!-- Editable email area (hidden initially) -->
+      <div class="email-editor" id="email-editor" style="display: none;">
+        <div class="editor-header">
+          <label>Subject:</label>
+          <input type="text" id="preview-subject" class="input editor-subject" placeholder="Email subject">
+        </div>
+        <div class="editor-body">
+          <textarea id="preview-body" class="textarea editor-textarea" rows="12" placeholder="Email body will appear here..."></textarea>
+        </div>
+      </div>
+      
+      <!-- AI Suggestions -->
+      <div class="ai-suggestions" id="ai-suggestions" style="display: none;">
+        <div class="suggestions-header">
+          <span class="ai-badge">AI</span>
+          <span class="suggestions-title">Suggestions</span>
+        </div>
+        <ul class="suggestions-list" id="suggestions-list"></ul>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Saved Drafts -->
+  <div class="card saved-drafts-card" style="margin-top: var(--space-5);">
+    <div class="card-header">
+      <div class="card-title">Saved Drafts</div>
+      <button type="button" class="btn btn-ghost btn-small" id="refresh-drafts-btn">Refresh</button>
+    </div>
+    <div class="drafts-list" id="drafts-list">
+      <p class="text-muted" style="padding: var(--space-4); text-align: center;">No saved drafts yet</p>
+    </div>
+  </div>
+</section>
+
+<style>
+.email-composer-section {
+  max-width: 1200px;
+}
+
+.email-composer-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-5);
+}
+
+@media (max-width: 900px) {
+  .email-composer-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.email-form-card,
+.email-preview-card {
+  height: fit-content;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+}
+
+@media (max-width: 600px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.form-actions {
+  display: flex;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-4);
+}
+
+.preview-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.preview-actions .btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.preview-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-10);
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.placeholder-icon {
+  margin-bottom: var(--space-4);
+}
+
+.email-editor {
+  background: var(--bg-overlay);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.editor-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-raised);
+  border-bottom: 1px solid var(--border);
+}
+
+.editor-header label {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.editor-subject {
+  flex: 1;
+  background: transparent;
+  border: none;
+  font-size: var(--text-sm);
+}
+
+.editor-subject:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.editor-body {
+  padding: var(--space-4);
+}
+
+.editor-textarea {
+  width: 100%;
+  min-height: 300px;
+  background: transparent;
+  border: none;
+  resize: vertical;
+  font-family: inherit;
+  font-size: var(--text-sm);
+  line-height: 1.6;
+  color: var(--text);
+}
+
+.editor-textarea:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.ai-suggestions {
+  margin-top: var(--space-4);
+  padding: var(--space-4);
+  background: var(--bg-overlay);
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--accent);
+}
+
+.suggestions-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.suggestions-title {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text-secondary);
+}
+
+.suggestions-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.suggestions-list li {
+  padding: var(--space-2) 0;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border);
+}
+
+.suggestions-list li:last-child {
+  border-bottom: none;
+}
+
+.suggestions-list li::before {
+  content: "→ ";
+  color: var(--accent);
+}
+
+.ai-badge-sm {
+  font-size: 9px;
+  padding: 2px 5px;
+  background: var(--bg-overlay);
+  color: var(--text-muted);
+  border-radius: var(--radius-full);
+  margin-right: 4px;
+  vertical-align: middle;
+}
+
+.ai-badge {
+  font-size: 10px;
+  padding: 2px 6px;
+  background: var(--accent);
+  color: var(--bg);
+  border-radius: var(--radius-full);
+  font-weight: var(--weight-medium);
+}
+
+.saved-drafts-card .card-header {
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--border);
+}
+
+.drafts-list {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.draft-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background var(--ease);
+}
+
+.draft-item:hover {
+  background: var(--bg-overlay);
+}
+
+.draft-item:last-child {
+  border-bottom: none;
+}
+
+.draft-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.draft-subject {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.draft-meta {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.draft-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+/* Loading state */
+.btn.is-loading {
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.btn.is-loading::after {
+  content: "";
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid transparent;
+  border-top-color: currentColor;
+  border-radius: 50%;
+  margin-left: var(--space-2);
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+  // Elements
+  var form = document.getElementById('email-form');
+  var generateBtn = document.getElementById('generate-btn');
+  var clearBtn = document.getElementById('clear-form-btn');
+  var copyBtn = document.getElementById('copy-btn');
+  var downloadBtn = document.getElementById('download-btn');
+  var saveBtn = document.getElementById('save-draft-btn');
+  var refreshDraftsBtn = document.getElementById('refresh-drafts-btn');
+  
+  var previewContent = document.getElementById('preview-content');
+  var previewActions = document.getElementById('preview-actions');
+  var emailEditor = document.getElementById('email-editor');
+  var previewSubject = document.getElementById('preview-subject');
+  var previewBody = document.getElementById('preview-body');
+  var suggestionsPanel = document.getElementById('ai-suggestions');
+  var suggestionsList = document.getElementById('suggestions-list');
+  var draftsList = document.getElementById('drafts-list');
+  
+  // Local storage key for drafts
+  var DRAFTS_KEY = 'aevel_email_drafts';
+  
+  function escapeHtml(str) {
+    var div = document.createElement('div');
+    div.textContent = str || '';
+    return div.innerHTML;
+  }
+  
+  function showToast(msg, type) {
+    if (typeof Aevel !== 'undefined' && Aevel.toast) {
+      Aevel.toast(msg, type);
+    } else {
+      alert(msg);
+    }
+  }
+  
+  function showEditor(subject, body, suggestions) {
+    previewContent.style.display = 'none';
+    emailEditor.style.display = 'block';
+    previewActions.style.display = 'flex';
+    previewSubject.value = subject || '';
+    previewBody.value = body || '';
+    
+    if (suggestions && suggestions.length > 0) {
+      suggestionsPanel.style.display = 'block';
+      suggestionsList.innerHTML = suggestions.map(function(s) {
+        return '<li>' + escapeHtml(s) + '</li>';
+      }).join('');
+    } else {
+      suggestionsPanel.style.display = 'none';
+    }
+  }
+  
+  function hideEditor() {
+    previewContent.style.display = 'block';
+    emailEditor.style.display = 'none';
+    previewActions.style.display = 'none';
+    suggestionsPanel.style.display = 'none';
+  }
+  
+  function getFormData() {
+    return {
+      recipient_name: document.getElementById('recipient-name').value.trim(),
+      recipient_email: document.getElementById('recipient-email').value.trim(),
+      subject: document.getElementById('subject-line').value.trim(),
+      purpose: document.getElementById('email-purpose').value,
+      tone: document.getElementById('email-tone').value,
+      context: document.getElementById('email-context').value.trim(),
+      key_points: document.getElementById('key-points').value.trim()
+    };
+  }
+  
+  // Generate email
+  form.addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    var data = getFormData();
+    if (!data.recipient_name) {
+      showToast('Please enter recipient name', 'error');
+      return;
+    }
+    if (!data.key_points) {
+      showToast('Please enter key points', 'error');
+      return;
+    }
+    
+    generateBtn.classList.add('is-loading');
+    generateBtn.disabled = true;
+    generateBtn.innerHTML = '<span class="ai-badge-sm">AI</span> Generating...';
+    
+    fetch('/api/ai/generate-email', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(result) {
+      if (result.error) throw new Error(result.error);
+      
+      var subject = result.subject || data.subject || 'No subject';
+      var body = result.draft || '';
+      var suggestions = result.suggestions || [];
+      
+      showEditor(subject, body, suggestions);
+      showToast('Email generated!', 'success');
+    })
+    .catch(function(err) {
+      showToast(err.message || 'Failed to generate email', 'error');
+    })
+    .finally(function() {
+      generateBtn.classList.remove('is-loading');
+      generateBtn.disabled = false;
+      generateBtn.innerHTML = '<span class="ai-badge-sm">AI</span> Generate Draft';
+    });
+  });
+  
+  // Clear form
+  clearBtn.addEventListener('click', function() {
+    form.reset();
+    hideEditor();
+  });
+  
+  // Copy to clipboard
+  copyBtn.addEventListener('click', function() {
+    var subject = previewSubject.value;
+    var body = previewBody.value;
+    var fullText = 'Subject: ' + subject + '\n\n' + body;
+    
+    navigator.clipboard.writeText(fullText).then(function() {
+      showToast('Copied to clipboard!', 'success');
+    }).catch(function() {
+      // Fallback
+      var textarea = document.createElement('textarea');
+      textarea.value = fullText;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      showToast('Copied to clipboard!', 'success');
+    });
+  });
+  
+  // Download as HTML
+  downloadBtn.addEventListener('click', function() {
+    var subject = previewSubject.value;
+    var body = previewBody.value;
+    var recipientName = document.getElementById('recipient-name').value.trim();
+    var recipientEmail = document.getElementById('recipient-email').value.trim();
+    
+    var html = '<!DOCTYPE html>\n<html>\n<head>\n<meta charset="UTF-8">\n<title>' + escapeHtml(subject) + '</title>\n' +
+      '<style>body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;max-width:600px;margin:40px auto;padding:20px;line-height:1.6;color:#333;}.meta{color:#666;font-size:14px;border-bottom:1px solid #eee;padding-bottom:15px;margin-bottom:20px;}.subject{font-size:18px;font-weight:600;margin-bottom:10px;}</style>\n' +
+      '</head>\n<body>\n' +
+      '<div class="meta">\n<strong>To:</strong> ' + escapeHtml(recipientName) + (recipientEmail ? ' &lt;' + escapeHtml(recipientEmail) + '&gt;' : '') + '<br>\n' +
+      '<strong>Subject:</strong> ' + escapeHtml(subject) + '\n</div>\n' +
+      '<div class="body">' + escapeHtml(body).replace(/\n/g, '<br>') + '</div>\n' +
+      '</body>\n</html>';
+    
+    var blob = new Blob([html], { type: 'text/html' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'email-' + (subject || 'draft').replace(/[^a-z0-9]/gi, '-').substring(0, 30) + '.html';
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('Downloaded!', 'success');
+  });
+  
+  // Save draft locally
+  saveBtn.addEventListener('click', function() {
+    var subject = previewSubject.value;
+    var body = previewBody.value;
+    
+    if (!body) {
+      showToast('No draft to save', 'error');
+      return;
+    }
+    
+    var drafts = JSON.parse(localStorage.getItem(DRAFTS_KEY) || '[]');
+    var draft = {
+      id: Date.now(),
+      subject: subject || 'Untitled',
+      body: body,
+      recipient: document.getElementById('recipient-name').value.trim(),
+      created: new Date().toISOString()
+    };
+    
+    drafts.unshift(draft);
+    if (drafts.length > 10) drafts = drafts.slice(0, 10);
+    
+    localStorage.setItem(DRAFTS_KEY, JSON.stringify(drafts));
+    renderDrafts();
+    showToast('Draft saved!', 'success');
+  });
+  
+  // Render saved drafts
+  function renderDrafts() {
+    var drafts = JSON.parse(localStorage.getItem(DRAFTS_KEY) || '[]');
+    
+    if (drafts.length === 0) {
+      draftsList.innerHTML = '<p class="text-muted" style="padding: var(--space-4); text-align: center;">No saved drafts yet</p>';
+      return;
+    }
+    
+    draftsList.innerHTML = drafts.map(function(d) {
+      var date = new Date(d.created).toLocaleDateString();
+      return '<div class="draft-item" data-id="' + d.id + '">' +
+        '<div class="draft-info">' +
+        '<div class="draft-subject">' + escapeHtml(d.subject) + '</div>' +
+        '<div class="draft-meta">To: ' + escapeHtml(d.recipient || 'Unknown') + ' · ' + date + '</div>' +
+        '</div>' +
+        '<div class="draft-actions">' +
+        '<button type="button" class="btn btn-ghost btn-small load-draft-btn">Load</button>' +
+        '<button type="button" class="btn btn-ghost btn-small delete-draft-btn">Delete</button>' +
+        '</div>' +
+        '</div>';
+    }).join('');
+    
+    // Attach event listeners
+    draftsList.querySelectorAll('.load-draft-btn').forEach(function(btn) {
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var id = parseInt(btn.closest('.draft-item').dataset.id);
+        var draft = drafts.find(function(d) { return d.id === id; });
+        if (draft) {
+          showEditor(draft.subject, draft.body, []);
+          showToast('Draft loaded', 'success');
+        }
+      });
+    });
+    
+    draftsList.querySelectorAll('.delete-draft-btn').forEach(function(btn) {
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var id = parseInt(btn.closest('.draft-item').dataset.id);
+        drafts = drafts.filter(function(d) { return d.id !== id; });
+        localStorage.setItem(DRAFTS_KEY, JSON.stringify(drafts));
+        renderDrafts();
+        showToast('Draft deleted', 'success');
+      });
+    });
+  }
+  
+  refreshDraftsBtn.addEventListener('click', renderDrafts);
+  
+  // Initial render
+  renderDrafts();
+})();
+</script>
+{% endblock %}

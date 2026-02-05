@@ -1908,6 +1908,13 @@ def community_notes_page():
     return render_template("community_notes.html")
 
 
+@app.route("/email-composer", methods=["GET"])
+@login_required
+def email_composer_page():
+    """AI Email Composer - Team Space only."""
+    return render_template("email_composer.html")
+
+
 @app.route("/team-tasks", methods=["GET"])
 @login_required
 def team_tasks_page():
@@ -3481,6 +3488,60 @@ def api_ai_notes_find_themes():
     if err:
         return jsonify({"error": err}), 400
     return jsonify({"themes": themes or []}), 200
+
+
+@app.route("/api/ai/generate-email", methods=["POST"])
+@login_required
+def api_ai_generate_email():
+    """Generate a polished email draft using AI.
+    
+    Input JSON:
+    - recipient_name: str (required)
+    - recipient_email: str (optional)
+    - subject: str (optional - AI can suggest)
+    - purpose: str (follow-up, introduction, proposal, etc.)
+    - tone: str (professional, friendly, casual, persuasive, formal, urgent)
+    - context: str (additional context)
+    - key_points: str (required - main points to include)
+    
+    Returns:
+    - draft: str (the generated email body)
+    - subject: str (subject line, generated if not provided)
+    - suggestions: list[str] (improvement suggestions)
+    """
+    user_id = get_user_id()
+    data = request.get_json(silent=True) or {}
+    
+    recipient_name = (data.get("recipient_name") or "").strip()
+    recipient_email = (data.get("recipient_email") or "").strip()
+    subject = (data.get("subject") or "").strip()
+    purpose = (data.get("purpose") or "follow-up").strip()
+    tone = (data.get("tone") or "professional").strip()
+    context = (data.get("context") or "").strip()
+    key_points = (data.get("key_points") or "").strip()
+    
+    if not recipient_name:
+        return jsonify({"error": "Recipient name is required"}), 400
+    if not key_points:
+        return jsonify({"error": "Key points are required"}), 400
+    
+    from tools import ai_service
+    result, err = ai_service.generate_email_draft(
+        recipient_name=recipient_name,
+        recipient_email=recipient_email,
+        subject=subject,
+        purpose=purpose,
+        tone=tone,
+        context=context,
+        key_points=key_points,
+        user_id=user_id,
+        log_fn=log_activity
+    )
+    
+    if err:
+        return jsonify({"error": err}), 400
+    
+    return jsonify(result), 200
 
 
 # ═══════════════════════════════════════════════════════════════════════════
