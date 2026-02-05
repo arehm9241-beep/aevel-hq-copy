@@ -866,18 +866,55 @@
     addLog('info', 'Steps: ' + enabledSteps.join(' → '));
     if (state.config.dryRun) addLog('warn', 'Dry run mode enabled - delivery will be skipped');
     
-    // Execute via existing /trigger endpoint
-    fetch('/trigger', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'full_pipeline',
-        options: {
-          steps: state.config.steps,
-          dryRun: state.config.dryRun,
-          outputFormat: state.config.outputFormat
-        }
+    // If using file upload and file is selected, upload it first
+    var uploadPromise;
+    if (state.inputSource === 'upload' && state.uploadedFile) {
+      addLog('info', 'Uploading file: ' + state.uploadedFile.name);
+      var formData = new FormData();
+      formData.append('file', state.uploadedFile);
+      
+      uploadPromise = fetch('/api/pipeline/upload', {
+        method: 'POST',
+        body: formData
       })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.error) {
+          throw new Error(data.error);
+        }
+        addLog('success', 'File uploaded: ' + data.filename + ' (' + data.row_count + ' rows)');
+        return data.upload_id;
+      });
+    } else {
+      uploadPromise = Promise.resolve(null);
+      if (state.inputSource === 'upload') {
+        addLog('warn', 'No file selected - using default data source');
+      }
+    }
+    
+    // After upload (or immediately if no file), run pipeline
+    uploadPromise.then(function(uploadId) {
+      var options = {
+        steps: state.config.steps,
+        dryRun: state.config.dryRun,
+        outputFormat: state.config.outputFormat
+      };
+      
+      // Include uploadId if we uploaded a file
+      if (uploadId) {
+        options.uploadId = uploadId;
+        addLog('info', 'Using uploaded file (ID: ' + uploadId.substring(0, 8) + '...)');
+      }
+      
+      // Execute via existing /trigger endpoint
+      return fetch('/trigger', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'full_pipeline',
+          options: options
+        })
+      });
     })
     .then(function(r) { return r.json(); })
     .then(function(data) {
