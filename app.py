@@ -1348,28 +1348,53 @@ def api_dashboard_stats():
     tasks_done = conn.execute("SELECT COUNT(*) as c FROM tasks WHERE user_id = ? AND done = 1", (user_id,)).fetchone()["c"]
     notes = conn.execute("SELECT COUNT(*) as c FROM notes WHERE user_id = ?", (user_id,)).fetchone()["c"]
     events = conn.execute("SELECT COUNT(*) as c FROM events WHERE user_id = ?", (user_id,)).fetchone()["c"]
-    # Quick insights: tasks due in next 7 days (not done), events this week
+    
     from datetime import datetime, timedelta
     today = datetime.utcnow().date().isoformat()
     week_later = (datetime.utcnow().date() + timedelta(days=7)).isoformat()
+    week_ago = (datetime.utcnow().date() - timedelta(days=7)).isoformat()
+    
+    # Tasks due in next 7 days (not done)
     tasks_due_soon = conn.execute(
         "SELECT COUNT(*) as c FROM tasks WHERE user_id = ? AND done = 0 AND due_date IS NOT NULL AND due_date != '' AND due_date >= ? AND due_date <= ?",
         (user_id, today, week_later),
     ).fetchone()["c"]
+    
+    # Tasks due today
+    tasks_due_today = conn.execute(
+        "SELECT COUNT(*) as c FROM tasks WHERE user_id = ? AND done = 0 AND due_date = ?",
+        (user_id, today),
+    ).fetchone()["c"]
+    
+    # Overdue tasks
+    tasks_overdue = conn.execute(
+        "SELECT COUNT(*) as c FROM tasks WHERE user_id = ? AND done = 0 AND due_date IS NOT NULL AND due_date != '' AND due_date < ?",
+        (user_id, today),
+    ).fetchone()["c"]
+    
+    # Tasks completed this week
+    tasks_done_this_week = conn.execute(
+        "SELECT COUNT(*) as c FROM activity_log WHERE user_id = ? AND action = 'task_update' AND date(created_at) >= ?",
+        (user_id, week_ago),
+    ).fetchone()["c"]
+    
+    # Events this week
     events_this_week = conn.execute(
         "SELECT COUNT(*) as c FROM events WHERE user_id = ? AND date >= ? AND date <= ?",
         (user_id, today, week_later),
     ).fetchone()["c"]
+    
     # Activity this week vs last week (for comparison)
-    week_ago = (datetime.utcnow().date() - timedelta(days=7)).isoformat()
     activity_this_week = conn.execute(
         "SELECT COUNT(*) as c FROM activity_log WHERE user_id = ? AND date(created_at) >= ?",
-        (user_id, today),
+        (user_id, week_ago),
     ).fetchone()["c"]
+    two_weeks_ago = (datetime.utcnow().date() - timedelta(days=14)).isoformat()
     activity_last_week = conn.execute(
         "SELECT COUNT(*) as c FROM activity_log WHERE user_id = ? AND date(created_at) >= ? AND date(created_at) < ?",
-        (user_id, week_ago, today),
+        (user_id, two_weeks_ago, week_ago),
     ).fetchone()["c"]
+    
     # Last 7 days counts for sparkline (oldest to newest)
     last_7_days = []
     for i in range(6, -1, -1):
@@ -1379,10 +1404,14 @@ def api_dashboard_stats():
             (user_id, d),
         ).fetchone()["c"]
         last_7_days.append(c)
+    
     conn.close()
     return jsonify({
         "tasks_total": tasks,
         "tasks_done": tasks_done,
+        "tasks_due_today": tasks_due_today,
+        "tasks_overdue": tasks_overdue,
+        "tasks_done_this_week": tasks_done_this_week,
         "notes_count": notes,
         "events_count": events,
         "tasks_due_soon": tasks_due_soon,
