@@ -1,100 +1,1476 @@
 {% extends "base_aevel.html" %}
 {% block title %}Settings{% endblock %}
-{% block content %}
-<div class="page-header">
-  <h1>Settings</h1>
-  <p class="subtitle">Preferences</p>
-</div>
 
-<section class="section">
-  <h2 class="section-title">Dashboard</h2>
-  <div class="card">
-    <div class="prefs-grid">
-      <label class="pref-row">
-        <input type="checkbox" id="pref-dashboard_kpis" class="pref-checkbox">
-        <span>Summary numbers</span>
-      </label>
-      <label class="pref-row">
-        <input type="checkbox" id="pref-dashboard_widgets" class="pref-checkbox">
-        <span>Schedule and activity</span>
-      </label>
-      <label class="pref-row">
-        <input type="checkbox" id="pref-compact" class="pref-checkbox">
-        <span>Compact layout</span>
-      </label>
-    </div>
-    <button type="button" class="btn btn-primary" id="prefs-save" style="margin-top: 1rem;">Save preferences</button>
-    <span id="prefs-feedback" class="form-error" style="margin-top: 0.5rem; display: block;"></span>
-  </div>
-</section>
+{% block head %}
+<style>
+/* ═══════════════════════════════════════════════════════════════════════════
+   SETTINGS — Professional Control Center
+   Calm, premium, trustworthy, Apple-level minimal
+   ═══════════════════════════════════════════════════════════════════════════ */
 
-<section class="section">
-  <h2 class="section-title">Account</h2>
-  <div class="card">
-    <div class="card-title">Email</div>
-    <p style="margin: 0; font-size: 0.9375rem; color: var(--text-secondary);">{{ session.get('user_email', '') }}</p>
-  </div>
-</section>
+.settings-layout {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  min-height: calc(100vh - 60px);
+}
 
-<section class="section">
-  <h2 class="section-title">Session</h2>
-  <div class="card">
-    <form method="POST" action="{{ url_for('logout') }}">
-      <button type="submit" class="btn btn-ghost">Sign out</button>
-    </form>
-  </div>
-</section>
+@media (max-width: 800px) {
+  .settings-layout {
+    grid-template-columns: 1fr;
+  }
+}
 
-<section class="section">
-  <h2 class="section-title">About</h2>
-  <div class="card">
-    <div class="card-title">Aevel</div>
-    <p style="margin: 0; font-size: 0.9375rem; color: var(--text-secondary);">Analytics and automation. Pipeline, reports, tasks, calendar.</p>
-  </div>
-</section>
+/* ─────────────────────────────────────────────────────────────────────────────
+   1. LEFT NAVIGATION
+   ───────────────────────────────────────────────────────────────────────────── */
+.settings-nav {
+  background: var(--bg-raised);
+  border-right: 1px solid var(--border);
+  padding: var(--space-5);
+}
+
+@media (max-width: 800px) {
+  .settings-nav {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    padding: var(--space-4);
+  }
+}
+
+.settings-nav-header {
+  margin-bottom: var(--space-5);
+}
+
+.settings-nav-header h1 {
+  font-size: 20px;
+  font-weight: var(--weight-semibold);
+  color: var(--text);
+  margin: 0 0 var(--space-1) 0;
+}
+
+.settings-nav-header p {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.settings-nav-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+@media (max-width: 800px) {
+  .settings-nav-list {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+}
+
+.settings-nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+  width: 100%;
+}
+
+@media (max-width: 800px) {
+  .settings-nav-item {
+    width: auto;
+    padding: var(--space-2) var(--space-3);
+  }
+}
+
+.settings-nav-item:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.settings-nav-item.active {
+  background: var(--accent-muted);
+  color: var(--accent);
+}
+
+.settings-nav-item svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   2. MAIN CONTENT
+   ───────────────────────────────────────────────────────────────────────────── */
+.settings-main {
+  padding: var(--space-6);
+  overflow-y: auto;
+}
+
+@media (max-width: 800px) {
+  .settings-main {
+    padding: var(--space-4);
+  }
+}
+
+.settings-section {
+  display: none;
+  max-width: 700px;
+}
+
+.settings-section.active {
+  display: block;
+}
+
+.settings-section-header {
+  margin-bottom: var(--space-5);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--border);
+}
+
+.settings-section-header h2 {
+  font-size: 18px;
+  font-weight: var(--weight-semibold);
+  color: var(--text);
+  margin: 0 0 var(--space-1) 0;
+}
+
+.settings-section-header p {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  margin: 0;
+}
+
+/* Settings Card */
+.settings-card {
+  background: var(--bg-raised);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  margin-bottom: var(--space-5);
+}
+
+.settings-card:last-child {
+  margin-bottom: 0;
+}
+
+.settings-card-header {
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--border);
+}
+
+.settings-card-header h3 {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text);
+  margin: 0;
+}
+
+.settings-card-body {
+  padding: var(--space-4);
+}
+
+/* Setting Row */
+.setting-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: var(--space-4) 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.setting-row:first-child {
+  padding-top: 0;
+}
+
+.setting-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.setting-info {
+  flex: 1;
+  padding-right: var(--space-4);
+}
+
+.setting-label {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text);
+  margin-bottom: var(--space-1);
+}
+
+.setting-description {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.setting-control {
+  flex-shrink: 0;
+}
+
+/* Toggle Switch */
+.toggle-switch {
+  position: relative;
+  width: 44px;
+  height: 24px;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--bg-overlay);
+  border-radius: var(--radius-full);
+  transition: all 0.2s ease;
+}
+
+.toggle-slider::before {
+  content: '';
+  position: absolute;
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background: var(--text-muted);
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.toggle-switch input:checked + .toggle-slider {
+  background: var(--accent);
+}
+
+.toggle-switch input:checked + .toggle-slider::before {
+  transform: translateX(20px);
+  background: var(--bg);
+}
+
+/* Select Dropdown */
+.settings-select {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  min-width: 160px;
+}
+
+.settings-select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* Input Field */
+.settings-input {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  width: 100%;
+  max-width: 300px;
+}
+
+.settings-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.settings-input:read-only {
+  background: var(--bg-overlay);
+  color: var(--text-secondary);
+}
+
+/* Button */
+.settings-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.settings-btn-primary {
+  color: var(--bg);
+  background: var(--accent);
+  border: none;
+}
+
+.settings-btn-primary:hover {
+  opacity: 0.9;
+}
+
+.settings-btn-secondary {
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid var(--border);
+}
+
+.settings-btn-secondary:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+.settings-btn-danger {
+  color: #ba8a8a;
+  background: transparent;
+  border: 1px solid rgba(186, 138, 138, 0.3);
+}
+
+.settings-btn-danger:hover {
+  background: rgba(186, 138, 138, 0.1);
+}
+
+.settings-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Save Footer */
+.settings-save-footer {
+  position: sticky;
+  bottom: 0;
+  background: var(--bg-raised);
+  border-top: 1px solid var(--border);
+  padding: var(--space-4);
+  margin-top: var(--space-5);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-radius: 0 0 var(--radius) var(--radius);
+}
+
+.save-status {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.save-status.success {
+  color: #78A878;
+}
+
+.save-status.error {
+  color: #A87878;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   3. INFO CARDS
+   ───────────────────────────────────────────────────────────────────────────── */
+.info-card {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  background: var(--bg);
+  border-radius: var(--radius-sm);
+}
+
+.info-card-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-muted);
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+
+.info-card-icon svg {
+  width: 20px;
+  height: 20px;
+  color: var(--accent);
+}
+
+.info-card-content {
+  flex: 1;
+}
+
+.info-card-title {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text);
+  margin-bottom: var(--space-1);
+}
+
+.info-card-value {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   4. SESSION CARD
+   ───────────────────────────────────────────────────────────────────────────── */
+.session-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-4);
+  background: var(--bg);
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--space-3);
+}
+
+.session-card:last-child {
+  margin-bottom: 0;
+}
+
+.session-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.session-icon {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-overlay);
+  border-radius: var(--radius-sm);
+}
+
+.session-icon svg {
+  width: 18px;
+  height: 18px;
+  color: var(--text-muted);
+}
+
+.session-icon.current {
+  background: var(--accent-muted);
+}
+
+.session-icon.current svg {
+  color: var(--accent);
+}
+
+.session-details h4 {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text);
+  margin: 0 0 2px 0;
+}
+
+.session-details p {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.session-badge {
+  padding: 2px 8px;
+  font-size: 9px;
+  font-weight: var(--weight-medium);
+  background: rgba(120, 168, 120, 0.15);
+  color: #78A878;
+  border-radius: var(--radius-full);
+  text-transform: uppercase;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   5. ABOUT SECTION
+   ───────────────────────────────────────────────────────────────────────────── */
+.about-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+.about-logo {
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent);
+  border-radius: var(--radius);
+  font-size: 24px;
+  font-weight: var(--weight-bold);
+  color: var(--bg);
+}
+
+.about-title h2 {
+  font-size: 20px;
+  font-weight: var(--weight-semibold);
+  color: var(--text);
+  margin: 0 0 var(--space-1) 0;
+}
+
+.about-title p {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.about-description {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: var(--space-5);
+}
+
+.about-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+@media (max-width: 500px) {
+  .about-info-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.about-info-item {
+  padding: var(--space-3);
+  background: var(--bg);
+  border-radius: var(--radius-sm);
+}
+
+.about-info-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: var(--space-1);
+}
+
+.about-info-value {
+  font-size: var(--text-sm);
+  color: var(--text);
+}
+
+.about-links {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.about-link {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.about-link:hover {
+  color: var(--accent);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   6. NOTIFICATION TOGGLES
+   ───────────────────────────────────────────────────────────────────────────── */
+.notification-group {
+  margin-bottom: var(--space-5);
+}
+
+.notification-group:last-child {
+  margin-bottom: 0;
+}
+
+.notification-group-title {
+  font-size: 10px;
+  font-weight: var(--weight-medium);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: var(--space-3);
+}
+
+/* Future Feature Placeholder */
+.coming-soon {
+  opacity: 0.5;
+  pointer-events: none;
+  position: relative;
+}
+
+.coming-soon::after {
+  content: 'Coming soon';
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 10px;
+  color: var(--accent);
+  background: var(--accent-muted);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+}
+</style>
 {% endblock %}
+
+{% block content %}
+<div class="settings-layout">
+  
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       LEFT NAVIGATION
+       ═══════════════════════════════════════════════════════════════════════ -->
+  <nav class="settings-nav">
+    <div class="settings-nav-header">
+      <h1>Settings</h1>
+      <p>Manage your preferences and account</p>
+    </div>
+    
+    <div class="settings-nav-list">
+      <button class="settings-nav-item active" data-section="preferences">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
+        </svg>
+        Preferences
+      </button>
+      
+      <button class="settings-nav-item" data-section="workspace">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+          <line x1="8" y1="21" x2="16" y2="21"/>
+          <line x1="12" y1="17" x2="12" y2="21"/>
+        </svg>
+        Workspace
+      </button>
+      
+      <button class="settings-nav-item" data-section="account">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+          <circle cx="12" cy="7" r="4"/>
+        </svg>
+        Account
+      </button>
+      
+      <button class="settings-nav-item" data-section="security">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+          <path d="M7 11V7a5 5 0 0110 0v4"/>
+        </svg>
+        Security
+      </button>
+      
+      <button class="settings-nav-item" data-section="notifications">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+          <path d="M13.73 21a2 2 0 01-3.46 0"/>
+        </svg>
+        Notifications
+      </button>
+      
+      <button class="settings-nav-item" data-section="about">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="16" x2="12" y2="12"/>
+          <line x1="12" y1="8" x2="12.01" y2="8"/>
+        </svg>
+        About
+      </button>
+    </div>
+  </nav>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       MAIN CONTENT
+       ═══════════════════════════════════════════════════════════════════════ -->
+  <main class="settings-main">
+    
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         SECTION 1: PREFERENCES
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <section class="settings-section active" id="section-preferences">
+      <div class="settings-section-header">
+        <h2>Preferences</h2>
+        <p>Customize your dashboard and display options</p>
+      </div>
+      
+      <div class="settings-card">
+        <div class="settings-card-header">
+          <h3>Dashboard Preferences</h3>
+        </div>
+        <div class="settings-card-body">
+          <div class="setting-row">
+            <div class="setting-info">
+              <div class="setting-label">Show summary numbers</div>
+              <div class="setting-description">Display key metrics at the top of your dashboard</div>
+            </div>
+            <div class="setting-control">
+              <label class="toggle-switch">
+                <input type="checkbox" id="pref-dashboard_kpis" checked>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+          
+          <div class="setting-row">
+            <div class="setting-info">
+              <div class="setting-label">Show schedule & activity</div>
+              <div class="setting-description">Display upcoming tasks and recent activity feed</div>
+            </div>
+            <div class="setting-control">
+              <label class="toggle-switch">
+                <input type="checkbox" id="pref-dashboard_widgets" checked>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+          
+          <div class="setting-row">
+            <div class="setting-info">
+              <div class="setting-label">Show AI insights by default</div>
+              <div class="setting-description">Automatically display AI-generated insights on dashboard</div>
+            </div>
+            <div class="setting-control">
+              <label class="toggle-switch">
+                <input type="checkbox" id="pref-ai_insights">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+          
+          <div class="setting-row">
+            <div class="setting-info">
+              <div class="setting-label">Default dashboard view</div>
+              <div class="setting-description">Choose what you see first when opening the dashboard</div>
+            </div>
+            <div class="setting-control">
+              <select class="settings-select" id="pref-default_view">
+                <option value="overview">Overview</option>
+                <option value="analytics">Analytics</option>
+                <option value="tasks">Tasks</option>
+              </select>
+            </div>
+          </div>
+          
+          <div class="setting-row">
+            <div class="setting-info">
+              <div class="setting-label">Compact layout</div>
+              <div class="setting-description">Reduce spacing and padding for denser information display</div>
+            </div>
+            <div class="setting-control">
+              <label class="toggle-switch">
+                <input type="checkbox" id="pref-compact">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+        
+        <div class="settings-save-footer">
+          <span class="save-status" id="prefs-feedback"></span>
+          <button class="settings-btn settings-btn-primary" id="prefs-save">Save Preferences</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         SECTION 2: WORKSPACE
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <section class="settings-section" id="section-workspace">
+      <div class="settings-section-header">
+        <h2>Workspace Behavior</h2>
+        <p>Configure how Aevel processes and displays your data</p>
+      </div>
+      
+      <div class="settings-card">
+        <div class="settings-card-header">
+          <h3>Analytics Settings</h3>
+        </div>
+        <div class="settings-card-body">
+          <div class="setting-row">
+            <div class="setting-info">
+              <div class="setting-label">Default time range</div>
+              <div class="setting-description">Time period shown by default in analytics views</div>
+            </div>
+            <div class="setting-control">
+              <select class="settings-select" id="pref-time_range">
+                <option value="7d">Last 7 days</option>
+                <option value="30d" selected>Last 30 days</option>
+                <option value="90d">Last 90 days</option>
+                <option value="all">All time</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="settings-card">
+        <div class="settings-card-header">
+          <h3>Pipeline Defaults</h3>
+        </div>
+        <div class="settings-card-body">
+          <div class="setting-row">
+            <div class="setting-info">
+              <div class="setting-label">Dry run first</div>
+              <div class="setting-description">Preview pipeline results before executing</div>
+            </div>
+            <div class="setting-control">
+              <label class="toggle-switch">
+                <input type="checkbox" id="pref-dry_run">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+          
+          <div class="setting-row">
+            <div class="setting-info">
+              <div class="setting-label">Auto-validate before run</div>
+              <div class="setting-description">Automatically check data integrity before processing</div>
+            </div>
+            <div class="setting-control">
+              <label class="toggle-switch">
+                <input type="checkbox" id="pref-auto_validate" checked>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="settings-card">
+        <div class="settings-card-header">
+          <h3>Report Defaults</h3>
+        </div>
+        <div class="settings-card-body">
+          <div class="setting-row">
+            <div class="setting-info">
+              <div class="setting-label">Include AI summary</div>
+              <div class="setting-description">Automatically generate AI executive summaries in reports</div>
+            </div>
+            <div class="setting-control">
+              <label class="toggle-switch">
+                <input type="checkbox" id="pref-report_ai_summary" checked>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+          
+          <div class="setting-row">
+            <div class="setting-info">
+              <div class="setting-label">Include charts</div>
+              <div class="setting-description">Embed visualizations in generated reports</div>
+            </div>
+            <div class="setting-control">
+              <label class="toggle-switch">
+                <input type="checkbox" id="pref-report_charts" checked>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="settings-card">
+        <div class="settings-card-header">
+          <h3>Calendar Preferences</h3>
+        </div>
+        <div class="settings-card-body">
+          <div class="setting-row">
+            <div class="setting-info">
+              <div class="setting-label">Week starts on</div>
+              <div class="setting-description">First day of the week in calendar views</div>
+            </div>
+            <div class="setting-control">
+              <select class="settings-select" id="pref-week_start">
+                <option value="sunday">Sunday</option>
+                <option value="monday" selected>Monday</option>
+              </select>
+            </div>
+          </div>
+          
+          <div class="setting-row">
+            <div class="setting-info">
+              <div class="setting-label">Timezone</div>
+              <div class="setting-description">Display times in this timezone</div>
+            </div>
+            <div class="setting-control">
+              <select class="settings-select" id="pref-timezone">
+                <option value="local">Local (Browser)</option>
+                <option value="UTC">UTC</option>
+                <option value="America/New_York">Eastern Time</option>
+                <option value="America/Chicago">Central Time</option>
+                <option value="America/Denver">Mountain Time</option>
+                <option value="America/Los_Angeles">Pacific Time</option>
+                <option value="Europe/London">London</option>
+                <option value="Europe/Paris">Paris</option>
+                <option value="Asia/Tokyo">Tokyo</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        
+        <div class="settings-save-footer">
+          <span class="save-status" id="workspace-feedback"></span>
+          <button class="settings-btn settings-btn-primary" id="workspace-save">Save Workspace Settings</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         SECTION 3: ACCOUNT
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <section class="settings-section" id="section-account">
+      <div class="settings-section-header">
+        <h2>Account</h2>
+        <p>Manage your account information</p>
+      </div>
+      
+      <div class="settings-card">
+        <div class="settings-card-header">
+          <h3>Account Information</h3>
+        </div>
+        <div class="settings-card-body">
+          <div class="setting-row">
+            <div class="setting-info">
+              <div class="setting-label">Email address</div>
+              <div class="setting-description">Your login email</div>
+            </div>
+            <div class="setting-control">
+              <input type="email" class="settings-input" id="account-email" value="{{ session.get('user_email', '') }}" readonly>
+            </div>
+          </div>
+          
+          <div class="setting-row">
+            <div class="setting-info">
+              <div class="setting-label">Display name</div>
+              <div class="setting-description">How your name appears to team members</div>
+            </div>
+            <div class="setting-control">
+              <input type="text" class="settings-input" id="account-name" placeholder="Enter display name">
+            </div>
+          </div>
+          
+          <div class="setting-row">
+            <div class="setting-info">
+              <div class="setting-label">Role</div>
+              <div class="setting-description">Your permission level in this workspace</div>
+            </div>
+            <div class="setting-control">
+              <input type="text" class="settings-input" id="account-role" value="Team Member" readonly>
+            </div>
+          </div>
+          
+          <div class="setting-row">
+            <div class="setting-info">
+              <div class="setting-label">Workspace</div>
+              <div class="setting-description">Your current team workspace</div>
+            </div>
+            <div class="setting-control">
+              <input type="text" class="settings-input" id="account-workspace" value="Aevel" readonly>
+            </div>
+          </div>
+        </div>
+        
+        <div class="settings-save-footer">
+          <span class="save-status" id="account-feedback"></span>
+          <button class="settings-btn settings-btn-primary" id="account-save">Update Account</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         SECTION 4: SECURITY
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <section class="settings-section" id="section-security">
+      <div class="settings-section-header">
+        <h2>Security & Sessions</h2>
+        <p>Manage your security settings and active sessions</p>
+      </div>
+      
+      <div class="settings-card">
+        <div class="settings-card-header">
+          <h3>Current Session</h3>
+        </div>
+        <div class="settings-card-body">
+          <div class="session-card">
+            <div class="session-info">
+              <div class="session-icon current">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                  <line x1="8" y1="21" x2="16" y2="21"/>
+                  <line x1="12" y1="17" x2="12" y2="21"/>
+                </svg>
+              </div>
+              <div class="session-details">
+                <h4>This device</h4>
+                <p>Active now</p>
+              </div>
+            </div>
+            <span class="session-badge">Current</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="settings-card">
+        <div class="settings-card-header">
+          <h3>Session Actions</h3>
+        </div>
+        <div class="settings-card-body">
+          <div class="setting-row">
+            <div class="setting-info">
+              <div class="setting-label">Sign out of this session</div>
+              <div class="setting-description">End your current session on this device</div>
+            </div>
+            <div class="setting-control">
+              <form method="POST" action="{{ url_for('logout') }}" style="margin: 0;">
+                <button type="submit" class="settings-btn settings-btn-secondary">Sign Out</button>
+              </form>
+            </div>
+          </div>
+          
+          <div class="setting-row">
+            <div class="setting-info">
+              <div class="setting-label">Sign out of all sessions</div>
+              <div class="setting-description">End all active sessions across all devices</div>
+            </div>
+            <div class="setting-control">
+              <button class="settings-btn settings-btn-danger" id="signout-all">Sign Out All</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="settings-card">
+        <div class="settings-card-header">
+          <h3>Security Options</h3>
+        </div>
+        <div class="settings-card-body">
+          <div class="setting-row coming-soon">
+            <div class="setting-info">
+              <div class="setting-label">Change password</div>
+              <div class="setting-description">Update your account password</div>
+            </div>
+            <div class="setting-control">
+              <button class="settings-btn settings-btn-secondary" disabled>Change Password</button>
+            </div>
+          </div>
+          
+          <div class="setting-row coming-soon">
+            <div class="setting-info">
+              <div class="setting-label">Two-factor authentication</div>
+              <div class="setting-description">Add an extra layer of security to your account</div>
+            </div>
+            <div class="setting-control">
+              <button class="settings-btn settings-btn-secondary" disabled>Enable 2FA</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         SECTION 5: NOTIFICATIONS
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <section class="settings-section" id="section-notifications">
+      <div class="settings-section-header">
+        <h2>Notifications</h2>
+        <p>Choose what you want to be notified about</p>
+      </div>
+      
+      <div class="settings-card">
+        <div class="settings-card-header">
+          <h3>Activity Notifications</h3>
+        </div>
+        <div class="settings-card-body">
+          <div class="notification-group">
+            <div class="notification-group-title">Tasks</div>
+            
+            <div class="setting-row">
+              <div class="setting-info">
+                <div class="setting-label">Task assigned to me</div>
+                <div class="setting-description">When someone assigns a task to you</div>
+              </div>
+              <div class="setting-control">
+                <label class="toggle-switch">
+                  <input type="checkbox" id="notif-task_assigned" checked>
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+            
+            <div class="setting-row">
+              <div class="setting-info">
+                <div class="setting-label">Task due soon</div>
+                <div class="setting-description">Reminder when a task is due within 24 hours</div>
+              </div>
+              <div class="setting-control">
+                <label class="toggle-switch">
+                  <input type="checkbox" id="notif-task_due" checked>
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+          </div>
+          
+          <div class="notification-group">
+            <div class="notification-group-title">Reports & Pipelines</div>
+            
+            <div class="setting-row">
+              <div class="setting-info">
+                <div class="setting-label">Report generated</div>
+                <div class="setting-description">When a new report is created</div>
+              </div>
+              <div class="setting-control">
+                <label class="toggle-switch">
+                  <input type="checkbox" id="notif-report_generated">
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+            
+            <div class="setting-row">
+              <div class="setting-info">
+                <div class="setting-label">Pipeline completed</div>
+                <div class="setting-description">When a pipeline run finishes</div>
+              </div>
+              <div class="setting-control">
+                <label class="toggle-switch">
+                  <input type="checkbox" id="notif-pipeline_complete" checked>
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+          </div>
+          
+          <div class="notification-group">
+            <div class="notification-group-title">Digests</div>
+            
+            <div class="setting-row">
+              <div class="setting-info">
+                <div class="setting-label">Weekly digest</div>
+                <div class="setting-description">Summary of activity and insights every week</div>
+              </div>
+              <div class="setting-control">
+                <label class="toggle-switch">
+                  <input type="checkbox" id="notif-weekly_digest">
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="settings-card">
+        <div class="settings-card-header">
+          <h3>Delivery Methods</h3>
+        </div>
+        <div class="settings-card-body">
+          <div class="setting-row">
+            <div class="setting-info">
+              <div class="setting-label">In-app notifications</div>
+              <div class="setting-description">Show notifications within Aevel</div>
+            </div>
+            <div class="setting-control">
+              <label class="toggle-switch">
+                <input type="checkbox" id="notif-in_app" checked>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+          
+          <div class="setting-row coming-soon">
+            <div class="setting-info">
+              <div class="setting-label">Email notifications</div>
+              <div class="setting-description">Receive notifications via email</div>
+            </div>
+            <div class="setting-control">
+              <label class="toggle-switch">
+                <input type="checkbox" id="notif-email" disabled>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+        
+        <div class="settings-save-footer">
+          <span class="save-status" id="notif-feedback"></span>
+          <button class="settings-btn settings-btn-primary" id="notif-save">Save Notification Settings</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         SECTION 6: ABOUT
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <section class="settings-section" id="section-about">
+      <div class="settings-section-header">
+        <h2>About Aevel</h2>
+        <p>Platform information</p>
+      </div>
+      
+      <div class="settings-card">
+        <div class="settings-card-body">
+          <div class="about-header">
+            <div class="about-logo">A</div>
+            <div class="about-title">
+              <h2>Aevel HQ</h2>
+              <p>Analytics & Automation Platform</p>
+            </div>
+          </div>
+          
+          <p class="about-description">
+            Analytics and automation platform for data-driven teams. Manage pipelines, generate reports, 
+            track tasks, and leverage AI-powered insights — all in one calm, professional workspace.
+          </p>
+          
+          <div class="about-info-grid">
+            <div class="about-info-item">
+              <div class="about-info-label">Version</div>
+              <div class="about-info-value">1.0.0</div>
+            </div>
+            <div class="about-info-item">
+              <div class="about-info-label">Environment</div>
+              <div class="about-info-value">Production</div>
+            </div>
+            <div class="about-info-item">
+              <div class="about-info-label">AI Engine</div>
+              <div class="about-info-value">Gemini 2.5 Flash</div>
+            </div>
+            <div class="about-info-item">
+              <div class="about-info-label">Last Updated</div>
+              <div class="about-info-value" id="about-updated">—</div>
+            </div>
+          </div>
+          
+          <div class="about-links">
+            <a href="#" class="about-link">Privacy Policy</a>
+            <a href="#" class="about-link">Terms of Service</a>
+            <a href="#" class="about-link">Documentation</a>
+            <a href="#" class="about-link">Support</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+{% endblock %}
+
 {% block scripts %}
 <script>
 (function() {
-  var prefs = {};
-  function load() {
-    fetch('/api/preferences').then(function(r) { return r.json(); }).then(function(d) {
-      prefs = d;
-      document.getElementById('pref-dashboard_kpis').checked = d.dashboard_kpis !== false;
-      document.getElementById('pref-dashboard_widgets').checked = d.dashboard_widgets !== false;
-      document.getElementById('pref-compact').checked = !!d.compact;
-      applyCompact(d.compact);
+  'use strict';
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // NAVIGATION
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  var navItems = document.querySelectorAll('.settings-nav-item');
+  var sections = document.querySelectorAll('.settings-section');
+  
+  navItems.forEach(function(item) {
+    item.addEventListener('click', function() {
+      var sectionId = item.getAttribute('data-section');
+      
+      navItems.forEach(function(nav) { nav.classList.remove('active'); });
+      sections.forEach(function(sec) { sec.classList.remove('active'); });
+      
+      item.classList.add('active');
+      document.getElementById('section-' + sectionId).classList.add('active');
+      
+      // Update URL hash
+      history.replaceState(null, null, '#' + sectionId);
     });
+  });
+  
+  // Handle initial hash
+  var hash = window.location.hash.replace('#', '');
+  if (hash) {
+    var targetNav = document.querySelector('[data-section="' + hash + '"]');
+    if (targetNav) targetNav.click();
   }
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // UTILITIES
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  function showToast(msg, type) {
+    if (typeof Aevel !== 'undefined' && Aevel.toast) {
+      Aevel.toast(msg, type);
+    }
+  }
+  
+  function setFeedback(elementId, message, isError) {
+    var el = document.getElementById(elementId);
+    if (el) {
+      el.textContent = message;
+      el.className = 'save-status ' + (isError ? 'error' : 'success');
+      setTimeout(function() { el.textContent = ''; }, 3000);
+    }
+  }
+  
   function applyCompact(on) {
     document.body.classList.toggle('compact', !!on);
   }
-  document.getElementById('pref-compact').addEventListener('change', function() { applyCompact(this.checked); });
-  document.getElementById('prefs-save').addEventListener('click', function() {
-    var payload = {
-      dashboard_kpis: document.getElementById('pref-dashboard_kpis').checked,
-      dashboard_chart: true,
-      dashboard_recent: true,
-      dashboard_widgets: document.getElementById('pref-dashboard_widgets').checked,
-      compact: document.getElementById('pref-compact').checked
-    };
-    fetch('/api/preferences', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // LOAD PREFERENCES
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  var prefs = {};
+  
+  function loadPreferences() {
+    fetch('/api/preferences', { credentials: 'same-origin' })
       .then(function(r) { return r.json(); })
       .then(function(d) {
         prefs = d;
-        var fb = document.getElementById('prefs-feedback');
-        fb.textContent = 'Preferences saved.';
-        fb.style.color = 'var(--success)';
-        if (typeof Aevel !== 'undefined') Aevel.toast('Preferences saved', 'success');
-        setTimeout(function() { fb.textContent = ''; }, 3000);
+        
+        // Dashboard preferences
+        document.getElementById('pref-dashboard_kpis').checked = d.dashboard_kpis !== false;
+        document.getElementById('pref-dashboard_widgets').checked = d.dashboard_widgets !== false;
+        document.getElementById('pref-ai_insights').checked = !!d.ai_insights;
+        document.getElementById('pref-default_view').value = d.default_view || 'overview';
+        document.getElementById('pref-compact').checked = !!d.compact;
+        
+        // Workspace preferences
+        document.getElementById('pref-time_range').value = d.time_range || '30d';
+        document.getElementById('pref-dry_run').checked = !!d.dry_run;
+        document.getElementById('pref-auto_validate').checked = d.auto_validate !== false;
+        document.getElementById('pref-report_ai_summary').checked = d.report_ai_summary !== false;
+        document.getElementById('pref-report_charts').checked = d.report_charts !== false;
+        document.getElementById('pref-week_start').value = d.week_start || 'monday';
+        document.getElementById('pref-timezone').value = d.timezone || 'local';
+        
+        // Account
+        if (d.display_name) {
+          document.getElementById('account-name').value = d.display_name;
+        }
+        
+        // Notifications
+        document.getElementById('notif-task_assigned').checked = d.notif_task_assigned !== false;
+        document.getElementById('notif-task_due').checked = d.notif_task_due !== false;
+        document.getElementById('notif-report_generated').checked = !!d.notif_report_generated;
+        document.getElementById('notif-pipeline_complete').checked = d.notif_pipeline_complete !== false;
+        document.getElementById('notif-weekly_digest').checked = !!d.notif_weekly_digest;
+        document.getElementById('notif-in_app').checked = d.notif_in_app !== false;
+        
+        applyCompact(d.compact);
       })
       .catch(function() {
-        var fb = document.getElementById('prefs-feedback');
-        if (fb) { fb.textContent = 'Failed to save.'; fb.style.color = 'var(--danger)'; }
-        if (typeof Aevel !== 'undefined' && Aevel.toast) Aevel.toast('Failed to save preferences', 'error');
+        showToast('Failed to load preferences', 'error');
       });
+  }
+  
+  loadPreferences();
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SAVE PREFERENCES
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  function savePreferences(payload, feedbackId) {
+    return fetch('/api/preferences', {
+      method: 'PATCH',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      prefs = Object.assign(prefs, d);
+      setFeedback(feedbackId, 'Saved successfully', false);
+      showToast('Settings saved', 'success');
+      return d;
+    })
+    .catch(function(err) {
+      setFeedback(feedbackId, 'Failed to save', true);
+      showToast('Failed to save settings', 'error');
+      throw err;
+    });
+  }
+  
+  // Dashboard Preferences
+  document.getElementById('prefs-save').addEventListener('click', function() {
+    var payload = {
+      dashboard_kpis: document.getElementById('pref-dashboard_kpis').checked,
+      dashboard_widgets: document.getElementById('pref-dashboard_widgets').checked,
+      ai_insights: document.getElementById('pref-ai_insights').checked,
+      default_view: document.getElementById('pref-default_view').value,
+      compact: document.getElementById('pref-compact').checked,
+      dashboard_chart: true,
+      dashboard_recent: true
+    };
+    applyCompact(payload.compact);
+    savePreferences(payload, 'prefs-feedback');
   });
-  load();
+  
+  // Workspace Settings
+  document.getElementById('workspace-save').addEventListener('click', function() {
+    var payload = {
+      time_range: document.getElementById('pref-time_range').value,
+      dry_run: document.getElementById('pref-dry_run').checked,
+      auto_validate: document.getElementById('pref-auto_validate').checked,
+      report_ai_summary: document.getElementById('pref-report_ai_summary').checked,
+      report_charts: document.getElementById('pref-report_charts').checked,
+      week_start: document.getElementById('pref-week_start').value,
+      timezone: document.getElementById('pref-timezone').value
+    };
+    savePreferences(payload, 'workspace-feedback');
+  });
+  
+  // Account Settings
+  document.getElementById('account-save').addEventListener('click', function() {
+    var payload = {
+      display_name: document.getElementById('account-name').value.trim()
+    };
+    savePreferences(payload, 'account-feedback');
+  });
+  
+  // Notification Settings
+  document.getElementById('notif-save').addEventListener('click', function() {
+    var payload = {
+      notif_task_assigned: document.getElementById('notif-task_assigned').checked,
+      notif_task_due: document.getElementById('notif-task_due').checked,
+      notif_report_generated: document.getElementById('notif-report_generated').checked,
+      notif_pipeline_complete: document.getElementById('notif-pipeline_complete').checked,
+      notif_weekly_digest: document.getElementById('notif-weekly_digest').checked,
+      notif_in_app: document.getElementById('notif-in_app').checked
+    };
+    savePreferences(payload, 'notif-feedback');
+  });
+  
+  // Live compact toggle
+  document.getElementById('pref-compact').addEventListener('change', function() {
+    applyCompact(this.checked);
+  });
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SECURITY ACTIONS
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  document.getElementById('signout-all').addEventListener('click', function() {
+    if (confirm('Sign out of all sessions? You will need to log in again.')) {
+      // For now, just sign out current session
+      document.querySelector('form[action*="logout"]').submit();
+    }
+  });
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ABOUT INFO
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  document.getElementById('about-updated').textContent = new Date().toLocaleDateString();
+  
 })();
 </script>
 {% endblock %}
