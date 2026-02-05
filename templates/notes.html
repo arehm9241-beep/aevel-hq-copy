@@ -16,12 +16,242 @@
         <label>Content</label>
         <textarea id="note-body" class="textarea" placeholder="Content…" rows="4"></textarea>
       </div>
-      <button type="submit" class="btn btn-primary">Save note</button>
+      <div class="form-actions" style="display: flex; gap: var(--space-3); align-items: center; flex-wrap: wrap;">
+        <button type="submit" class="btn btn-primary">Save note</button>
+        <div class="ai-actions" style="display: flex; gap: var(--space-2);">
+          <button type="button" class="btn btn-ghost btn-small" id="ai-summarize-note">
+            <span class="ai-badge-sm">AI</span> Summarize
+          </button>
+          <button type="button" class="btn btn-ghost btn-small" id="ai-extract-actions">
+            <span class="ai-badge-sm">AI</span> Extract actions
+          </button>
+        </div>
+      </div>
     </form>
+    
+    <!-- AI Output Panel -->
+    <div class="ai-output-panel" id="ai-output-panel" style="display: none;">
+      <div class="ai-output-header">
+        <span class="ai-badge">AI</span>
+        <span class="ai-output-title" id="ai-output-title">AI Output</span>
+        <button type="button" class="btn btn-ghost btn-small" id="ai-dismiss-btn">Dismiss</button>
+      </div>
+      <div class="ai-output-content" id="ai-output-content"></div>
+    </div>
+    
     <ul id="notes-list" class="notes-list"></ul>
   </div>
+  
+  <!-- Find Themes Section -->
+  <div class="card" style="margin-top: var(--space-4);">
+    <div class="card-title" style="display: flex; align-items: center; gap: var(--space-2);">
+      <span class="ai-badge-sm">AI</span> Find Themes
+    </div>
+    <p class="text-secondary" style="font-size: var(--text-sm); margin-bottom: var(--space-3);">
+      Analyze your notes to find common themes and related ideas.
+    </p>
+    <button type="button" class="btn btn-ghost btn-small" id="ai-find-themes">Analyze notes</button>
+    <div class="themes-output" id="themes-output" style="display: none; margin-top: var(--space-3);"></div>
+  </div>
 </section>
+
+<style>
+.ai-badge-sm {
+  font-size: 9px;
+  padding: 1px 4px;
+  background: var(--bg-overlay);
+  color: var(--text-muted);
+  border-radius: var(--radius-full);
+  margin-right: 4px;
+  vertical-align: middle;
+}
+.ai-output-panel {
+  margin-top: var(--space-4);
+  margin-bottom: var(--space-4);
+  padding: var(--space-4);
+  background: var(--bg-overlay);
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--accent);
+}
+.ai-output-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+.ai-output-title {
+  flex: 1;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text-secondary);
+}
+.ai-output-content {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: var(--leading);
+  white-space: pre-wrap;
+}
+.themes-output {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+.theme-item {
+  padding: var(--space-3);
+  background: var(--bg-overlay);
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--space-2);
+}
+.theme-name {
+  font-weight: var(--weight-medium);
+  color: var(--text);
+  margin-bottom: var(--space-1);
+}
+.theme-notes {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  margin-bottom: var(--space-1);
+}
+.theme-summary {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+</style>
 {% endblock %}
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/notes.js') }}"></script>
+<script>
+(function() {
+  function escapeHtml(str) {
+    var div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+  
+  function showAIOutput(title, content) {
+    var panel = document.getElementById('ai-output-panel');
+    document.getElementById('ai-output-title').textContent = title;
+    document.getElementById('ai-output-content').innerHTML = escapeHtml(content).replace(/\n/g, '<br>');
+    panel.style.display = 'block';
+  }
+  
+  function hideAIOutput() {
+    document.getElementById('ai-output-panel').style.display = 'none';
+  }
+  
+  // Summarize note
+  document.getElementById('ai-summarize-note').addEventListener('click', function() {
+    var btn = this;
+    var title = document.getElementById('note-title').value.trim();
+    var body = document.getElementById('note-body').value.trim();
+    
+    if (!body) {
+      if (typeof Aevel !== 'undefined' && Aevel.toast) Aevel.toast('Add content first', 'error');
+      return;
+    }
+    
+    btn.disabled = true;
+    btn.innerHTML = '<span class="ai-badge-sm">AI</span> Analyzing...';
+    
+    fetch('/api/ai/notes/summarize', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: title, body: body })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.error) throw new Error(data.error);
+      showAIOutput('Summary', data.summary || 'No summary generated.');
+    })
+    .catch(function(err) {
+      if (typeof Aevel !== 'undefined' && Aevel.toast) Aevel.toast(err.message || 'Failed', 'error');
+    })
+    .finally(function() {
+      btn.disabled = false;
+      btn.innerHTML = '<span class="ai-badge-sm">AI</span> Summarize';
+    });
+  });
+  
+  // Extract actions
+  document.getElementById('ai-extract-actions').addEventListener('click', function() {
+    var btn = this;
+    var body = document.getElementById('note-body').value.trim();
+    
+    if (!body) {
+      if (typeof Aevel !== 'undefined' && Aevel.toast) Aevel.toast('Add content first', 'error');
+      return;
+    }
+    
+    btn.disabled = true;
+    btn.innerHTML = '<span class="ai-badge-sm">AI</span> Extracting...';
+    
+    fetch('/api/ai/notes/extract-actions', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: body })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.error) throw new Error(data.error);
+      var actions = data.actions || [];
+      if (actions.length === 0) {
+        showAIOutput('Action Items', 'No action items found in this note.');
+      } else {
+        showAIOutput('Action Items', '• ' + actions.join('\n• '));
+      }
+    })
+    .catch(function(err) {
+      if (typeof Aevel !== 'undefined' && Aevel.toast) Aevel.toast(err.message || 'Failed', 'error');
+    })
+    .finally(function() {
+      btn.disabled = false;
+      btn.innerHTML = '<span class="ai-badge-sm">AI</span> Extract actions';
+    });
+  });
+  
+  // Dismiss AI output
+  document.getElementById('ai-dismiss-btn').addEventListener('click', hideAIOutput);
+  
+  // Find themes
+  document.getElementById('ai-find-themes').addEventListener('click', function() {
+    var btn = this;
+    var output = document.getElementById('themes-output');
+    
+    btn.disabled = true;
+    btn.textContent = 'Analyzing...';
+    output.innerHTML = '<p>Analyzing notes...</p>';
+    output.style.display = 'block';
+    
+    fetch('/api/ai/notes/find-themes', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' }
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.error) throw new Error(data.error);
+      var themes = data.themes || [];
+      if (themes.length === 0) {
+        output.innerHTML = '<p class="text-muted">No common themes found. Add more notes to enable theme detection.</p>';
+      } else {
+        output.innerHTML = themes.map(function(t) {
+          return '<div class="theme-item">' +
+            '<div class="theme-name">' + escapeHtml(t.theme || 'Theme') + '</div>' +
+            (t.notes && t.notes.length ? '<div class="theme-notes">Related: ' + t.notes.map(function(n) { return escapeHtml(n); }).join(', ') + '</div>' : '') +
+            '<div class="theme-summary">' + escapeHtml(t.summary || '') + '</div>' +
+          '</div>';
+        }).join('') + '<p class="text-muted" style="margin-top:var(--space-2);font-size:var(--text-xs);">AI-generated themes based on your notes</p>';
+      }
+    })
+    .catch(function(err) {
+      output.innerHTML = '<p class="text-danger">' + escapeHtml(err.message || 'Failed to analyze') + '</p>';
+    })
+    .finally(function() {
+      btn.disabled = false;
+      btn.textContent = 'Analyze notes';
+    });
+  });
+})();
+</script>
 {% endblock %}

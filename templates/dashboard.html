@@ -57,18 +57,22 @@
     </div>
   </section>
 
-  <!-- AI Insights (collapsed by default) -->
+  <!-- AI Briefing (collapsed by default) -->
   <section class="dashboard-section">
     <details class="ai-insights-panel" id="dashboard-ai-insights">
       <summary class="ai-insights-summary">
-        <span class="ai-insights-title">AI Insights</span>
+        <span class="ai-insights-title">AI Briefing</span>
         <span class="ai-insights-badge">AI</span>
       </summary>
       <div class="ai-insights-body">
         <div id="dashboard-ai-content" class="dashboard-ai-content">
-          <p class="ai-placeholder">Click to generate insights based on your activity.</p>
+          <p class="ai-placeholder">Generate a briefing on your current status, tasks, and recommendations.</p>
         </div>
-        <button type="button" id="dashboard-ai-refresh" class="btn btn-ghost btn-small">Generate insights</button>
+        <div class="ai-actions" style="display: flex; gap: var(--space-2); flex-wrap: wrap; margin-top: var(--space-3);">
+          <button type="button" id="dashboard-ai-briefing" class="btn btn-ghost btn-small">Full briefing</button>
+          <button type="button" id="dashboard-ai-focus" class="btn btn-ghost btn-small">What should I focus on?</button>
+          <button type="button" id="dashboard-ai-workload" class="btn btn-ghost btn-small">Summarize workload</button>
+        </div>
       </div>
     </details>
   </section>
@@ -245,30 +249,102 @@
   }
   loadEvents();
   
-  // AI Insights
-  document.getElementById('dashboard-ai-refresh') && document.getElementById('dashboard-ai-refresh').addEventListener('click', function() {
+  // AI Briefing functions
+  function showAIContent(content, isError) {
+    var el = document.getElementById('dashboard-ai-content');
+    if (el) {
+      el.innerHTML = '<p class="' + (isError ? 'ai-error' : '') + '">' + escapeHtml(content).replace(/\n/g, '<br>') + '</p><span class="ai-meta" style="display:block;margin-top:var(--space-2);font-size:var(--text-xs);color:var(--text-muted);">AI-generated · Based on your activity</span>';
+    }
+  }
+  
+  function setAILoading(btn, loading) {
+    if (loading) {
+      btn.disabled = true;
+      btn.dataset.origText = btn.textContent;
+      btn.textContent = 'Analyzing...';
+      document.getElementById('dashboard-ai-content').innerHTML = '<p class="ai-loading">Analyzing your data...</p>';
+    } else {
+      btn.disabled = false;
+      btn.textContent = btn.dataset.origText || btn.textContent;
+    }
+  }
+  
+  // Full AI Briefing
+  document.getElementById('dashboard-ai-briefing') && document.getElementById('dashboard-ai-briefing').addEventListener('click', function() {
     var btn = this;
-    var content = document.getElementById('dashboard-ai-content');
-    btn.disabled = true;
-    btn.textContent = 'Generating...';
-    content.innerHTML = '<p class="ai-loading">Analyzing...</p>';
+    setAILoading(btn, true);
     
-    fetch('/api/ai/dashboard/insights', {
+    fetch('/api/ai/briefing', {
       method: 'POST',
       credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(window._lastStats || {})
+      headers: { 'Content-Type': 'application/json' }
     })
     .then(function(r) { return r.json(); })
     .then(function(d) {
-      content.innerHTML = '<p>' + escapeHtml(d.insights || 'No insights available.').replace(/\n/g, '<br>') + '</p>';
+      if (d.error) throw new Error(d.error);
+      var output = d.summary || 'No summary available.';
+      if (d.highlights && d.highlights.length) {
+        output += '\n\nHighlights:\n• ' + d.highlights.join('\n• ');
+      }
+      if (d.risks && d.risks.length) {
+        output += '\n\nRisks/Deadlines:\n• ' + d.risks.join('\n• ');
+      }
+      if (d.suggested_actions && d.suggested_actions.length) {
+        output += '\n\nSuggested Actions:\n• ' + d.suggested_actions.join('\n• ');
+      }
+      showAIContent(output);
     })
-    .catch(function() {
-      content.innerHTML = '<p class="ai-error">Failed to generate insights.</p>';
+    .catch(function(err) {
+      showAIContent(err.message || 'Failed to generate briefing.', true);
     })
     .finally(function() {
-      btn.disabled = false;
-      btn.textContent = 'Regenerate';
+      setAILoading(btn, false);
+    });
+  });
+  
+  // Focus suggestion
+  document.getElementById('dashboard-ai-focus') && document.getElementById('dashboard-ai-focus').addEventListener('click', function() {
+    var btn = this;
+    setAILoading(btn, true);
+    
+    fetch('/api/ai/workload/focus', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' }
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d.error) throw new Error(d.error);
+      showAIContent(d.suggestion || 'No suggestions available.');
+    })
+    .catch(function(err) {
+      showAIContent(err.message || 'Failed to generate focus suggestion.', true);
+    })
+    .finally(function() {
+      setAILoading(btn, false);
+    });
+  });
+  
+  // Workload summary
+  document.getElementById('dashboard-ai-workload') && document.getElementById('dashboard-ai-workload').addEventListener('click', function() {
+    var btn = this;
+    setAILoading(btn, true);
+    
+    fetch('/api/ai/workload/summarize', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' }
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d.error) throw new Error(d.error);
+      showAIContent(d.summary || 'No workload summary available.');
+    })
+    .catch(function(err) {
+      showAIContent(err.message || 'Failed to summarize workload.', true);
+    })
+    .finally(function() {
+      setAILoading(btn, false);
     });
   });
   

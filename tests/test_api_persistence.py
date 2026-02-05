@@ -194,6 +194,125 @@ class TestApiPersistence(unittest.TestCase):
         r3 = self.client.delete("/api/workspace/nonexistent-id-12345")
         self.assertEqual(r3.status_code, 404)
 
+    def test_reports_create_list_delete(self):
+        """Reports should persist to dedicated reports table."""
+        r = self.client.post(
+            "/api/reports",
+            json={"title": "Test Report", "body": "Report content", "report_type": "manual"},
+        )
+        self.assertEqual(r.status_code, 201)
+        data = r.get_json()
+        self.assertIn("id", data)
+        rid = data["id"]
+        
+        # List reports
+        r2 = self.client.get("/api/reports")
+        self.assertEqual(r2.status_code, 200)
+        reports = r2.get_json().get("reports", [])
+        self.assertTrue(any(rep["id"] == rid for rep in reports))
+        
+        # Get single report
+        r3 = self.client.get("/api/reports/" + rid)
+        self.assertEqual(r3.status_code, 200)
+        self.assertEqual(r3.get_json()["title"], "Test Report")
+        
+        # Update report
+        r4 = self.client.patch("/api/reports/" + rid, json={"title": "Updated Report"})
+        self.assertEqual(r4.status_code, 200)
+        self.assertEqual(r4.get_json()["title"], "Updated Report")
+        
+        # Delete report
+        r5 = self.client.delete("/api/reports/" + rid)
+        self.assertEqual(r5.status_code, 200)
+
+    def test_pipeline_runs_list(self):
+        """Pipeline runs should be retrieved from database."""
+        r = self.client.get("/api/pipeline/runs")
+        self.assertEqual(r.status_code, 200)
+        data = r.get_json()
+        self.assertIn("runs", data)
+        self.assertIsInstance(data["runs"], list)
+
+    def test_teams_create_and_list(self):
+        """Teams should be creatable and listable."""
+        r = self.client.post(
+            "/api/teams",
+            json={"name": "Test Team"},
+        )
+        self.assertEqual(r.status_code, 201)
+        data = r.get_json()
+        self.assertIn("id", data)
+        team_id = data["id"]
+        self.assertEqual(data["name"], "Test Team")
+        self.assertEqual(data["role"], "admin")
+        
+        # List teams
+        r2 = self.client.get("/api/teams")
+        self.assertEqual(r2.status_code, 200)
+        teams = r2.get_json().get("teams", [])
+        self.assertTrue(any(t["id"] == team_id for t in teams))
+
+    def test_team_switch_context(self):
+        """Switching team context should update session."""
+        # Create a team
+        r = self.client.post("/api/teams", json={"name": "Switch Test Team"})
+        self.assertEqual(r.status_code, 201)
+        team_id = r.get_json()["id"]
+        
+        # Switch to team
+        r2 = self.client.post("/api/teams/" + team_id + "/switch")
+        self.assertEqual(r2.status_code, 200)
+        self.assertEqual(r2.get_json()["team_id"], team_id)
+        
+        # Switch back to personal
+        r3 = self.client.post("/api/teams/personal/switch")
+        self.assertEqual(r3.status_code, 200)
+        self.assertIsNone(r3.get_json()["team_id"])
+
+    def test_error_handling_on_missing_required_fields(self):
+        """API should return proper errors for missing required fields."""
+        # Task without text
+        r = self.client.post("/api/tasks", json={})
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("error", r.get_json())
+        
+        # Note without title
+        r2 = self.client.post("/api/notes", json={"body": "no title"})
+        self.assertEqual(r2.status_code, 400)
+        self.assertIn("error", r2.get_json())
+        
+        # Event without date/title
+        r3 = self.client.post("/api/events", json={})
+        self.assertEqual(r3.status_code, 400)
+        self.assertIn("error", r3.get_json())
+        
+        # Report without title
+        r4 = self.client.post("/api/reports", json={"body": "no title"})
+        self.assertEqual(r4.status_code, 400)
+        self.assertIn("error", r4.get_json())
+
+    def test_data_persists_after_logout_login(self):
+        """Data should persist after logout and login."""
+        # Create a task
+        r = self.client.post("/api/tasks", json={"text": "Persist test"})
+        self.assertEqual(r.status_code, 201)
+        tid = r.get_json()["id"]
+        
+        # Logout
+        self.client.post("/logout")
+        
+        # Login again
+        self.client.post(
+            "/login",
+            data={"email": "test@example.com", "password": "testpass123"},
+            follow_redirects=True,
+        )
+        
+        # Task should still exist
+        r2 = self.client.get("/api/tasks")
+        tasks = r2.get_json().get("tasks", [])
+        self.assertTrue(any(t["id"] == tid for t in tasks), "Task should persist after logout/login")
+
 
 if __name__ == "__main__":
     unittest.main()

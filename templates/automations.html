@@ -340,6 +340,26 @@
       </div>
     </div>
   </div>
+  
+  <!-- AI Analysis Panel -->
+  <div class="pipeline-ai-panel" id="pipeline-ai-panel" style="display:none;">
+    <div class="ai-panel-header">
+      <span class="ai-panel-title">AI Analysis</span>
+      <span class="ai-badge">AI</span>
+    </div>
+    <div class="ai-panel-actions">
+      <button class="btn btn-ghost btn-small" id="ai-summarize-run">Summarize this run</button>
+      <button class="btn btn-ghost btn-small" id="ai-explain-failure" style="display:none;">Explain failure</button>
+      <button class="btn btn-ghost btn-small" id="ai-suggest-optimize">Suggest optimizations</button>
+    </div>
+    <div class="ai-panel-output" id="ai-panel-output" style="display:none;">
+      <div class="ai-output-content" id="ai-output-content"></div>
+      <div class="ai-output-meta">
+        <span class="ai-badge">AI-generated</span>
+        <button class="btn btn-ghost btn-small" id="ai-dismiss">Dismiss</button>
+      </div>
+    </div>
+  </div>
 </section>
 
 <!-- ═══════════════════════════════════════════════════════════════════════════
@@ -965,6 +985,128 @@
       Aevel.toast(msg, type);
     }
   }
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // AI Analysis
+  // ═══════════════════════════════════════════════════════════════════════════
+  var aiPanel = document.getElementById('pipeline-ai-panel');
+  var aiOutputPanel = document.getElementById('ai-panel-output');
+  var aiOutputContent = document.getElementById('ai-output-content');
+  var aiExplainBtn = document.getElementById('ai-explain-failure');
+  
+  function showAIPanel(hasError) {
+    if (aiPanel) {
+      aiPanel.style.display = 'block';
+      if (aiExplainBtn) aiExplainBtn.style.display = hasError ? 'inline-flex' : 'none';
+    }
+  }
+  
+  function showAIOutput(content, isError) {
+    if (aiOutputPanel && aiOutputContent) {
+      aiOutputContent.innerHTML = '<p class="ai-output-text' + (isError ? ' ai-output-error' : '') + '">' + 
+        escapeHtml(content).replace(/\n/g, '<br>') + '</p>';
+      aiOutputPanel.style.display = 'block';
+    }
+  }
+  
+  // AI Summarize Run
+  document.getElementById('ai-summarize-run') && document.getElementById('ai-summarize-run').addEventListener('click', function() {
+    var btn = this;
+    if (!state.currentRunId) {
+      showToast('No run to summarize', 'error');
+      return;
+    }
+    btn.disabled = true;
+    btn.textContent = 'Analyzing...';
+    
+    fetch('/api/ai/pipeline/summarize', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ run_id: state.currentRunId })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.error) throw new Error(data.error);
+      showAIOutput(data.summary || 'No summary available.');
+    })
+    .catch(function(err) {
+      showAIOutput(err.message || 'Failed to generate summary', true);
+    })
+    .finally(function() {
+      btn.disabled = false;
+      btn.textContent = 'Summarize this run';
+    });
+  });
+  
+  // AI Explain Failure
+  document.getElementById('ai-explain-failure') && document.getElementById('ai-explain-failure').addEventListener('click', function() {
+    var btn = this;
+    if (!state.currentRunId) return;
+    btn.disabled = true;
+    btn.textContent = 'Analyzing...';
+    
+    fetch('/api/ai/pipeline/explain-failure', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ run_id: state.currentRunId, logs: state.logs.slice(-20) })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.error) throw new Error(data.error);
+      showAIOutput(data.explanation || 'No explanation available.');
+    })
+    .catch(function(err) {
+      showAIOutput(err.message || 'Failed to generate explanation', true);
+    })
+    .finally(function() {
+      btn.disabled = false;
+      btn.textContent = 'Explain failure';
+    });
+  });
+  
+  // AI Suggest Optimizations
+  document.getElementById('ai-suggest-optimize') && document.getElementById('ai-suggest-optimize').addEventListener('click', function() {
+    var btn = this;
+    btn.disabled = true;
+    btn.textContent = 'Analyzing...';
+    
+    fetch('/api/ai/pipeline/optimize', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' }
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.error) throw new Error(data.error);
+      var suggestions = data.suggestions || [];
+      if (suggestions.length === 0) {
+        showAIOutput('No optimization suggestions at this time.');
+      } else {
+        showAIOutput('Suggestions:\n• ' + suggestions.join('\n• '));
+      }
+    })
+    .catch(function(err) {
+      showAIOutput(err.message || 'Failed to generate suggestions', true);
+    })
+    .finally(function() {
+      btn.disabled = false;
+      btn.textContent = 'Suggest optimizations';
+    });
+  });
+  
+  // AI Dismiss
+  document.getElementById('ai-dismiss') && document.getElementById('ai-dismiss').addEventListener('click', function() {
+    if (aiOutputPanel) aiOutputPanel.style.display = 'none';
+  });
+  
+  // Show AI panel after run completes
+  var origShowOutputs = showOutputs;
+  showOutputs = function(data) {
+    origShowOutputs(data);
+    showAIPanel(data.pipeline_exit !== 0);
+  };
   
 })();
 </script>
