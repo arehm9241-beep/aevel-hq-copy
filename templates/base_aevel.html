@@ -3,74 +3,466 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% block title %}Dashboard{% endblock %} · Aevel</title>
+  <title>{% block title %}Overview{% endblock %} · Aevel</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/aevel.css') }}">
+  <style>
+  /* ═══════════════════════════════════════════════════════════════════════════
+     PREMIUM SIDEBAR NAVIGATION
+     Apple internal tool quality - calm, modern, analytics-first
+     ═══════════════════════════════════════════════════════════════════════════ */
+  
+  .sidebar {
+    width: 240px;
+    flex-shrink: 0;
+    background: #151618;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
+  }
+  
+  /* ─────────────────────────────────────────────────────────────────────────────
+     BRAND AREA
+     ───────────────────────────────────────────────────────────────────────────── */
+  .sidebar-brand {
+    padding: 24px 20px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  }
+  
+  .sidebar-brand-title {
+    font-size: 17px;
+    font-weight: 600;
+    color: #F5F5F4;
+    letter-spacing: -0.02em;
+  }
+  
+  .sidebar-brand-subtitle {
+    margin-top: 3px;
+    font-size: 11px;
+    color: #6B6861;
+    letter-spacing: 0.01em;
+  }
+  
+  /* ─────────────────────────────────────────────────────────────────────────────
+     NAVIGATION SECTIONS
+     ───────────────────────────────────────────────────────────────────────────── */
+  .sidebar-nav {
+    flex: 1;
+    padding: 16px 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+  
+  .sidebar-section {
+    margin-bottom: 8px;
+  }
+  
+  .sidebar-section-label {
+    padding: 8px 20px 6px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #5A5752;
+  }
+  
+  .sidebar-nav ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  
+  .sidebar-nav .nav-item {
+    margin: 0;
+  }
+  
+  /* ─────────────────────────────────────────────────────────────────────────────
+     NAV LINKS
+     ───────────────────────────────────────────────────────────────────────────── */
+  .sidebar-nav a,
+  .sidebar-nav .submenu-toggle {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 9px 20px;
+    font-size: 13px;
+    font-weight: 450;
+    color: #9D9A94;
+    text-decoration: none;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    position: relative;
+    width: 100%;
+    text-align: left;
+  }
+  
+  .sidebar-nav a:hover,
+  .sidebar-nav .submenu-toggle:hover {
+    color: #E8E6E3;
+    background: rgba(255, 255, 255, 0.03);
+  }
+  
+  .sidebar-nav a.active {
+    color: #E8E6E3;
+    background: rgba(255, 255, 255, 0.05);
+  }
+  
+  .sidebar-nav a.active::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 20px;
+    background: #A89078;
+    border-radius: 0 2px 2px 0;
+  }
+  
+  /* Minimal icons */
+  .nav-icon {
+    width: 16px;
+    height: 16px;
+    opacity: 0.7;
+    flex-shrink: 0;
+  }
+  
+  .sidebar-nav a.active .nav-icon,
+  .sidebar-nav a:hover .nav-icon {
+    opacity: 0.9;
+  }
+  
+  /* ─────────────────────────────────────────────────────────────────────────────
+     SUBMENU (COLLAPSIBLE)
+     ───────────────────────────────────────────────────────────────────────────── */
+  .submenu-toggle {
+    justify-content: space-between;
+  }
+  
+  .submenu-toggle .nav-label {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  
+  .submenu-toggle .caret {
+    width: 12px;
+    height: 12px;
+    color: #5A5752;
+    transition: transform 0.2s ease;
+  }
+  
+  .submenu-toggle[aria-expanded="true"] .caret {
+    transform: rotate(180deg);
+  }
+  
+  .submenu-toggle[aria-expanded="true"] {
+    color: #E8E6E3;
+    background: rgba(255, 255, 255, 0.03);
+  }
+  
+  .sidebar-nav .submenu {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.25s ease;
+    background: rgba(0, 0, 0, 0.15);
+  }
+  
+  .sidebar-nav .submenu.open {
+    max-height: 300px;
+  }
+  
+  .sidebar-nav .submenu a {
+    padding: 8px 20px 8px 48px;
+    font-size: 12px;
+    color: #7A7770;
+  }
+  
+  .sidebar-nav .submenu a:hover {
+    color: #B5B2AC;
+    background: rgba(255, 255, 255, 0.02);
+  }
+  
+  .sidebar-nav .submenu a.active {
+    color: #E8E6E3;
+    background: rgba(255, 255, 255, 0.04);
+  }
+  
+  .sidebar-nav .submenu a.active::before {
+    left: 20px;
+    height: 14px;
+    width: 2px;
+  }
+  
+  /* ─────────────────────────────────────────────────────────────────────────────
+     SECTION DIVIDERS
+     ───────────────────────────────────────────────────────────────────────────── */
+  .sidebar-divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.04);
+    margin: 12px 20px;
+  }
+  
+  /* ─────────────────────────────────────────────────────────────────────────────
+     FOOTER
+     ───────────────────────────────────────────────────────────────────────────── */
+  .sidebar-footer {
+    padding: 16px 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(0, 0, 0, 0.2);
+  }
+  
+  .sidebar-footer .user-email {
+    font-size: 11px;
+    color: #6B6861;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-bottom: 12px;
+  }
+  
+  .sidebar-footer-actions {
+    display: flex;
+    gap: 8px;
+  }
+  
+  .sidebar-footer .btn-action {
+    flex: 1;
+    padding: 8px 12px;
+    font-size: 11px;
+    font-weight: 500;
+    color: #9D9A94;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-align: center;
+    text-decoration: none;
+  }
+  
+  .sidebar-footer .btn-action:hover {
+    color: #E8E6E3;
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .sidebar-footer .btn-signout {
+    color: #A87878;
+    border-color: rgba(168, 120, 120, 0.2);
+  }
+  
+  .sidebar-footer .btn-signout:hover {
+    background: rgba(168, 120, 120, 0.1);
+  }
+  
+  /* ─────────────────────────────────────────────────────────────────────────────
+     MOBILE RESPONSIVE
+     ───────────────────────────────────────────────────────────────────────────── */
+  @media (max-width: 900px) {
+    .sidebar {
+      width: 100%;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: auto;
+      height: auto;
+      max-height: 60px;
+      z-index: 1000;
+      flex-direction: row;
+      align-items: center;
+      padding: 0 16px;
+      overflow: visible;
+      border-right: none;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    
+    .sidebar-brand {
+      padding: 12px 0;
+      border-bottom: none;
+      flex-shrink: 0;
+    }
+    
+    .sidebar-brand-subtitle {
+      display: none;
+    }
+    
+    .sidebar-nav {
+      display: none;
+      position: absolute;
+      top: 60px;
+      left: 0;
+      right: 0;
+      background: #151618;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      padding: 16px 0;
+      max-height: calc(100vh - 60px);
+      overflow-y: auto;
+    }
+    
+    .sidebar-nav.mobile-open {
+      display: block;
+    }
+    
+    .sidebar-footer {
+      display: none;
+    }
+    
+    .mobile-menu-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      margin-left: auto;
+      background: transparent;
+      border: none;
+      color: #9D9A94;
+      cursor: pointer;
+    }
+    
+    .mobile-menu-toggle svg {
+      width: 20px;
+      height: 20px;
+    }
+    
+    .main-content {
+      margin-top: 60px;
+    }
+  }
+  
+  @media (min-width: 901px) {
+    .mobile-menu-toggle {
+      display: none;
+    }
+  }
+  
+  /* ─────────────────────────────────────────────────────────────────────────────
+     COMPACT MODE ADJUSTMENTS
+     ───────────────────────────────────────────────────────────────────────────── */
+  .compact .sidebar-nav a,
+  .compact .sidebar-nav .submenu-toggle {
+    padding: 7px 20px;
+  }
+  
+  .compact .sidebar-nav .submenu a {
+    padding: 6px 20px 6px 48px;
+  }
+  </style>
   {% block head %}{% endblock %}
 </head>
 <body>
   <div class="app-layout">
-    <aside class="sidebar" aria-label="Team Space navigation">
+    <aside class="sidebar" aria-label="Navigation">
+      <!-- Brand -->
       <div class="sidebar-brand">
         <div class="sidebar-brand-title">Aevel</div>
-        <div class="sidebar-brand-subtitle">Team Space</div>
+        <div class="sidebar-brand-subtitle">Analytics & Automation</div>
       </div>
+      
+      <!-- Mobile Menu Toggle -->
+      <button class="mobile-menu-toggle" id="mobile-menu-toggle" aria-label="Toggle navigation">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="3" y1="12" x2="21" y2="12"/>
+          <line x1="3" y1="6" x2="21" y2="6"/>
+          <line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+      </button>
 
       {% set request_endpoint = request.endpoint %}
       {% set workspace_cluster = ['workspace_page', 'notes_page', 'team_tasks_page', 'tasks_page'] %}
       {% set workspace_active = request_endpoint in workspace_cluster %}
 
-      <nav class="sidebar-nav">
+      <nav class="sidebar-nav" id="sidebar-nav">
+        <!-- ═══════════════════════════════════════════════════════════════════
+             SECTION: TEAM SPACE — Core Operations
+             ═══════════════════════════════════════════════════════════════════ -->
         <div class="sidebar-section">
           <div class="sidebar-section-label">Team Space</div>
           <ul>
             <li class="nav-item">
               <a href="{{ url_for('dashboard') }}" class="{% if request.endpoint == 'dashboard' %}active{% endif %}">
-                <span class="icon"></span>
-                <span class="label">Dashboard</span>
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="3" width="7" height="7"/>
+                  <rect x="14" y="3" width="7" height="7"/>
+                  <rect x="14" y="14" width="7" height="7"/>
+                  <rect x="3" y="14" width="7" height="7"/>
+                </svg>
+                <span>Overview</span>
               </a>
             </li>
             <li class="nav-item">
               <a href="{{ url_for('analytics_page') }}" class="{% if request.endpoint == 'analytics_page' %}active{% endif %}">
-                <span class="icon"></span>
-                <span class="label">Analytics</span>
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="18" y1="20" x2="18" y2="10"/>
+                  <line x1="12" y1="20" x2="12" y2="4"/>
+                  <line x1="6" y1="20" x2="6" y2="14"/>
+                </svg>
+                <span>Analytics</span>
               </a>
             </li>
             <li class="nav-item">
               <a href="{{ url_for('reports_page') }}" class="{% if request.endpoint == 'reports_page' %}active{% endif %}">
-                <span class="icon"></span>
-                <span class="label">Reports</span>
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                  <polyline points="14,2 14,8 20,8"/>
+                  <line x1="16" y1="13" x2="8" y2="13"/>
+                  <line x1="16" y1="17" x2="8" y2="17"/>
+                </svg>
+                <span>Reports</span>
               </a>
             </li>
             <li class="nav-item">
               <a href="{{ url_for('automations_page') }}" class="{% if request.endpoint == 'automations_page' %}active{% endif %}">
-                <span class="icon"></span>
-                <span class="label">Automations</span>
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="13,2 3,14 12,14 11,22 21,10 12,10 13,2"/>
+                </svg>
+                <span>Automations</span>
               </a>
             </li>
             <li class="nav-item">
               <a href="{{ url_for('calendar_page') }}" class="{% if request.endpoint == 'calendar_page' %}active{% endif %}">
-                <span class="icon"></span>
-                <span class="label">Calendar</span>
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                  <line x1="16" y1="2" x2="16" y2="6"/>
+                  <line x1="8" y1="2" x2="8" y2="6"/>
+                  <line x1="3" y1="10" x2="21" y2="10"/>
+                </svg>
+                <span>Calendar</span>
               </a>
             </li>
           </ul>
         </div>
 
+        <div class="sidebar-divider"></div>
+
+        <!-- ═══════════════════════════════════════════════════════════════════
+             SECTION: WORKSPACE — Collaboration & Thinking
+             ═══════════════════════════════════════════════════════════════════ -->
         <div class="sidebar-section">
           <div class="sidebar-section-label">Workspace</div>
           <ul>
-            <li class="nav-item has-submenu {% if workspace_active %}active{% endif %}">
+            <li class="nav-item">
               <button
                 class="submenu-toggle"
                 aria-expanded="{{ 'true' if workspace_active else 'false' }}"
-                aria-controls="submenu-workspace"
+                aria-controls="submenu-pages"
                 type="button"
               >
-                <span class="icon"></span>
-                <span class="label">Pages & Tasks</span>
-                <span class="caret" aria-hidden="true"></span>
+                <span class="nav-label">
+                  <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 19.5A2.5 2.5 0 016.5 17H20"/>
+                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/>
+                  </svg>
+                  <span>Pages</span>
+                </span>
+                <svg class="caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="6,9 12,15 18,9"/>
+                </svg>
               </button>
-              <ul id="submenu-workspace" class="submenu {% if workspace_active %}open{% endif %}" role="menu" aria-label="Workspace pages">
+              <ul id="submenu-pages" class="submenu {% if workspace_active %}open{% endif %}" role="menu">
                 <li role="none">
                   <a role="menuitem" href="{{ url_for('workspace_page') }}" class="{% if request.endpoint == 'workspace_page' %}active{% endif %}">
                     Workspace
@@ -93,53 +485,91 @@
                 </li>
               </ul>
             </li>
-
+            
             <li class="nav-item">
               <a href="{{ url_for('flowcharts_page') }}" class="{% if request.endpoint == 'flowcharts_page' %}active{% endif %}">
-                <span class="icon"></span>
-                <span class="label">Flowcharts</span>
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M5.5 8.5L9 12l-3.5 3.5L2 12l3.5-3.5zM12 2l3.5 3.5L12 9 8.5 5.5 12 2zM18.5 8.5L22 12l-3.5 3.5L15 12l3.5-3.5zM12 15l3.5 3.5L12 22l-3.5-3.5L12 15z"/>
+                </svg>
+                <span>Flowcharts</span>
               </a>
             </li>
             <li class="nav-item">
               <a href="{{ url_for('community_notes_page') }}" class="{% if request.endpoint == 'community_notes_page' %}active{% endif %}">
-                <span class="icon"></span>
-                <span class="label">Team Intelligence</span>
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <line x1="2" y1="12" x2="22" y2="12"/>
+                  <path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/>
+                </svg>
+                <span>Team Intelligence</span>
               </a>
             </li>
             <li class="nav-item">
               <a href="{{ url_for('email_composer_page') }}" class="{% if request.endpoint == 'email_composer_page' %}active{% endif %}">
-                <span class="icon"></span>
-                <span class="label">AI Email Composer</span>
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                  <polyline points="22,6 12,13 2,6"/>
+                </svg>
+                <span>Email Composer</span>
               </a>
             </li>
+          </ul>
+        </div>
+
+        <div class="sidebar-divider"></div>
+
+        <!-- ═══════════════════════════════════════════════════════════════════
+             SECTION: PLATFORM — Configuration & Control
+             ═══════════════════════════════════════════════════════════════════ -->
+        <div class="sidebar-section">
+          <div class="sidebar-section-label">Platform</div>
+          <ul>
             <li class="nav-item">
               <a href="{{ url_for('integrations_page') }}" class="{% if request.endpoint == 'integrations_page' %}active{% endif %}">
-                <span class="icon"></span>
-                <span class="label">Integrations</span>
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="3"/>
+                  <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
+                </svg>
+                <span>Integrations</span>
               </a>
             </li>
             <li class="nav-item">
               <a href="{{ url_for('settings_page') }}" class="{% if request.endpoint == 'settings_page' %}active{% endif %}">
-                <span class="icon"></span>
-                <span class="label">Settings</span>
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="4" y1="21" x2="4" y2="14"/>
+                  <line x1="4" y1="10" x2="4" y2="3"/>
+                  <line x1="12" y1="21" x2="12" y2="12"/>
+                  <line x1="12" y1="8" x2="12" y2="3"/>
+                  <line x1="20" y1="21" x2="20" y2="16"/>
+                  <line x1="20" y1="12" x2="20" y2="3"/>
+                  <line x1="1" y1="14" x2="7" y2="14"/>
+                  <line x1="9" y1="8" x2="15" y2="8"/>
+                  <line x1="17" y1="16" x2="23" y2="16"/>
+                </svg>
+                <span>Settings</span>
               </a>
             </li>
             <li class="nav-item">
               <a href="{{ url_for('admin_page') }}" class="{% if request.endpoint == 'admin_page' %}active{% endif %}">
-                <span class="icon"></span>
-                <span class="label">Admin</span>
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+                <span>Admin</span>
               </a>
             </li>
           </ul>
         </div>
       </nav>
 
+      <!-- Footer -->
       <div class="sidebar-footer">
         <div class="user-email">{{ session.get('user_email', '') }}</div>
-        <a href="{{ url_for('login') }}" class="btn-public-site" aria-label="View public site">View Public Site</a>
-        <form method="POST" action="{{ url_for('logout') }}">
-          <button type="submit" class="btn-logout">Sign out</button>
-        </form>
+        <div class="sidebar-footer-actions">
+          <a href="{{ url_for('login') }}" class="btn-action">Public Site</a>
+          <form method="POST" action="{{ url_for('logout') }}" style="flex: 1; margin: 0;">
+            <button type="submit" class="btn-action btn-signout" style="width: 100%;">Sign Out</button>
+          </form>
+        </div>
       </div>
     </aside>
 
@@ -197,9 +627,63 @@
   <script src="{{ url_for('static', filename='js/aevel-ui.js') }}"></script>
   <script>
   (function() {
+    // Load preferences
     fetch('/api/preferences').then(function(r) { return r.json(); }).then(function(d) {
       document.body.classList.toggle('compact', !!d.compact);
     }).catch(function() {});
+    
+    // Mobile menu toggle
+    var mobileToggle = document.getElementById('mobile-menu-toggle');
+    var sidebarNav = document.getElementById('sidebar-nav');
+    
+    if (mobileToggle && sidebarNav) {
+      mobileToggle.addEventListener('click', function() {
+        sidebarNav.classList.toggle('mobile-open');
+      });
+      
+      // Close on nav item click (mobile)
+      sidebarNav.querySelectorAll('a').forEach(function(link) {
+        link.addEventListener('click', function() {
+          if (window.innerWidth <= 900) {
+            sidebarNav.classList.remove('mobile-open');
+          }
+        });
+      });
+    }
+    
+    // Submenu toggle
+    document.querySelectorAll('.submenu-toggle').forEach(function(toggle) {
+      toggle.addEventListener('click', function() {
+        var expanded = toggle.getAttribute('aria-expanded') === 'true';
+        var submenuId = toggle.getAttribute('aria-controls');
+        var submenu = document.getElementById(submenuId);
+        
+        toggle.setAttribute('aria-expanded', !expanded);
+        if (submenu) {
+          submenu.classList.toggle('open', !expanded);
+        }
+        
+        // Remember state
+        try {
+          var states = JSON.parse(localStorage.getItem('aevel_nav_states') || '{}');
+          states[submenuId] = !expanded;
+          localStorage.setItem('aevel_nav_states', JSON.stringify(states));
+        } catch (e) {}
+      });
+    });
+    
+    // Restore submenu states
+    try {
+      var states = JSON.parse(localStorage.getItem('aevel_nav_states') || '{}');
+      Object.keys(states).forEach(function(id) {
+        var submenu = document.getElementById(id);
+        var toggle = document.querySelector('[aria-controls="' + id + '"]');
+        if (submenu && toggle && states[id]) {
+          submenu.classList.add('open');
+          toggle.setAttribute('aria-expanded', 'true');
+        }
+      });
+    } catch (e) {}
     
     // AI Command Bar
     var modal = document.getElementById('ai-command-modal');
