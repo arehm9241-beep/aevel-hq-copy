@@ -9,8 +9,9 @@
     connections: [],
     selectedShape: null,
     selectedConnection: null,
-    connecting: null, // {fromId, fromPort}
-    dragging: null,   // {shape, offsetX, offsetY}
+    lineMode: false,
+    lineStart: null,
+    dragging: null,
     currentId: null,
     nextShapeId: 1
   };
@@ -19,30 +20,30 @@
   // SHAPE DEFINITIONS
   // ============================================
   var SHAPE_TYPES = {
-    rectangle:     { label: 'Process',      color: '#3b82f6', textColor: '#fff', width: 140, height: 50 },
-    diamond:       { label: 'Decision',     color: '#f59e0b', textColor: '#fff', width: 100, height: 80 },
-    parallelogram: { label: 'Input/Output', color: '#10b981', textColor: '#fff', width: 140, height: 50 },
-    cylinder:      { label: 'Data Store',   color: '#8b5cf6', textColor: '#fff', width: 100, height: 70 },
-    cloud:         { label: 'External',     color: '#6b7280', textColor: '#fff', width: 120, height: 60 },
-    note:          { label: 'Note',         color: '#fbbf24', textColor: '#000', width: 120, height: 60 }
+    rectangle:     { color: '#3b82f6', textColor: '#fff', width: 160, height: 60 },
+    diamond:       { color: '#f59e0b', textColor: '#fff', width: 120, height: 100 },
+    parallelogram: { color: '#10b981', textColor: '#fff', width: 160, height: 60 },
+    cylinder:      { color: '#8b5cf6', textColor: '#fff', width: 120, height: 80 },
+    cloud:         { color: '#6b7280', textColor: '#fff', width: 140, height: 80 },
+    note:          { color: '#fbbf24', textColor: '#000', width: 140, height: 80 }
   };
 
   // ============================================
   // DOM ELEMENTS
   // ============================================
-  var canvas, svg, shapesLayer, connectionsLayer, portsLayer;
-  var listEl, emptyEl, editorWrap, titleInput;
+  var canvas, svg, shapesLayer, connectionsLayer;
+  var listEl, emptyEl, editorWrap, titleInput, lineModeBtn;
 
   function init() {
     canvas = document.getElementById('whiteboard-canvas');
     svg = document.getElementById('whiteboard-svg');
     shapesLayer = document.getElementById('shapes-layer');
     connectionsLayer = document.getElementById('connections-layer');
-    portsLayer = document.getElementById('ports-layer');
     listEl = document.getElementById('flowchart-list');
     emptyEl = document.getElementById('flowchart-empty');
     editorWrap = document.getElementById('flowchart-editor');
     titleInput = document.getElementById('flowchart-title');
+    lineModeBtn = document.getElementById('line-mode-btn');
 
     if (!canvas || !svg) return;
 
@@ -87,6 +88,18 @@
         }
       });
     });
+
+    // Line mode toggle
+    if (lineModeBtn) {
+      lineModeBtn.addEventListener('click', function() {
+        state.lineMode = !state.lineMode;
+        this.classList.toggle('active', state.lineMode);
+        svg.style.cursor = state.lineMode ? 'crosshair' : 'default';
+        if (!state.lineMode) {
+          cancelLine();
+        }
+      });
+    }
   }
 
   // ============================================
@@ -100,17 +113,23 @@
 
     document.addEventListener('keydown', function(e) {
       if (e.key === 'Delete' || e.key === 'Backspace') {
-        if (state.selectedShape && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
-          e.preventDefault();
+        var active = document.activeElement;
+        if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) {
+          return; // Let delete work in text fields
+        }
+        e.preventDefault();
+        if (state.selectedShape) {
           deleteShape(state.selectedShape);
         } else if (state.selectedConnection) {
-          e.preventDefault();
           deleteConnection(state.selectedConnection);
         }
       }
       if (e.key === 'Escape') {
-        cancelConnecting();
+        cancelLine();
         deselectAll();
+        state.lineMode = false;
+        if (lineModeBtn) lineModeBtn.classList.remove('active');
+        svg.style.cursor = 'default';
       }
     });
   }
@@ -124,11 +143,8 @@
     var pos = getMousePos(e);
     var target = e.target;
 
-    // Check if clicking a port
-    if (target.classList.contains('shape-port')) {
-      var shapeId = target.getAttribute('data-shape-id');
-      var port = target.getAttribute('data-port');
-      startConnecting(shapeId, port, pos);
+    // Ignore clicks on text inputs
+    if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
       return;
     }
 
@@ -138,6 +154,18 @@
       var id = shapeEl.getAttribute('data-id');
       var shape = state.shapes.find(function(s) { return s.id === id; });
       if (shape) {
+        if (state.lineMode) {
+          // Line mode: start or end line
+          if (!state.lineStart) {
+            state.lineStart = shape;
+            createTempLine(shape, pos);
+          } else if (state.lineStart.id !== shape.id) {
+            // Complete the line
+            addConnection(state.lineStart.id, shape.id);
+            cancelLine();
+          }
+          return;
+        }
         selectShape(shape);
         state.dragging = {
           shape: shape,
@@ -158,6 +186,9 @@
 
     // Clicking empty space
     deselectAll();
+    if (state.lineMode) {
+      cancelLine();
+    }
   }
 
   function onCanvasMouseMove(e) {
@@ -171,8 +202,8 @@
       updateConnectionsForShape(shape.id);
     }
 
-    if (state.connecting) {
-      updateTempConnection(pos);
+    if (state.lineStart) {
+      updateTempLine(pos);
     }
   }
 
@@ -180,18 +211,37 @@
     if (state.dragging) {
       state.dragging = null;
     }
+  }
 
-    if (state.connecting) {
-      var target = e.target;
-      if (target.classList.contains('shape-port')) {
-        var toId = target.getAttribute('data-shape-id');
-        var toPort = target.getAttribute('data-port');
-        if (toId !== state.connecting.fromId) {
-          addConnection(state.connecting.fromId, state.connecting.fromPort, toId, toPort);
-        }
-      }
-      cancelConnecting();
+  // ============================================
+  // LINE DRAWING
+  // ============================================
+  function createTempLine(fromShape, pos) {
+    var startX = fromShape.x + fromShape.width / 2;
+    var startY = fromShape.y + fromShape.height / 2;
+    
+    var line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('id', 'temp-line');
+    line.setAttribute('class', 'wb-connection temp');
+    line.setAttribute('x1', startX);
+    line.setAttribute('y1', startY);
+    line.setAttribute('x2', pos.x);
+    line.setAttribute('y2', pos.y);
+    connectionsLayer.appendChild(line);
+  }
+
+  function updateTempLine(pos) {
+    var line = document.getElementById('temp-line');
+    if (line) {
+      line.setAttribute('x2', pos.x);
+      line.setAttribute('y2', pos.y);
     }
+  }
+
+  function cancelLine() {
+    state.lineStart = null;
+    var temp = document.getElementById('temp-line');
+    if (temp) temp.remove();
   }
 
   // ============================================
@@ -206,7 +256,7 @@
       y: y,
       width: def.width,
       height: def.height,
-      text: text || def.label
+      text: text || ''
     };
     state.shapes.push(shape);
     renderShape(shape);
@@ -228,11 +278,9 @@
     state.shapes = state.shapes.filter(function(s) { return s.id !== shape.id; });
     var el = shapesLayer.querySelector('[data-id="' + shape.id + '"]');
     if (el) el.remove();
-    var ports = portsLayer.querySelectorAll('[data-shape-id="' + shape.id + '"]');
-    ports.forEach(function(p) { p.remove(); });
 
     deselectAll();
-    toast('Shape deleted', 'success');
+    toast('Deleted', 'success');
   }
 
   function selectShape(shape) {
@@ -240,7 +288,6 @@
     state.selectedShape = shape;
     var el = shapesLayer.querySelector('[data-id="' + shape.id + '"]');
     if (el) el.classList.add('selected');
-    showPorts(shape);
   }
 
   function deselectAll() {
@@ -252,7 +299,6 @@
     connectionsLayer.querySelectorAll('.selected').forEach(function(el) {
       el.classList.remove('selected');
     });
-    hidePorts();
   }
 
   // ============================================
@@ -293,28 +339,35 @@
     }
     g.appendChild(path);
 
-    // Text
-    var text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    text.setAttribute('x', shape.width / 2);
-    text.setAttribute('y', shape.height / 2 + 4);
-    text.setAttribute('text-anchor', 'middle');
-    text.setAttribute('fill', def.textColor);
-    text.setAttribute('font-size', '12');
-    text.setAttribute('font-family', 'Inter, sans-serif');
-    text.setAttribute('pointer-events', 'none');
-    text.textContent = truncateText(shape.text, 16);
-    g.appendChild(text);
+    // Editable text using foreignObject
+    var fo = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject');
+    fo.setAttribute('x', '10');
+    fo.setAttribute('y', '10');
+    fo.setAttribute('width', shape.width - 20);
+    fo.setAttribute('height', shape.height - 20);
+
+    var textarea = document.createElement('textarea');
+    textarea.className = 'shape-text-input';
+    textarea.placeholder = 'Type here...';
+    textarea.value = shape.text || '';
+    textarea.style.cssText = 'width:100%;height:100%;background:transparent;border:none;outline:none;resize:none;' +
+      'color:' + def.textColor + ';font-size:12px;font-family:Inter,sans-serif;text-align:center;' +
+      'display:flex;align-items:center;justify-content:center;padding:4px;box-sizing:border-box;';
+    
+    textarea.addEventListener('input', function() {
+      shape.text = this.value;
+    });
+    textarea.addEventListener('mousedown', function(e) {
+      e.stopPropagation(); // Prevent drag when typing
+    });
+    textarea.addEventListener('focus', function() {
+      selectShape(shape);
+    });
+
+    fo.appendChild(textarea);
+    g.appendChild(fo);
 
     shapesLayer.appendChild(g);
-
-    // Update ports if selected
-    if (state.selectedShape && state.selectedShape.id === shape.id) {
-      showPorts(shape);
-    }
-  }
-
-  function truncateText(text, max) {
-    return text.length > max ? text.substring(0, max - 1) + '…' : text;
   }
 
   function createRect(w, h, color) {
@@ -363,7 +416,6 @@
     var g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     var ry = 10;
     
-    // Body
     var rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
     rect.setAttribute('x', '0');
     rect.setAttribute('y', ry);
@@ -372,7 +424,6 @@
     rect.setAttribute('fill', color);
     g.appendChild(rect);
 
-    // Top ellipse
     var top = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
     top.setAttribute('cx', w / 2);
     top.setAttribute('cy', ry);
@@ -383,7 +434,6 @@
     top.setAttribute('stroke-width', '2');
     g.appendChild(top);
 
-    // Bottom ellipse
     var bottom = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
     bottom.setAttribute('cx', w / 2);
     bottom.setAttribute('cy', h - ry);
@@ -394,7 +444,6 @@
     bottom.setAttribute('stroke-width', '2');
     g.appendChild(bottom);
 
-    // Side strokes
     var left = document.createElementNS('http://www.w3.org/2000/svg', 'line');
     left.setAttribute('x1', '0');
     left.setAttribute('y1', ry);
@@ -456,75 +505,19 @@
   }
 
   // ============================================
-  // PORTS (Connection Points)
-  // ============================================
-  function showPorts(shape) {
-    hidePorts();
-    var ports = getPortPositions(shape);
-    Object.keys(ports).forEach(function(portName) {
-      var pos = ports[portName];
-      var circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      circle.setAttribute('class', 'shape-port');
-      circle.setAttribute('cx', pos.x);
-      circle.setAttribute('cy', pos.y);
-      circle.setAttribute('r', '6');
-      circle.setAttribute('data-shape-id', shape.id);
-      circle.setAttribute('data-port', portName);
-      portsLayer.appendChild(circle);
-    });
-  }
-
-  function hidePorts() {
-    portsLayer.innerHTML = '';
-  }
-
-  function getPortPositions(shape) {
-    return {
-      top:    { x: shape.x + shape.width / 2, y: shape.y },
-      bottom: { x: shape.x + shape.width / 2, y: shape.y + shape.height },
-      left:   { x: shape.x, y: shape.y + shape.height / 2 },
-      right:  { x: shape.x + shape.width, y: shape.y + shape.height / 2 }
-    };
-  }
-
-  // ============================================
   // CONNECTIONS
   // ============================================
-  function startConnecting(fromId, fromPort, pos) {
-    state.connecting = { fromId: fromId, fromPort: fromPort, startPos: pos };
-    
-    // Create temp line
-    var line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-    line.setAttribute('id', 'temp-connection');
-    line.setAttribute('class', 'wb-connection temp');
-    line.setAttribute('x1', pos.x);
-    line.setAttribute('y1', pos.y);
-    line.setAttribute('x2', pos.x);
-    line.setAttribute('y2', pos.y);
-    connectionsLayer.appendChild(line);
-  }
+  function addConnection(fromId, toId, label) {
+    // Check if connection already exists
+    var exists = state.connections.some(function(c) {
+      return (c.from === fromId && c.to === toId) || (c.from === toId && c.to === fromId);
+    });
+    if (exists) return;
 
-  function updateTempConnection(pos) {
-    var line = document.getElementById('temp-connection');
-    if (line) {
-      line.setAttribute('x2', pos.x);
-      line.setAttribute('y2', pos.y);
-    }
-  }
-
-  function cancelConnecting() {
-    state.connecting = null;
-    var temp = document.getElementById('temp-connection');
-    if (temp) temp.remove();
-  }
-
-  function addConnection(fromId, fromPort, toId, toPort, label) {
     var conn = {
       id: 'conn-' + Date.now(),
       from: fromId,
-      fromPort: fromPort,
       to: toId,
-      toPort: toPort,
       label: label || ''
     };
     state.connections.push(conn);
@@ -536,7 +529,7 @@
     state.connections = state.connections.filter(function(c) { return c.id !== connId; });
     removeConnectionElement(connId);
     deselectAll();
-    toast('Connection deleted', 'success');
+    toast('Line deleted', 'success');
   }
 
   function removeConnectionElement(connId) {
@@ -559,10 +552,9 @@
     var toShape = state.shapes.find(function(s) { return s.id === conn.to; });
     if (!fromShape || !toShape) return;
 
-    var fromPorts = getPortPositions(fromShape);
-    var toPorts = getPortPositions(toShape);
-    var start = fromPorts[conn.fromPort];
-    var end = toPorts[conn.toPort];
+    // Calculate best connection points (center to center, then find edge)
+    var start = getEdgePoint(fromShape, toShape);
+    var end = getEdgePoint(toShape, fromShape);
 
     var g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     g.setAttribute('class', 'wb-connection');
@@ -577,21 +569,49 @@
     line.setAttribute('marker-end', 'url(#arrowhead)');
     g.appendChild(line);
 
-    // Label
-    if (conn.label) {
-      var midX = (start.x + end.x) / 2;
-      var midY = (start.y + end.y) / 2;
-      var text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      text.setAttribute('x', midX);
-      text.setAttribute('y', midY - 5);
-      text.setAttribute('text-anchor', 'middle');
-      text.setAttribute('fill', '#fff');
-      text.setAttribute('font-size', '11');
-      text.textContent = conn.label;
-      g.appendChild(text);
-    }
+    // Clickable hitbox (wider invisible line for easier selection)
+    var hitbox = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    hitbox.setAttribute('x1', start.x);
+    hitbox.setAttribute('y1', start.y);
+    hitbox.setAttribute('x2', end.x);
+    hitbox.setAttribute('y2', end.y);
+    hitbox.setAttribute('stroke', 'transparent');
+    hitbox.setAttribute('stroke-width', '12');
+    hitbox.style.cursor = 'pointer';
+    g.appendChild(hitbox);
 
     connectionsLayer.appendChild(g);
+  }
+
+  function getEdgePoint(fromShape, toShape) {
+    var fromCx = fromShape.x + fromShape.width / 2;
+    var fromCy = fromShape.y + fromShape.height / 2;
+    var toCx = toShape.x + toShape.width / 2;
+    var toCy = toShape.y + toShape.height / 2;
+
+    var dx = toCx - fromCx;
+    var dy = toCy - fromCy;
+    var angle = Math.atan2(dy, dx);
+
+    // Determine which edge to use
+    var hw = fromShape.width / 2;
+    var hh = fromShape.height / 2;
+
+    var edgeAngle = Math.atan2(hh, hw);
+    var absAngle = Math.abs(angle);
+
+    var x, y;
+    if (absAngle < edgeAngle || absAngle > Math.PI - edgeAngle) {
+      // Left or right edge
+      x = fromCx + (dx > 0 ? hw : -hw);
+      y = fromCy + (dx > 0 ? hw : -hw) * Math.tan(angle);
+    } else {
+      // Top or bottom edge
+      y = fromCy + (dy > 0 ? hh : -hh);
+      x = fromCx + (dy > 0 ? hh : -hh) / Math.tan(angle);
+    }
+
+    return { x: x, y: y };
   }
 
   function updateConnectionsForShape(shapeId) {
@@ -643,9 +663,12 @@
       var parsed = JSON.parse(data);
       if (parsed.shapes && Array.isArray(parsed.shapes)) {
         state.shapes = parsed.shapes;
-        state.nextShapeId = Math.max.apply(null, state.shapes.map(function(s) {
-          return parseInt(s.id.replace('shape-', '')) || 0;
-        })) + 1;
+        var maxId = 0;
+        state.shapes.forEach(function(s) {
+          var num = parseInt(s.id.replace('shape-', '')) || 0;
+          if (num > maxId) maxId = num;
+        });
+        state.nextShapeId = maxId + 1;
         state.shapes.forEach(renderShape);
       }
       if (parsed.connections && Array.isArray(parsed.connections)) {
@@ -653,7 +676,7 @@
         state.connections.forEach(renderConnection);
       }
     } catch (e) {
-      // Not JSON, might be old Mermaid format - ignore
+      // Not JSON, ignore
     }
   }
 
@@ -669,10 +692,10 @@
     state.connections = [];
     state.selectedShape = null;
     state.selectedConnection = null;
+    state.lineStart = null;
     state.nextShapeId = 1;
     shapesLayer.innerHTML = '';
     connectionsLayer.innerHTML = '';
-    portsLayer.innerHTML = '';
   }
 
   function showEmpty() {
@@ -756,37 +779,11 @@
   }
 
   // ============================================
-  // EDIT SHAPE TEXT
-  // ============================================
-  function editShapeText(shape) {
-    var newText = prompt('Edit label:', shape.text);
-    if (newText !== null) {
-      shape.text = newText;
-      renderShape(shape);
-    }
-  }
-
-  // Double-click to edit
-  function setupDoubleClick() {
-    svg.addEventListener('dblclick', function(e) {
-      var shapeEl = e.target.closest('.wb-shape');
-      if (shapeEl) {
-        var id = shapeEl.getAttribute('data-id');
-        var shape = state.shapes.find(function(s) { return s.id === id; });
-        if (shape) {
-          editShapeText(shape);
-        }
-      }
-    });
-  }
-
-  // ============================================
   // INIT
   // ============================================
   document.addEventListener('DOMContentLoaded', function() {
     init();
     setupButtonHandlers();
-    setupDoubleClick();
   });
 
 })();

@@ -120,6 +120,25 @@
 .shape-btn[data-shape="cloud"] svg { fill: #6b7280; }
 .shape-btn[data-shape="note"] svg { fill: #fbbf24; }
 
+/* Line tool button */
+.line-tool-btn {
+  display: flex;
+  align-items: center;
+  margin-left: 0.5rem;
+}
+
+.line-tool-btn.active {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+
+.line-tool-btn.active svg line,
+.line-tool-btn.active svg polygon {
+  stroke: #fff;
+  fill: #fff;
+}
+
 /* Canvas */
 #whiteboard-canvas {
   flex: 1;
@@ -306,28 +325,34 @@
       
       <!-- Shape Toolbar -->
       <div id="shape-toolbar" class="shape-toolbar">
-        <button type="button" class="shape-btn" data-shape="rectangle" title="Process / Action">
+        <button type="button" class="shape-btn" data-shape="rectangle" title="Rectangle">
           <svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/></svg>
         </button>
-        <button type="button" class="shape-btn" data-shape="diamond" title="Decision (Yes/No)">
+        <button type="button" class="shape-btn" data-shape="diamond" title="Diamond">
           <svg viewBox="0 0 24 24"><polygon points="12,2 22,12 12,22 2,12"/></svg>
         </button>
-        <button type="button" class="shape-btn" data-shape="parallelogram" title="Input / Output">
+        <button type="button" class="shape-btn" data-shape="parallelogram" title="Parallelogram">
           <svg viewBox="0 0 24 24"><polygon points="6,6 22,6 18,18 2,18"/></svg>
         </button>
-        <button type="button" class="shape-btn" data-shape="cylinder" title="Data Store">
+        <button type="button" class="shape-btn" data-shape="cylinder" title="Cylinder">
           <svg viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4,5 v14 a8,3 0 0,0 16,0 v-14"/></svg>
         </button>
-        <button type="button" class="shape-btn" data-shape="cloud" title="External System / API">
+        <button type="button" class="shape-btn" data-shape="cloud" title="Cloud">
           <svg viewBox="0 0 24 24"><path d="M6,20 Q2,20 2,16 Q2,12 6,12 Q6,8 10,8 Q14,4 18,8 Q22,8 22,12 Q22,16 18,16 L18,20 Z"/></svg>
         </button>
-        <button type="button" class="shape-btn" data-shape="note" title="Note / Comment">
+        <button type="button" class="shape-btn" data-shape="note" title="Note">
           <svg viewBox="0 0 24 24"><path d="M4,4 L16,4 L20,8 L20,20 L4,20 Z M16,4 L16,8 L20,8"/></svg>
         </button>
       </div>
       
+      <!-- Line Tool -->
+      <button type="button" id="line-mode-btn" class="btn btn-secondary line-tool-btn" title="Draw lines between shapes">
+        <svg viewBox="0 0 24 24" width="16" height="16" style="margin-right:4px"><line x1="4" y1="20" x2="20" y2="4" stroke="currentColor" stroke-width="2"/><polygon points="20,4 14,6 18,10" fill="currentColor"/></svg>
+        Draw Line
+      </button>
+      
       <div class="keyboard-hints">
-        <kbd>Del</kbd> delete &nbsp; <kbd>Esc</kbd> deselect &nbsp; <kbd>Dbl-click</kbd> edit text
+        <kbd>Del</kbd> delete &nbsp; <kbd>Esc</kbd> cancel
       </div>
     </div>
     
@@ -347,8 +372,8 @@
         <div id="flowchart-empty" class="flowchart-empty">
           <p class="flowchart-empty-title">No flowchart selected</p>
           <p class="flowchart-empty-desc">
-            Click <strong>New</strong> to create a flowchart, then drag shapes from the toolbar onto the canvas.
-            Click ports to connect shapes with arrows.
+            Click <strong>New</strong> to create a flowchart.<br>
+            Add shapes from the toolbar, type inside them, then use <strong>Draw Line</strong> to connect shapes.
           </p>
         </div>
         
@@ -387,11 +412,11 @@
     
     <!-- Legend -->
     <div class="whiteboard-legend">
-      <div class="legend-item"><span class="legend-swatch" style="background:#3b82f6"></span> Process</div>
-      <div class="legend-item"><span class="legend-swatch" style="background:#f59e0b"></span> Decision</div>
-      <div class="legend-item"><span class="legend-swatch" style="background:#10b981"></span> Input/Output</div>
-      <div class="legend-item"><span class="legend-swatch" style="background:#8b5cf6"></span> Data Store</div>
-      <div class="legend-item"><span class="legend-swatch" style="background:#6b7280"></span> External</div>
+      <div class="legend-item"><span class="legend-swatch" style="background:#3b82f6"></span> Rectangle</div>
+      <div class="legend-item"><span class="legend-swatch" style="background:#f59e0b"></span> Diamond</div>
+      <div class="legend-item"><span class="legend-swatch" style="background:#10b981"></span> Parallelogram</div>
+      <div class="legend-item"><span class="legend-swatch" style="background:#8b5cf6"></span> Cylinder</div>
+      <div class="legend-item"><span class="legend-swatch" style="background:#6b7280"></span> Cloud</div>
       <div class="legend-item"><span class="legend-swatch" style="background:#fbbf24"></span> Note</div>
     </div>
     
