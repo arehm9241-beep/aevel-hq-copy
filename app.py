@@ -12,6 +12,7 @@ import sys
 import time
 import uuid
 import sqlite3
+from datetime import datetime, timezone
 from pathlib import Path
 from functools import wraps
 from urllib.parse import urljoin
@@ -295,33 +296,82 @@ def send_app_email(email_type, subject, body_html_or_text, to_emails=None):
 
 
 def run_pipeline(steps_config=None, dry_run=False):
-    """Run full pipeline: ingest → clean → analyze → report → send_payload.
+    """Run full pipeline: ingest → clean → analyze → report → deliver.
+    
+    Each agent returns a structured report dict with status, findings, and handoff.
     
     Args:
         steps_config: dict of step names to bool (e.g. {'ingest': True, 'clean': True, ...})
         dry_run: if True, skip the deliver step
+        
+    Returns:
+        dict with overall status and individual agent reports
     """
     from tools import ingest_data, clean_data, analyze, generate_report, send_payload
     
     all_steps = [
-        ('ingest', ingest_data.ingest),
-        ('clean', clean_data.clean),
-        ('analyze', analyze.analyze),
-        ('report', lambda: generate_report.generate_report()),
-        ('deliver', send_payload.send_payload)
+        ('ingest', 'INGEST', ingest_data.ingest),
+        ('clean', 'CLEAN', clean_data.clean),
+        ('analyze', 'ANALYZE', analyze.analyze),
+        ('report', 'REPORT', lambda: generate_report.generate_report()),
+        ('deliver', 'DELIVER', send_payload.send_payload)
     ]
     
-    for step_name, step_fn in all_steps:
+    pipeline_result = {
+        "status": "running",
+        "started_at": datetime.now(timezone.utc).isoformat(),
+        "agents": {},
+        "current_agent": None,
+        "failed_agent": None
+    }
+    
+    for step_name, agent_name, step_fn in all_steps:
         # Skip if step disabled in config
         if steps_config and not steps_config.get(step_name, True):
+            pipeline_result["agents"][step_name] = {"status": "skipped", "agent": agent_name}
             continue
         # Skip deliver in dry run mode
         if dry_run and step_name == 'deliver':
+            pipeline_result["agents"][step_name] = {"status": "skipped", "agent": agent_name, "reason": "dry_run"}
             continue
-        code = step_fn()
-        if code != 0:
-            return code
-    return 0
+        
+        pipeline_result["current_agent"] = agent_name
+        
+        try:
+            report = step_fn()
+            pipeline_result["agents"][step_name] = report
+            
+            # Check if agent failed
+            if isinstance(report, dict):
+                if report.get("status") == "error":
+                    pipeline_result["status"] = "failed"
+                    pipeline_result["failed_agent"] = agent_name
+                    break
+            elif isinstance(report, int) and report != 0:
+                # Legacy compatibility: if tool returns int
+                pipeline_result["status"] = "failed"
+                pipeline_result["failed_agent"] = agent_name
+                pipeline_result["agents"][step_name] = {"status": "error", "exit_code": report}
+                break
+        except Exception as e:
+            pipeline_result["status"] = "failed"
+            pipeline_result["failed_agent"] = agent_name
+            pipeline_result["agents"][step_name] = {"status": "error", "error": str(e)}
+            break
+    
+    if pipeline_result["status"] == "running":
+        pipeline_result["status"] = "success"
+    
+    pipeline_result["completed_at"] = datetime.now(timezone.utc).isoformat()
+    pipeline_result["current_agent"] = None
+    
+    return pipeline_result
+
+
+def run_pipeline_legacy(steps_config=None, dry_run=False):
+    """Legacy wrapper that returns exit code for backward compatibility."""
+    result = run_pipeline(steps_config, dry_run)
+    return 0 if result.get("status") == "success" else 1
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -561,16 +611,20 @@ def trigger():
         PIPELINE_RUNS.append(run_record)
         
         # Run pipeline with config
-        code = run_pipeline(steps_config=steps_config, dry_run=dry_run)
+        pipeline_result = run_pipeline(steps_config=steps_config, dry_run=dry_run)
+        
+        # Determine success from pipeline result
+        is_success = pipeline_result.get("status") == "success"
         
         # Update run record
-        run_record["status"] = "success" if code == 0 else "error"
+        run_record["status"] = "success" if is_success else "error"
         run_record["completed_at"] = time.time()
         run_record["duration"] = round(time.time() - start_time, 2)
-        run_record["exit_code"] = code
+        run_record["pipeline_result"] = pipeline_result
+        run_record["agents"] = pipeline_result.get("agents", {})
         
         # Generate real output files on success
-        if code == 0:
+        if is_success:
             outputs = []
             created_at = time.strftime("%Y-%m-%d %H:%M:%S")
             
@@ -680,30 +734,39 @@ def trigger():
         
         return jsonify({
             "route": result, 
-            "pipeline_exit": code,
+            "pipeline_exit": 0 if is_success else 1,
+            "pipeline_result": pipeline_result,
             "run_id": run_id,
-            "duration": run_record["duration"]
-        }), 200 if code == 0 else 500
+            "duration": run_record["duration"],
+            "agents": pipeline_result.get("agents", {})
+        }), 200 if is_success else 500
     
-    # Single-tool dispatch
+    # Single-tool dispatch - each tool now returns a report dict
+    agent_report = None
     if tool_name == "ingest_data":
         from tools import ingest_data
-        code = ingest_data.ingest()
+        agent_report = ingest_data.ingest()
     elif tool_name == "clean_data":
         from tools import clean_data
-        code = clean_data.clean()
+        agent_report = clean_data.clean()
     elif tool_name == "analyze":
         from tools import analyze
-        code = analyze.analyze()
+        agent_report = analyze.analyze()
     elif tool_name == "generate_report":
         from tools import generate_report
-        code = generate_report.generate_report()
+        agent_report = generate_report.generate_report()
     elif tool_name == "send_payload":
         from tools import send_payload
-        code = send_payload.send_payload()
+        agent_report = send_payload.send_payload()
     else:
-        code = run_pipeline()
-    return jsonify({"route": result, "tool_exit": code}), 200 if code == 0 else 500
+        agent_report = run_pipeline()
+    
+    # Handle both dict reports and legacy int returns
+    if isinstance(agent_report, dict):
+        is_success = agent_report.get("status") in ("success", "partial")
+        return jsonify({"route": result, "agent_report": agent_report, "tool_exit": 0 if is_success else 1}), 200 if is_success else 500
+    else:
+        return jsonify({"route": result, "tool_exit": agent_report}), 200 if agent_report == 0 else 500
 
 
 # — Auth routes
