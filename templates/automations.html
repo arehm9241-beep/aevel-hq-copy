@@ -821,35 +821,59 @@
   // ═══════════════════════════════════════════════════════════════════════════
   function showOutputs(data) {
     els.outputsSection.style.display = 'block';
-    document.getElementById('outputs-empty').style.display = 'none';
+    var emptyEl = document.getElementById('outputs-empty');
     
-    var outputsHtml = '';
-    var outputs = [
-      { name: 'Processed Dataset', type: 'csv', size: '24.5 KB' },
-      { name: 'Analytics Results', type: 'json', size: '8.2 KB' },
-      { name: 'Report Summary', type: state.config.outputFormat, size: '12.1 KB' }
-    ];
+    // Fetch real outputs from the run
+    var runId = data.run_id || state.currentRunId;
+    if (!runId) {
+      if (emptyEl) emptyEl.style.display = 'block';
+      return;
+    }
     
-    outputs.forEach(function(output, idx) {
-      outputsHtml += '<div class="output-card">' +
-        '<div class="output-icon">' +
-          '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
-            '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>' +
-            '<polyline points="14 2 14 8 20 8"/>' +
-          '</svg>' +
-        '</div>' +
-        '<div class="output-info">' +
-          '<span class="output-name">' + output.name + '</span>' +
-          '<span class="output-meta">' + output.type.toUpperCase() + ' · ' + output.size + '</span>' +
-        '</div>' +
-        '<div class="output-actions">' +
-          '<button class="btn btn-secondary btn-small">Download</button>' +
-          '<button class="btn btn-ghost btn-small">Preview</button>' +
-        '</div>' +
-      '</div>';
-    });
-    
-    els.outputsGrid.innerHTML = outputsHtml + '<div class="outputs-empty" id="outputs-empty" style="display:none;"><p>No outputs yet.</p></div>';
+    fetch('/api/pipeline/outputs/' + runId, { credentials: 'same-origin' })
+      .then(function(r) { return r.json(); })
+      .then(function(res) {
+        var outputs = res.outputs || [];
+        
+        if (outputs.length === 0) {
+          if (emptyEl) emptyEl.style.display = 'block';
+          return;
+        }
+        
+        if (emptyEl) emptyEl.style.display = 'none';
+        
+        var outputsHtml = '';
+        outputs.forEach(function(output) {
+          var isReady = output.ready !== false;
+          var downloadUrl = '/api/pipeline/download/' + runId + '/' + output.filename;
+          
+          outputsHtml += '<div class="output-card">' +
+            '<div class="output-icon">' +
+              '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
+                '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>' +
+                '<polyline points="14 2 14 8 20 8"/>' +
+              '</svg>' +
+            '</div>' +
+            '<div class="output-info">' +
+              '<span class="output-name">' + escapeHtml(output.name) + '</span>' +
+              '<span class="output-meta">' + (output.type || '').toUpperCase() + ' · ' + (output.size || '—') + (output.created_at ? ' · ' + output.created_at : '') + '</span>' +
+            '</div>' +
+            '<div class="output-actions">' +
+              (isReady 
+                ? '<a href="' + downloadUrl + '" class="btn btn-secondary btn-small" download>Download</a>'
+                : '<button class="btn btn-secondary btn-small" disabled>Preparing...</button>') +
+            '</div>' +
+          '</div>';
+        });
+        
+        els.outputsGrid.innerHTML = outputsHtml + '<div class="outputs-empty" id="outputs-empty" style="display:none;"><p>No outputs yet.</p></div>';
+        state.outputs = outputs;
+      })
+      .catch(function(err) {
+        console.error('Failed to load outputs:', err);
+        if (emptyEl) emptyEl.innerHTML = '<p>Failed to load outputs. Try again.</p>';
+        if (emptyEl) emptyEl.style.display = 'block';
+      });
   }
   
   // ═══════════════════════════════════════════════════════════════════════════

@@ -3,72 +3,339 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sign in — Aevel</title>
+  <title>Aevel — Data Analytics & Marketing Intelligence</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/aevel.css') }}">
+  <style>
+    /* Public site overrides for services positioning */
+    .public-site {
+      min-height: 100vh;
+      background: var(--bg);
+    }
+    .public-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: var(--space-5) var(--space-8);
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .public-logo {
+      font-size: 20px;
+      font-weight: var(--weight-semibold);
+      color: var(--text);
+      text-decoration: none;
+      letter-spacing: -0.02em;
+    }
+    .public-nav {
+      display: flex;
+      gap: var(--space-6);
+    }
+    .public-nav a {
+      font-size: var(--text-sm);
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: color var(--ease);
+    }
+    .public-nav a:hover { color: var(--text); }
+    .public-team-link {
+      font-size: var(--text-sm);
+      color: var(--text-muted);
+      text-decoration: none;
+      padding: var(--space-2) var(--space-4);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      transition: all var(--ease);
+    }
+    .public-team-link:hover {
+      color: var(--text-secondary);
+      border-color: var(--border-strong);
+    }
+    
+    .public-hero {
+      max-width: 800px;
+      margin: var(--space-16) auto var(--space-12);
+      padding: 0 var(--space-8);
+      text-align: center;
+    }
+    .public-hero h1 {
+      font-size: clamp(32px, 5vw, 48px);
+      font-weight: var(--weight-semibold);
+      color: var(--text);
+      line-height: 1.15;
+      letter-spacing: -0.025em;
+      margin-bottom: var(--space-5);
+    }
+    .public-hero-lead {
+      font-size: var(--text-lg);
+      color: var(--text-secondary);
+      line-height: var(--leading);
+      max-width: 600px;
+      margin: 0 auto var(--space-8);
+    }
+    .public-cta-row {
+      display: flex;
+      justify-content: center;
+      gap: var(--space-4);
+    }
+    .public-cta {
+      display: inline-block;
+      padding: var(--space-3) var(--space-6);
+      background: var(--accent);
+      color: var(--bg);
+      font-size: var(--text-sm);
+      font-weight: var(--weight-medium);
+      text-decoration: none;
+      border-radius: var(--radius-sm);
+      transition: opacity var(--ease);
+    }
+    .public-cta:hover { opacity: 0.9; }
+    .public-cta-ghost {
+      display: inline-block;
+      padding: var(--space-3) var(--space-6);
+      color: var(--text-secondary);
+      font-size: var(--text-sm);
+      text-decoration: none;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      transition: all var(--ease);
+    }
+    .public-cta-ghost:hover {
+      color: var(--text);
+      border-color: var(--border-strong);
+    }
+    
+    .public-section {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: var(--space-12) var(--space-8);
+    }
+    .public-section-title {
+      font-size: var(--text-xs);
+      font-weight: var(--weight-semibold);
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: var(--space-6);
+    }
+    
+    .services-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--space-5);
+    }
+    @media (max-width: 700px) {
+      .services-grid { grid-template-columns: 1fr; }
+    }
+    .service-card {
+      padding: var(--space-6);
+      background: var(--bg-raised);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+    }
+    .service-card h3 {
+      font-size: var(--text-base);
+      font-weight: var(--weight-medium);
+      color: var(--text);
+      margin-bottom: var(--space-2);
+    }
+    .service-card p {
+      font-size: var(--text-sm);
+      color: var(--text-secondary);
+      line-height: var(--leading);
+      margin: 0;
+    }
+    
+    .process-steps {
+      display: flex;
+      gap: var(--space-4);
+      flex-wrap: wrap;
+    }
+    .process-step {
+      flex: 1;
+      min-width: 180px;
+      padding: var(--space-5);
+      background: var(--bg-raised);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+    }
+    .process-step-num {
+      font-size: var(--text-xs);
+      color: var(--accent);
+      font-weight: var(--weight-semibold);
+      margin-bottom: var(--space-2);
+    }
+    .process-step-title {
+      font-size: var(--text-sm);
+      font-weight: var(--weight-medium);
+      color: var(--text);
+    }
+    
+    .capability-note {
+      padding: var(--space-6);
+      background: var(--bg-overlay);
+      border-radius: var(--radius-sm);
+      border-left: 3px solid var(--accent);
+    }
+    .capability-note p {
+      font-size: var(--text-sm);
+      color: var(--text-secondary);
+      line-height: var(--leading);
+      margin: 0;
+    }
+    
+    .contact-section {
+      text-align: center;
+      padding: var(--space-16) var(--space-8);
+      border-top: 1px solid var(--border);
+    }
+    .contact-section h2 {
+      font-size: 24px;
+      font-weight: var(--weight-medium);
+      color: var(--text);
+      margin-bottom: var(--space-3);
+    }
+    .contact-section p {
+      font-size: var(--text-sm);
+      color: var(--text-secondary);
+      margin-bottom: var(--space-6);
+    }
+    .contact-section a.public-cta {
+      display: inline-block;
+    }
+    
+    /* Login overlay */
+    .login-overlay {
+      position: fixed;
+      top: 0; right: 0; bottom: 0; left: 0;
+      background: rgba(0,0,0,0.75);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    .login-overlay.is-open { display: flex; }
+    .login-card {
+      background: var(--bg-raised);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: var(--space-8);
+      width: 100%;
+      max-width: 380px;
+      margin: var(--space-4);
+    }
+    .login-card h2 {
+      font-size: 18px;
+      font-weight: var(--weight-medium);
+      color: var(--text);
+      margin-bottom: var(--space-5);
+    }
+    .login-close {
+      position: absolute;
+      top: var(--space-4);
+      right: var(--space-4);
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 24px;
+    }
+    
+    @media (max-width: 600px) {
+      .public-nav { display: none; }
+      .public-header { padding: var(--space-4); }
+      .public-hero { padding: 0 var(--space-4); margin-top: var(--space-10); }
+      .public-section { padding: var(--space-8) var(--space-4); }
+    }
+  </style>
 </head>
-<body>
-  <div class="public-auth">
-    <header class="public-auth-header">
-      <a class="public-auth-logo" href="{{ url_for('login') }}">Aevel</a>
-      <nav class="public-auth-nav" aria-label="Public navigation">
-        <a class="public-auth-link" href="#home">Home</a>
-        <a class="public-auth-link" href="#services">Services</a>
-        <a class="public-auth-link" href="#how">How We Work</a>
-        <a class="public-auth-link" href="#contact">Contact</a>
-      </nav>
-      <button class="public-burger" id="public-burger" aria-label="Open menu" aria-expanded="false" aria-controls="public-menu">
-        <span></span><span></span>
-      </button>
-      <div class="public-menu" id="public-menu">
-        <div class="public-menu-inner">
-          <div class="public-menu-label">Team Space</div>
-          <a class="public-menu-primary" href="{{ url_for('dashboard') }}">Enter Team Space</a>
-          <a class="public-menu-secondary" href="{{ url_for('login') }}">Sign in</a>
+<body class="public-site">
+  <header class="public-header">
+    <a class="public-logo" href="{{ url_for('login') }}">Aevel</a>
+    <nav class="public-nav">
+      <a href="#services">Services</a>
+      <a href="#process">Process</a>
+      <a href="#contact">Contact</a>
+    </nav>
+    <a class="public-team-link" href="#" id="open-login">Team Login</a>
+  </header>
+
+  <main>
+    <!-- Hero -->
+    <section class="public-hero">
+      <h1>Data analytics and marketing intelligence for growth-focused teams</h1>
+      <p class="public-hero-lead">
+        We help organizations make better decisions through structured analytics, automated reporting, and actionable insights. No dashboards to manage. No tools to learn.
+      </p>
+      <div class="public-cta-row">
+        <a class="public-cta" href="#contact">Get in touch</a>
+        <a class="public-cta-ghost" href="#services">Learn more</a>
+      </div>
+    </section>
+
+    <!-- Services -->
+    <section class="public-section" id="services">
+      <h2 class="public-section-title">What we do</h2>
+      <div class="services-grid">
+        <div class="service-card">
+          <h3>Data Analytics</h3>
+          <p>Transform raw data into clear, actionable intelligence. We build the reporting systems and KPI frameworks that drive decision velocity.</p>
+        </div>
+        <div class="service-card">
+          <h3>Marketing Intelligence</h3>
+          <p>Understand what's working and why. Channel performance, attribution clarity, and campaign insights delivered without the tool sprawl.</p>
+        </div>
+        <div class="service-card">
+          <h3>Automation & Integration</h3>
+          <p>Connect your data sources and automate the reporting workflows that keep your team aligned and moving forward.</p>
+        </div>
+        <div class="service-card">
+          <h3>Strategic Advisory</h3>
+          <p>Beyond the numbers: interpretation, recommendations, and ongoing optimization support to help you act on insights.</p>
         </div>
       </div>
-    </header>
+    </section>
 
-    <main class="public-auth-main" id="home">
-      <section class="public-auth-hero">
-        <p class="public-eyebrow">Premium analytics &amp; marketing intelligence</p>
-        <h1 class="public-hero-title">A calm command center for analytics operations.</h1>
-        <p class="public-hero-lead">
-          Aevel brings reporting, automation, and team workflows into one intentional space—so your team can ship with clarity.
-        </p>
-        <div class="public-hero-actions">
-          <a class="public-cta" href="{{ url_for('dashboard') }}">Team Space</a>
-          <a class="public-cta-ghost" href="#services">Explore services</a>
+    <!-- Process -->
+    <section class="public-section" id="process">
+      <h2 class="public-section-title">How we work</h2>
+      <div class="process-steps">
+        <div class="process-step">
+          <div class="process-step-num">01</div>
+          <div class="process-step-title">Discovery</div>
         </div>
-        <div class="public-hero-grid" id="services">
-          <div class="public-hero-card">
-            <div class="public-hero-card-title">Data analytics</div>
-            <div class="public-hero-card-body">Dashboards, reporting systems, and KPI clarity built for decision velocity.</div>
-          </div>
-          <div class="public-hero-card">
-            <div class="public-hero-card-title">Marketing intelligence</div>
-            <div class="public-hero-card-body">Channel insights and performance narratives that stay aligned with delivery.</div>
-          </div>
-          <div class="public-hero-card">
-            <div class="public-hero-card-title">Automation</div>
-            <div class="public-hero-card-body">Repeatable workflows, alerts, and handoffs—without messy tool sprawl.</div>
-          </div>
+        <div class="process-step">
+          <div class="process-step-num">02</div>
+          <div class="process-step-title">Data Integration</div>
         </div>
-        <div class="public-how" id="how">
-          <div class="public-how-title">How we work</div>
-          <div class="public-how-steps">
-            <div class="public-how-step"><span>01</span>Discovery</div>
-            <div class="public-how-step"><span>02</span>Design</div>
-            <div class="public-how-step"><span>03</span>Implement</div>
-            <div class="public-how-step"><span>04</span>Iterate</div>
-          </div>
+        <div class="process-step">
+          <div class="process-step-num">03</div>
+          <div class="process-step-title">Analysis & Strategy</div>
         </div>
-        <div class="public-contact" id="contact">
-          <div class="public-contact-title">Contact</div>
-          <div class="public-contact-body">Email <a href="mailto:hello.aevel@zohomail.com">hello.aevel@zohomail.com</a></div>
+        <div class="process-step">
+          <div class="process-step-num">04</div>
+          <div class="process-step-title">Ongoing Optimization</div>
         </div>
-      </section>
+      </div>
+    </section>
 
-      <aside class="auth-card public-auth-card">
+    <!-- Capability Note -->
+    <section class="public-section">
+      <div class="capability-note">
+        <p><strong>Powered by proprietary systems.</strong> Our internal analytics platform enables rapid data processing, automated reporting pipelines, and AI-assisted analysis—capabilities we bring to every engagement without requiring you to adopt new tools.</p>
+      </div>
+    </section>
+
+    <!-- Contact -->
+    <section class="contact-section" id="contact">
+      <h2>Ready to get started?</h2>
+      <p>Tell us about your analytics challenges. We'll show you how we can help.</p>
+      <a class="public-cta" href="mailto:hello.aevel@zohomail.com">Request a consultation</a>
+    </section>
+  </main>
+
+  <!-- Login Overlay -->
+  <div class="login-overlay" id="login-overlay">
+    <div class="login-card">
       {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
           {% for category, message in messages %}
@@ -76,65 +343,55 @@
           {% endfor %}
         {% endif %}
       {% endwith %}
-      <div class="card">
-        <h2 id="login-heading">Sign in</h2>
-        <form method="POST" action="{{ url_for('login') }}" id="login-form" novalidate aria-labelledby="login-heading">
-          <div class="form-group">
-            <label for="login-email">Email</label>
-            <input type="email" id="login-email" name="email" class="input" placeholder="you@company.com" required autofocus autocomplete="email" aria-required="true" aria-describedby="login-email-error">
-            <span id="login-email-error" class="form-error" aria-live="polite"></span>
-          </div>
-          <div class="form-group">
-            <label for="login-password">Password</label>
-            <input type="password" id="login-password" name="password" class="input" placeholder="Password" required autocomplete="current-password" aria-required="true" aria-describedby="login-password-error">
-            <span id="login-password-error" class="form-error" aria-live="polite"></span>
-          </div>
-          <button type="submit" class="btn btn-primary">Sign in</button>
-        </form>
-        <p class="auth-footer">
-          <a href="{{ url_for('forgot_password') }}">Forgot password?</a><br>
-          Don't have an account? <a href="{{ url_for('register') }}">Create one</a>
-        </p>
-      </div>
-      </aside>
-    </main>
+      <h2>Team Sign In</h2>
+      <form method="POST" action="{{ url_for('login') }}" id="login-form" novalidate>
+        <div class="form-group">
+          <label for="login-email">Email</label>
+          <input type="email" id="login-email" name="email" class="input" placeholder="you@company.com" required autofocus autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label for="login-password">Password</label>
+          <input type="password" id="login-password" name="password" class="input" placeholder="Password" required autocomplete="current-password">
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%;">Sign in</button>
+      </form>
+      <p style="margin-top: var(--space-4); font-size: var(--text-sm); color: var(--text-muted); text-align: center;">
+        <a href="{{ url_for('forgot_password') }}">Forgot password?</a>
+      </p>
+    </div>
   </div>
+
   <script>
   (function() {
-    var burger = document.getElementById('public-burger');
-    var menu = document.getElementById('public-menu');
-    function setOpen(open) {
-      if (!burger || !menu) return;
-      burger.classList.toggle('is-open', open);
-      menu.classList.toggle('is-open', open);
-      burger.setAttribute('aria-expanded', open ? 'true' : 'false');
-    }
-    if (burger && menu) {
-      burger.addEventListener('click', function() {
-        setOpen(!burger.classList.contains('is-open'));
+    var openBtn = document.getElementById('open-login');
+    var overlay = document.getElementById('login-overlay');
+    
+    if (openBtn && overlay) {
+      openBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        overlay.classList.add('is-open');
+        document.getElementById('login-email').focus();
       });
-      document.addEventListener('click', function(e) {
-        if (!menu.contains(e.target) && !burger.contains(e.target)) setOpen(false);
+      
+      overlay.addEventListener('click', function(e) {
+        if (e.target === overlay) {
+          overlay.classList.remove('is-open');
+        }
       });
-    }
-
-    var form = document.getElementById('login-form');
-    if (form) {
-      form.addEventListener('submit', function(e) {
-        var email = document.getElementById('login-email');
-        var password = document.getElementById('login-password');
-        var emailErr = document.getElementById('login-email-error');
-        var passwordErr = document.getElementById('login-password-error');
-        emailErr.textContent = '';
-        passwordErr.textContent = '';
-        email.classList.remove('is-error');
-        password.classList.remove('is-error');
-        var valid = true;
-        if (!email.value.trim()) { emailErr.textContent = 'Email is required'; email.classList.add('is-error'); valid = false; }
-        if (!password.value) { passwordErr.textContent = 'Password is required'; password.classList.add('is-error'); valid = false; }
-        if (!valid) e.preventDefault();
+      
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+          overlay.classList.remove('is-open');
+        }
       });
     }
+    
+    // Auto-open if there are flash messages
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        if (overlay) overlay.classList.add('is-open');
+      {% endif %}
+    {% endwith %}
   })();
   </script>
 </body>
