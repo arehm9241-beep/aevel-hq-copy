@@ -233,17 +233,48 @@ def ingest() -> dict:
             _save_report(report)
             return report
     
-    # === NO DATA SOURCE ===
+    # === NO DATA SOURCE - TRY FALLBACK TO test_data.json ===
     else:
-        report["data_inventory"]["source"] = "none"
-        report["data_inventory"]["dataset_name"] = "empty_dataset"
-        report["data_inventory"]["format"] = "JSON"
-        report["ingestion_issues"]["potential_risks"].append("No DATA_SOURCE_PATH or DATA_SOURCE_URL configured")
-        data = {
-            "schema_version": SCHEMA_VERSION,
-            "records": [],
-            "metadata": {"generated_at": datetime.now(timezone.utc).isoformat(), "source_label": "none"},
-        }
+        fallback_path = TMP_DIR.parent / "test_data.json"
+        if fallback_path.is_file():
+            # Use test_data.json as fallback
+            report["data_inventory"]["source"] = f"file://{fallback_path} (fallback)"
+            report["data_inventory"]["dataset_name"] = "test_data.json"
+            report["data_inventory"]["format"] = "JSON"
+            report["data_inventory"]["size_bytes"] = fallback_path.stat().st_size
+            report["ingestion_issues"]["potential_risks"].append("Using test_data.json as fallback (no DATA_SOURCE configured)")
+            
+            try:
+                raw = _load_json(fallback_path)
+                if "records" in raw:
+                    data = raw
+                    report["data_inventory"]["size_rows"] = len(raw.get("records", []))
+                else:
+                    data = {"schema_version": SCHEMA_VERSION, "records": raw.get("records", []), "metadata": raw.get("metadata", {})}
+                
+                if data.get("records"):
+                    first = data["records"][0]
+                    if isinstance(first, dict):
+                        columns = list(first.keys())
+                        report["structure_summary"]["columns"] = columns
+            except Exception as e:
+                report["ingestion_issues"]["confirmed_issues"].append(f"Fallback JSON parse error: {str(e)}")
+                data = {
+                    "schema_version": SCHEMA_VERSION,
+                    "records": [],
+                    "metadata": {"generated_at": datetime.now(timezone.utc).isoformat(), "source_label": "fallback_error"},
+                }
+        else:
+            report["data_inventory"]["source"] = "none"
+            report["data_inventory"]["dataset_name"] = "empty_dataset"
+            report["data_inventory"]["format"] = "JSON"
+            report["ingestion_issues"]["potential_risks"].append("No DATA_SOURCE_PATH or DATA_SOURCE_URL configured")
+            report["ingestion_issues"]["potential_risks"].append("No test_data.json fallback found")
+            data = {
+                "schema_version": SCHEMA_VERSION,
+                "records": [],
+                "metadata": {"generated_at": datetime.now(timezone.utc).isoformat(), "source_label": "none"},
+            }
     
     # === EXTRACT TIME RANGE ===
     if data and data.get("records"):

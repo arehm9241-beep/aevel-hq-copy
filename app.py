@@ -457,7 +457,7 @@ def send_app_email(email_type, subject, body_html_or_text, to_emails=None):
         return (False, err_msg)
 
 
-def run_pipeline(steps_config=None, dry_run=False):
+def run_pipeline(steps_config=None, dry_run=False, data_source_path=None, data_source_format=None):
     """Run full pipeline: ingest → clean → analyze → report → deliver.
     
     Each agent returns a structured report dict with status, findings, and handoff.
@@ -465,11 +465,27 @@ def run_pipeline(steps_config=None, dry_run=False):
     Args:
         steps_config: dict of step names to bool (e.g. {'ingest': True, 'clean': True, ...})
         dry_run: if True, skip the deliver step
+        data_source_path: path to uploaded file (overrides DATA_SOURCE_PATH env var)
+        data_source_format: file format ('csv', 'json') - auto-detected if not provided
         
     Returns:
         dict with overall status and individual agent reports
     """
     from tools import ingest_data, clean_data, analyze, generate_report, send_payload
+    
+    # If a data source path is provided, temporarily set environment variable
+    # This allows uploaded files to override configured data sources
+    original_path = os.environ.get("DATA_SOURCE_PATH")
+    original_format = os.environ.get("DATA_SOURCE_FORMAT")
+    
+    if data_source_path:
+        os.environ["DATA_SOURCE_PATH"] = str(data_source_path)
+        # Auto-detect format from file extension if not provided
+        if not data_source_format:
+            ext = os.path.splitext(data_source_path)[1].lower()
+            data_source_format = "csv" if ext == ".csv" else "json"
+        os.environ["DATA_SOURCE_FORMAT"] = data_source_format
+        logger.info(f"Pipeline using uploaded file: {data_source_path} (format: {data_source_format})")
     
     all_steps = [
         ('ingest', 'INGEST', ingest_data.ingest),
@@ -487,45 +503,58 @@ def run_pipeline(steps_config=None, dry_run=False):
         "failed_agent": None
     }
     
-    for step_name, agent_name, step_fn in all_steps:
-        # Skip if step disabled in config
-        if steps_config and not steps_config.get(step_name, True):
-            pipeline_result["agents"][step_name] = {"status": "skipped", "agent": agent_name}
-            continue
-        # Skip deliver in dry run mode
-        if dry_run and step_name == 'deliver':
-            pipeline_result["agents"][step_name] = {"status": "skipped", "agent": agent_name, "reason": "dry_run"}
-            continue
-        
-        pipeline_result["current_agent"] = agent_name
-        
-        try:
-            report = step_fn()
-            pipeline_result["agents"][step_name] = report
+    try:
+        for step_name, agent_name, step_fn in all_steps:
+            # Skip if step disabled in config
+            if steps_config and not steps_config.get(step_name, True):
+                pipeline_result["agents"][step_name] = {"status": "skipped", "agent": agent_name}
+                continue
+            # Skip deliver in dry run mode
+            if dry_run and step_name == 'deliver':
+                pipeline_result["agents"][step_name] = {"status": "skipped", "agent": agent_name, "reason": "dry_run"}
+                continue
             
-            # Check if agent failed
-            if isinstance(report, dict):
-                if report.get("status") == "error":
+            pipeline_result["current_agent"] = agent_name
+            
+            try:
+                report = step_fn()
+                pipeline_result["agents"][step_name] = report
+                
+                # Check if agent failed
+                if isinstance(report, dict):
+                    if report.get("status") == "error":
+                        pipeline_result["status"] = "failed"
+                        pipeline_result["failed_agent"] = agent_name
+                        break
+                elif isinstance(report, int) and report != 0:
+                    # Legacy compatibility: if tool returns int
                     pipeline_result["status"] = "failed"
                     pipeline_result["failed_agent"] = agent_name
+                    pipeline_result["agents"][step_name] = {"status": "error", "exit_code": report}
                     break
-            elif isinstance(report, int) and report != 0:
-                # Legacy compatibility: if tool returns int
+            except Exception as e:
                 pipeline_result["status"] = "failed"
                 pipeline_result["failed_agent"] = agent_name
-                pipeline_result["agents"][step_name] = {"status": "error", "exit_code": report}
+                pipeline_result["agents"][step_name] = {"status": "error", "error": str(e)}
                 break
-        except Exception as e:
-            pipeline_result["status"] = "failed"
-            pipeline_result["failed_agent"] = agent_name
-            pipeline_result["agents"][step_name] = {"status": "error", "error": str(e)}
-            break
+        
+        if pipeline_result["status"] == "running":
+            pipeline_result["status"] = "success"
+        
+        pipeline_result["completed_at"] = datetime.now(timezone.utc).isoformat()
+        pipeline_result["current_agent"] = None
     
-    if pipeline_result["status"] == "running":
-        pipeline_result["status"] = "success"
-    
-    pipeline_result["completed_at"] = datetime.now(timezone.utc).isoformat()
-    pipeline_result["current_agent"] = None
+    finally:
+        # Restore original environment variables
+        if data_source_path:
+            if original_path is not None:
+                os.environ["DATA_SOURCE_PATH"] = original_path
+            elif "DATA_SOURCE_PATH" in os.environ:
+                del os.environ["DATA_SOURCE_PATH"]
+            if original_format is not None:
+                os.environ["DATA_SOURCE_FORMAT"] = original_format
+            elif "DATA_SOURCE_FORMAT" in os.environ:
+                del os.environ["DATA_SOURCE_FORMAT"]
     
     return pipeline_result
 
@@ -987,6 +1016,23 @@ def trigger():
         steps_config = options.get("steps")
         dry_run = options.get("dryRun", False)
         output_format = options.get("outputFormat", "csv")
+        upload_id = options.get("uploadId") or body.get("upload_id")
+        
+        # Check for uploaded file - this takes priority over environment variables
+        data_source_path = None
+        data_source_format = None
+        upload_info = None
+        
+        if upload_id:
+            # Look up the uploaded file from database
+            upload_info = db_get_pipeline_upload(upload_id, session.get("user_id"))
+            if upload_info:
+                data_source_path = upload_info.get("filepath")
+                ext = upload_info.get("ext", "").lower()
+                data_source_format = "csv" if ext == ".csv" else "json"
+                logger.info(f"Using uploaded file for pipeline: {data_source_path}")
+            else:
+                logger.warning(f"Upload ID {upload_id} not found, falling back to env config")
         
         # Record pipeline run
         run_id = f"run_{int(time.time() * 1000)}"
@@ -1004,7 +1050,9 @@ def trigger():
                 "steps": steps_config,
                 "dry_run": dry_run,
                 "output_format": output_format,
-                "trigger": "manual" if user_id else "api"
+                "trigger": "manual" if user_id else "api",
+                "upload_id": upload_id,
+                "data_source": data_source_path or os.environ.get("DATA_SOURCE_PATH") or os.environ.get("DATA_SOURCE_URL") or "none"
             },
             "outputs": [],
             "logs": []
@@ -1014,8 +1062,13 @@ def trigger():
         if not db_save_pipeline_run(run_record):
             return jsonify({"error": "Failed to save pipeline run"}), 500
         
-        # Run pipeline with config
-        pipeline_result = run_pipeline(steps_config=steps_config, dry_run=dry_run)
+        # Run pipeline with config - pass uploaded file path if available
+        pipeline_result = run_pipeline(
+            steps_config=steps_config, 
+            dry_run=dry_run,
+            data_source_path=data_source_path,
+            data_source_format=data_source_format
+        )
         
         # Determine success from pipeline result
         is_success = pipeline_result.get("status") == "success"
