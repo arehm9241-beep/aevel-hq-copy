@@ -1,25 +1,1652 @@
 {% extends "base_aevel.html" %}
-{% block title %}Community notes{% endblock %}
-{% block content %}
-<div class="page-header">
-  <h1>Community notes</h1>
-  <p class="subtitle">Team ideas and notes</p>
-</div>
-<section class="section">
-  <div class="card">
-    <div class="community-notes-add">
-      <h3 class="section-title">Add an idea or note</h3>
-      <form id="community-note-form" class="community-note-form">
-        <input type="text" id="cn-title" class="input" placeholder="Title (e.g. Feature idea, Quick thought)" required>
-        <textarea id="cn-body" class="textarea" rows="3" placeholder="Write your idea or note…"></textarea>
-        <button type="submit" class="btn btn-primary">Post</button>
-      </form>
-    </div>
-    <h3 class="section-title">Notes</h3>
-    <ul id="community-notes-list" class="community-notes-list"></ul>
-  </div>
-</section>
+{% block title %}Team Intelligence{% endblock %}
+
+{% block head %}
+<style>
+/* ═══════════════════════════════════════════════════════════════════════════
+   TEAM INTELLIGENCE — Internal Idea Lab
+   Ideas, observations, and learnings shared across the team
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.intelligence-page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: var(--space-5);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   1. PAGE HEADER
+   ───────────────────────────────────────────────────────────────────────────── */
+.intelligence-header {
+  margin-bottom: var(--space-6);
+  padding-bottom: var(--space-5);
+  border-bottom: 1px solid var(--border);
+}
+
+.intelligence-header-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--space-4);
+}
+
+.intelligence-header h1 {
+  font-size: 24px;
+  font-weight: var(--weight-semibold);
+  color: var(--text);
+  letter-spacing: -0.02em;
+  margin: 0 0 var(--space-1) 0;
+}
+
+.intelligence-subtitle {
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
+  margin: 0;
+}
+
+.intelligence-stats {
+  display: flex;
+  gap: var(--space-4);
+}
+
+.stat-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-2) var(--space-4);
+  background: var(--bg-raised);
+  border-radius: var(--radius-sm);
+}
+
+.stat-chip-value {
+  font-size: 18px;
+  font-weight: var(--weight-semibold);
+  color: var(--text);
+}
+
+.stat-chip-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   2. CREATE NOTE PANEL (EXPANDABLE)
+   ───────────────────────────────────────────────────────────────────────────── */
+.composer-panel {
+  background: var(--bg-raised);
+  border-radius: var(--radius);
+  margin-bottom: var(--space-5);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  transition: box-shadow 0.2s ease;
+}
+
+.composer-panel.expanded {
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+}
+
+.composer-trigger {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-4);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.composer-trigger:hover {
+  background: var(--bg-hover);
+}
+
+.composer-panel.expanded .composer-trigger {
+  display: none;
+}
+
+.composer-trigger-icon {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-muted);
+  border-radius: var(--radius-sm);
+}
+
+.composer-trigger-icon svg {
+  width: 18px;
+  height: 18px;
+  color: var(--accent);
+}
+
+.composer-trigger-text {
+  flex: 1;
+  text-align: left;
+}
+
+.composer-trigger-title {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text);
+}
+
+.composer-trigger-hint {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.composer-form {
+  display: none;
+  padding: var(--space-5);
+}
+
+.composer-panel.expanded .composer-form {
+  display: block;
+}
+
+.composer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-4);
+}
+
+.composer-title {
+  font-size: var(--text-base);
+  font-weight: var(--weight-medium);
+  color: var(--text);
+}
+
+.composer-close {
+  padding: var(--space-2);
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.composer-close:hover {
+  color: var(--text);
+}
+
+.composer-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+@media (max-width: 600px) {
+  .composer-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.composer-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.composer-field.full-width {
+  grid-column: 1 / -1;
+}
+
+.composer-label {
+  font-size: 10px;
+  font-weight: var(--weight-medium);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.composer-input {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.composer-input::placeholder {
+  color: var(--text-muted);
+}
+
+.composer-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.composer-textarea {
+  min-height: 120px;
+  resize: vertical;
+  line-height: 1.6;
+}
+
+.composer-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border);
+}
+
+.composer-btn {
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.composer-btn-secondary {
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid var(--border);
+}
+
+.composer-btn-secondary:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+.composer-btn-primary {
+  color: var(--bg);
+  background: var(--accent);
+  border: none;
+}
+
+.composer-btn-primary:hover {
+  opacity: 0.9;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   3. FILTERS & SEARCH
+   ───────────────────────────────────────────────────────────────────────────── */
+.filters-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-raised);
+  border-radius: var(--radius-sm);
+}
+
+.filter-search {
+  flex: 1;
+  min-width: 200px;
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-xs);
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.filter-search::placeholder {
+  color: var(--text-muted);
+}
+
+.filter-select {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.filter-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.filter-toggle.active {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-muted);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   4. NOTES FEED
+   ───────────────────────────────────────────────────────────────────────────── */
+.notes-feed {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.note-card {
+  background: var(--bg-raised);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.note-card:hover {
+  border-color: var(--border-strong);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+}
+
+.note-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: var(--space-4) var(--space-4) var(--space-2);
+}
+
+.note-card-header-left {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  flex: 1;
+}
+
+.note-type-badge {
+  padding: 3px 8px;
+  font-size: 10px;
+  font-weight: var(--weight-medium);
+  border-radius: var(--radius-full);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.note-type-badge.feature-idea { background: rgba(168, 144, 120, 0.15); color: #A89078; }
+.note-type-badge.marketing-idea { background: rgba(120, 168, 144, 0.15); color: #78A890; }
+.note-type-badge.observation { background: rgba(144, 120, 168, 0.15); color: #9078A8; }
+.note-type-badge.learning { background: rgba(120, 144, 168, 0.15); color: #7890A8; }
+.note-type-badge.risk-concern { background: rgba(168, 120, 120, 0.15); color: #A87878; }
+.note-type-badge.quick-thought { background: rgba(140, 140, 140, 0.15); color: #8A8A8A; }
+
+.note-card-title {
+  flex: 1;
+}
+
+.note-card-title h3 {
+  font-size: var(--text-base);
+  font-weight: var(--weight-medium);
+  color: var(--text);
+  margin: 0 0 var(--space-1) 0;
+  line-height: 1.3;
+}
+
+.note-card-meta {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.note-card-actions {
+  display: flex;
+  gap: var(--space-1);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.note-card:hover .note-card-actions {
+  opacity: 1;
+}
+
+.note-action-btn {
+  padding: var(--space-1);
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: var(--radius-xs);
+  transition: all 0.15s ease;
+}
+
+.note-action-btn:hover {
+  color: var(--accent);
+  background: var(--accent-muted);
+}
+
+.note-action-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.note-card-body {
+  padding: 0 var(--space-4) var(--space-3);
+}
+
+.note-card-preview {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.note-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-3) var(--space-4);
+  border-top: 1px solid var(--border);
+  background: var(--bg-overlay);
+}
+
+.note-reactions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.reaction-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: var(--space-1) var(--space-2);
+  font-size: 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.reaction-btn:hover {
+  border-color: var(--border-strong);
+}
+
+.reaction-btn.active {
+  background: var(--accent-muted);
+  border-color: var(--accent);
+}
+
+.reaction-btn span {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.note-status-badges {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.status-badge {
+  padding: 2px 6px;
+  font-size: 9px;
+  font-weight: var(--weight-medium);
+  border-radius: var(--radius-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.status-badge.reviewed {
+  background: rgba(120, 168, 120, 0.15);
+  color: #78A878;
+}
+
+.status-badge.needs-followup {
+  background: rgba(168, 144, 120, 0.15);
+  color: #A89078;
+}
+
+/* Empty State */
+.notes-empty {
+  padding: var(--space-8);
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.notes-empty-icon {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto var(--space-4);
+  opacity: 0.3;
+}
+
+.notes-empty h3 {
+  font-size: var(--text-base);
+  font-weight: var(--weight-medium);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-2);
+}
+
+.notes-empty p {
+  font-size: var(--text-sm);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   5. NOTE DETAIL MODAL
+   ───────────────────────────────────────────────────────────────────────────── */
+.note-modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 1000;
+  align-items: flex-start;
+  justify-content: center;
+  padding: var(--space-6);
+  overflow-y: auto;
+}
+
+.note-modal.active {
+  display: flex;
+}
+
+.note-modal-content {
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  width: 700px;
+  max-width: 100%;
+  margin-top: var(--space-6);
+}
+
+.note-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: var(--space-5);
+  border-bottom: 1px solid var(--border);
+}
+
+.note-modal-header-left {
+  flex: 1;
+}
+
+.note-modal-type {
+  margin-bottom: var(--space-2);
+}
+
+.note-modal-title {
+  font-size: 20px;
+  font-weight: var(--weight-semibold);
+  color: var(--text);
+  margin: 0 0 var(--space-2) 0;
+  letter-spacing: -0.01em;
+}
+
+.note-modal-meta {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.note-modal-close {
+  padding: var(--space-2);
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.note-modal-close:hover {
+  color: var(--text);
+}
+
+.note-modal-body {
+  padding: var(--space-5);
+}
+
+.note-modal-content-text {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+
+.note-modal-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border);
+}
+
+.note-tag {
+  padding: var(--space-1) var(--space-2);
+  font-size: 10px;
+  color: var(--text-muted);
+  background: var(--bg-overlay);
+  border-radius: var(--radius-full);
+}
+
+/* AI Actions Panel in Modal */
+.note-modal-ai {
+  padding: var(--space-4) var(--space-5);
+  background: var(--bg-overlay);
+  border-top: 1px solid var(--border);
+}
+
+.ai-actions-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: var(--space-3);
+}
+
+.ai-badge-small {
+  padding: 1px 4px;
+  font-size: 8px;
+  font-weight: var(--weight-semibold);
+  background: var(--accent);
+  color: var(--bg);
+  border-radius: var(--radius-full);
+}
+
+.ai-actions-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.ai-action-chip {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ai-action-chip:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.ai-action-chip:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* AI Output in Modal */
+.ai-output-panel {
+  margin-top: var(--space-4);
+  padding: var(--space-4);
+  background: var(--bg);
+  border-radius: var(--radius-sm);
+  border-left: 2px solid var(--accent);
+  display: none;
+}
+
+.ai-output-panel.visible {
+  display: block;
+}
+
+.ai-output-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-3);
+}
+
+.ai-output-title {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  color: var(--text);
+}
+
+.ai-output-dismiss {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.ai-output-dismiss:hover {
+  color: var(--text);
+}
+
+.ai-output-content {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* Intelligence Actions in Modal Footer */
+.note-modal-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-4) var(--space-5);
+  border-top: 1px solid var(--border);
+}
+
+.intelligence-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.intel-action-btn {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.intel-action-btn:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+.intel-action-btn.active {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-muted);
+}
+
+.note-modal-edit-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.edit-btn {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-xs);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.edit-btn-secondary {
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid var(--border);
+}
+
+.edit-btn-secondary:hover {
+  color: var(--text-secondary);
+}
+
+.edit-btn-danger {
+  color: #ba8a8a;
+  background: transparent;
+  border: 1px solid rgba(186, 138, 138, 0.3);
+}
+
+.edit-btn-danger:hover {
+  background: rgba(186, 138, 138, 0.1);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   6. LOADING & ANIMATIONS
+   ───────────────────────────────────────────────────────────────────────────── */
+.skeleton {
+  background: linear-gradient(90deg, var(--bg-overlay) 25%, var(--bg-elevated) 50%, var(--bg-overlay) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--radius-xs);
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.loading-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+</style>
 {% endblock %}
+
+{% block content %}
+<div class="intelligence-page">
+  
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       1. PAGE HEADER
+       ═══════════════════════════════════════════════════════════════════════ -->
+  <header class="intelligence-header">
+    <div class="intelligence-header-main">
+      <div>
+        <h1>Team Intelligence</h1>
+        <p class="intelligence-subtitle">Ideas, observations, and learnings shared across the team</p>
+      </div>
+      <div class="intelligence-stats">
+        <div class="stat-chip">
+          <span class="stat-chip-value" id="stat-total">—</span>
+          <span class="stat-chip-label">Total</span>
+        </div>
+        <div class="stat-chip">
+          <span class="stat-chip-value" id="stat-week">—</span>
+          <span class="stat-chip-label">This Week</span>
+        </div>
+        <div class="stat-chip">
+          <span class="stat-chip-value" id="stat-review">—</span>
+          <span class="stat-chip-label">Needs Review</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       2. CREATE NOTE PANEL
+       ═══════════════════════════════════════════════════════════════════════ -->
+  <div class="composer-panel" id="composer-panel">
+    <button class="composer-trigger" id="composer-trigger">
+      <div class="composer-trigger-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="12" y1="5" x2="12" y2="19"/>
+          <line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+      </div>
+      <div class="composer-trigger-text">
+        <div class="composer-trigger-title">Share an idea or observation</div>
+        <div class="composer-trigger-hint">Feature ideas, learnings, marketing experiments, strategic thoughts...</div>
+      </div>
+    </button>
+    
+    <form class="composer-form" id="composer-form">
+      <div class="composer-header">
+        <span class="composer-title">New Note</span>
+        <button type="button" class="composer-close" id="composer-close">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+      
+      <div class="composer-grid">
+        <div class="composer-field full-width">
+          <label class="composer-label">Title</label>
+          <input type="text" class="composer-input" id="cn-title" placeholder="Brief, descriptive title" required>
+        </div>
+        
+        <div class="composer-field">
+          <label class="composer-label">Note Type</label>
+          <select class="composer-input" id="cn-type">
+            <option value="feature-idea">Feature Idea</option>
+            <option value="marketing-idea">Marketing Idea</option>
+            <option value="observation">Observation</option>
+            <option value="learning">Learning</option>
+            <option value="risk-concern">Risk / Concern</option>
+            <option value="quick-thought">Quick Thought</option>
+          </select>
+        </div>
+        
+        <div class="composer-field">
+          <label class="composer-label">Tags (optional)</label>
+          <input type="text" class="composer-input" id="cn-tags" placeholder="e.g., ux, growth, urgent">
+        </div>
+        
+        <div class="composer-field full-width">
+          <label class="composer-label">Description / Content</label>
+          <textarea class="composer-input composer-textarea" id="cn-body" placeholder="Describe your idea, observation, or learning in detail..."></textarea>
+        </div>
+        
+        <div class="composer-field">
+          <label class="composer-label">Related Project (optional)</label>
+          <input type="text" class="composer-input" id="cn-project" placeholder="e.g., Q1 Campaign">
+        </div>
+        
+        <div class="composer-field">
+          <label class="composer-label">Related Report (optional)</label>
+          <input type="text" class="composer-input" id="cn-report" placeholder="e.g., Weekly Analytics">
+        </div>
+      </div>
+      
+      <div class="composer-actions">
+        <button type="button" class="composer-btn composer-btn-secondary" id="composer-cancel">Cancel</button>
+        <button type="button" class="composer-btn composer-btn-secondary" id="composer-draft">Save as Draft</button>
+        <button type="submit" class="composer-btn composer-btn-primary">Post</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       3. FILTERS & SEARCH
+       ═══════════════════════════════════════════════════════════════════════ -->
+  <div class="filters-bar">
+    <input type="text" class="filter-search" id="filter-search" placeholder="Search notes...">
+    <select class="filter-select" id="filter-type">
+      <option value="">All Types</option>
+      <option value="feature-idea">Feature Ideas</option>
+      <option value="marketing-idea">Marketing Ideas</option>
+      <option value="observation">Observations</option>
+      <option value="learning">Learnings</option>
+      <option value="risk-concern">Risks & Concerns</option>
+      <option value="quick-thought">Quick Thoughts</option>
+    </select>
+    <select class="filter-select" id="filter-date">
+      <option value="">All Time</option>
+      <option value="today">Today</option>
+      <option value="7d">Last 7 days</option>
+      <option value="30d">Last 30 days</option>
+    </select>
+    <button class="filter-toggle" id="filter-mine">My notes only</button>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       4. NOTES FEED
+       ═══════════════════════════════════════════════════════════════════════ -->
+  <div class="notes-feed" id="notes-feed">
+    <div class="notes-empty">
+      <svg class="notes-empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M9 12h6M9 16h6M17 21H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+      </svg>
+      <h3>Loading notes...</h3>
+      <p>Team intelligence will appear here</p>
+    </div>
+  </div>
+
+</div>
+
+<!-- Note Detail Modal -->
+<div class="note-modal" id="note-modal">
+  <div class="note-modal-content">
+    <div class="note-modal-header">
+      <div class="note-modal-header-left">
+        <div class="note-modal-type" id="modal-type"></div>
+        <h2 class="note-modal-title" id="modal-title"></h2>
+        <div class="note-modal-meta" id="modal-meta"></div>
+      </div>
+      <button class="note-modal-close" id="modal-close">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+    
+    <div class="note-modal-body">
+      <div class="note-modal-content-text" id="modal-body"></div>
+      <div class="note-modal-tags" id="modal-tags"></div>
+    </div>
+    
+    <!-- AI Actions -->
+    <div class="note-modal-ai">
+      <div class="ai-actions-title">
+        <span>AI Actions</span>
+        <span class="ai-badge-small">AI</span>
+      </div>
+      <div class="ai-actions-grid">
+        <button class="ai-action-chip" data-action="summarize">Summarize</button>
+        <button class="ai-action-chip" data-action="extract">Extract action items</button>
+        <button class="ai-action-chip" data-action="task">Convert to task</button>
+        <button class="ai-action-chip" data-action="report">Turn into report outline</button>
+        <button class="ai-action-chip" data-action="improve">Improve clarity</button>
+      </div>
+      
+      <div class="ai-output-panel" id="ai-output-panel">
+        <div class="ai-output-header">
+          <span class="ai-output-title" id="ai-output-title">AI Output</span>
+          <button class="ai-output-dismiss" id="ai-output-dismiss">Dismiss</button>
+        </div>
+        <div class="ai-output-content" id="ai-output-content"></div>
+      </div>
+    </div>
+    
+    <div class="note-modal-footer">
+      <div class="intelligence-actions">
+        <button class="intel-action-btn" id="action-reviewed" data-status="reviewed">✓ Mark as reviewed</button>
+        <button class="intel-action-btn" id="action-followup" data-status="needs-followup">⚡ Needs follow-up</button>
+        <button class="intel-action-btn" id="action-promote-report">📄 Promote to Report</button>
+        <button class="intel-action-btn" id="action-promote-task">☑ Promote to Task</button>
+      </div>
+      <div class="note-modal-edit-actions" id="modal-edit-actions">
+        <button class="edit-btn edit-btn-danger" id="modal-delete">Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
 {% block scripts %}
-<script src="{{ url_for('static', filename='js/community_notes.js') }}"></script>
+<script>
+(function() {
+  'use strict';
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // STATE
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  var notes = [];
+  var currentNote = null;
+  var currentUserEmail = null;
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // UTILITIES
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  function escapeHtml(str) {
+    var div = document.createElement('div');
+    div.textContent = str || '';
+    return div.innerHTML;
+  }
+  
+  function apiRequest(method, path, body) {
+    var opts = { method: method, credentials: 'same-origin', headers: {} };
+    if (body !== undefined) {
+      opts.headers['Content-Type'] = 'application/json';
+      opts.body = JSON.stringify(body);
+    }
+    return fetch(path, opts).then(function(r) {
+      return r.json().then(function(data) {
+        if (!r.ok) throw new Error((data && data.error) || 'Request failed');
+        return data;
+      });
+    });
+  }
+  
+  function showToast(msg, type) {
+    if (typeof Aevel !== 'undefined' && Aevel.toast) {
+      Aevel.toast(msg, type);
+    }
+  }
+  
+  function formatDate(dateStr) {
+    if (!dateStr) return '';
+    var d = new Date(dateStr);
+    var now = new Date();
+    var diff = (now - d) / 1000;
+    
+    if (diff < 60) return 'Just now';
+    if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+    if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+    if (diff < 604800) return Math.floor(diff / 86400) + 'd ago';
+    
+    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  }
+  
+  function getTypeLabel(type) {
+    var labels = {
+      'feature-idea': 'Feature Idea',
+      'marketing-idea': 'Marketing Idea',
+      'observation': 'Observation',
+      'learning': 'Learning',
+      'risk-concern': 'Risk / Concern',
+      'quick-thought': 'Quick Thought'
+    };
+    return labels[type] || type || 'Note';
+  }
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // COMPOSER PANEL
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  var composerPanel = document.getElementById('composer-panel');
+  var composerTrigger = document.getElementById('composer-trigger');
+  var composerClose = document.getElementById('composer-close');
+  var composerCancel = document.getElementById('composer-cancel');
+  var composerForm = document.getElementById('composer-form');
+  
+  function expandComposer() {
+    composerPanel.classList.add('expanded');
+    document.getElementById('cn-title').focus();
+  }
+  
+  function collapseComposer() {
+    composerPanel.classList.remove('expanded');
+    composerForm.reset();
+  }
+  
+  composerTrigger.addEventListener('click', expandComposer);
+  composerClose.addEventListener('click', collapseComposer);
+  composerCancel.addEventListener('click', collapseComposer);
+  
+  // Save as draft
+  document.getElementById('composer-draft').addEventListener('click', function() {
+    var title = document.getElementById('cn-title').value.trim();
+    if (!title) {
+      showToast('Title is required', 'error');
+      return;
+    }
+    
+    // Save to localStorage as draft
+    var draft = {
+      title: title,
+      type: document.getElementById('cn-type').value,
+      body: document.getElementById('cn-body').value,
+      tags: document.getElementById('cn-tags').value,
+      project: document.getElementById('cn-project').value,
+      report: document.getElementById('cn-report').value,
+      savedAt: new Date().toISOString()
+    };
+    localStorage.setItem('aevel_note_draft', JSON.stringify(draft));
+    showToast('Draft saved locally', 'success');
+    collapseComposer();
+  });
+  
+  // Post note
+  composerForm.addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    var title = document.getElementById('cn-title').value.trim();
+    var type = document.getElementById('cn-type').value;
+    var body = document.getElementById('cn-body').value.trim();
+    var tags = document.getElementById('cn-tags').value.trim();
+    var project = document.getElementById('cn-project').value.trim();
+    var report = document.getElementById('cn-report').value.trim();
+    
+    if (!title) {
+      showToast('Title is required', 'error');
+      return;
+    }
+    
+    var noteData = {
+      title: title,
+      body: JSON.stringify({
+        content: body,
+        type: type,
+        tags: tags.split(',').map(function(t) { return t.trim(); }).filter(Boolean),
+        project: project,
+        report: report,
+        status: [],
+        reactions: {}
+      })
+    };
+    
+    apiRequest('POST', '/api/community-notes', noteData)
+      .then(function() {
+        localStorage.removeItem('aevel_note_draft');
+        collapseComposer();
+        loadNotes();
+        showToast('Note posted', 'success');
+      })
+      .catch(function(err) {
+        showToast(err.message || 'Failed to post', 'error');
+      });
+  });
+  
+  // Load draft if exists
+  var savedDraft = localStorage.getItem('aevel_note_draft');
+  if (savedDraft) {
+    try {
+      var draft = JSON.parse(savedDraft);
+      document.getElementById('cn-title').value = draft.title || '';
+      document.getElementById('cn-type').value = draft.type || 'quick-thought';
+      document.getElementById('cn-body').value = draft.body || '';
+      document.getElementById('cn-tags').value = draft.tags || '';
+      document.getElementById('cn-project').value = draft.project || '';
+      document.getElementById('cn-report').value = draft.report || '';
+    } catch (e) {}
+  }
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // LOAD & RENDER NOTES
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  function loadNotes() {
+    return apiRequest('GET', '/api/community-notes')
+      .then(function(data) {
+        notes = (data.notes || []).map(function(n) {
+          // Parse body JSON if needed
+          var parsed = { content: n.body, type: 'quick-thought', tags: [], status: [], reactions: {} };
+          try {
+            if (n.body && n.body.startsWith('{')) {
+              parsed = JSON.parse(n.body);
+            }
+          } catch (e) {}
+          
+          return {
+            id: n.id,
+            title: n.title,
+            content: parsed.content || n.body || '',
+            type: parsed.type || 'quick-thought',
+            tags: parsed.tags || [],
+            status: parsed.status || [],
+            reactions: parsed.reactions || {},
+            project: parsed.project || '',
+            report: parsed.report || '',
+            author_email: n.author_email,
+            created_at: n.created_at
+          };
+        });
+        
+        // Get current user email from first note if possible
+        if (notes.length > 0 && !currentUserEmail) {
+          // We'll get it from session
+        }
+        
+        updateStats();
+        renderNotes();
+        return notes;
+      })
+      .catch(function(err) {
+        document.getElementById('notes-feed').innerHTML = 
+          '<div class="notes-empty"><h3>Failed to load</h3><p>' + escapeHtml(err.message) + '</p></div>';
+        return [];
+      });
+  }
+  
+  function updateStats() {
+    var total = notes.length;
+    var now = new Date();
+    var weekAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
+    var thisWeek = notes.filter(function(n) {
+      return new Date(n.created_at) >= weekAgo;
+    }).length;
+    var needsReview = notes.filter(function(n) {
+      return !n.status.includes('reviewed');
+    }).length;
+    
+    document.getElementById('stat-total').textContent = total;
+    document.getElementById('stat-week').textContent = thisWeek;
+    document.getElementById('stat-review').textContent = needsReview;
+  }
+  
+  function renderNotes() {
+    var feedEl = document.getElementById('notes-feed');
+    var search = document.getElementById('filter-search').value.toLowerCase();
+    var typeFilter = document.getElementById('filter-type').value;
+    var dateFilter = document.getElementById('filter-date').value;
+    var mineOnly = document.getElementById('filter-mine').classList.contains('active');
+    
+    var filtered = notes.filter(function(n) {
+      if (search && n.title.toLowerCase().indexOf(search) === -1 && n.content.toLowerCase().indexOf(search) === -1) {
+        return false;
+      }
+      if (typeFilter && n.type !== typeFilter) return false;
+      if (dateFilter) {
+        var noteDate = new Date(n.created_at);
+        var now = new Date();
+        if (dateFilter === 'today') {
+          if (noteDate.toDateString() !== now.toDateString()) return false;
+        } else if (dateFilter === '7d') {
+          if ((now - noteDate) / (1000 * 60 * 60 * 24) > 7) return false;
+        } else if (dateFilter === '30d') {
+          if ((now - noteDate) / (1000 * 60 * 60 * 24) > 30) return false;
+        }
+      }
+      if (mineOnly && currentUserEmail && n.author_email !== currentUserEmail) return false;
+      return true;
+    });
+    
+    if (filtered.length === 0) {
+      feedEl.innerHTML = 
+        '<div class="notes-empty">' +
+        '<svg class="notes-empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">' +
+        '<path d="M9 12h6M9 16h6M17 21H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>' +
+        '</svg>' +
+        '<h3>No notes found</h3>' +
+        '<p>Try adjusting your filters or share a new idea</p>' +
+        '</div>';
+      return;
+    }
+    
+    feedEl.innerHTML = filtered.map(function(n) {
+      var typeLabel = getTypeLabel(n.type);
+      var preview = (n.content || '').substring(0, 200);
+      if (n.content && n.content.length > 200) preview += '...';
+      
+      var reactions = n.reactions || {};
+      var thumbs = reactions.thumbs || 0;
+      var lightbulb = reactions.lightbulb || 0;
+      var warning = reactions.warning || 0;
+      
+      var statusBadges = '';
+      if (n.status.includes('reviewed')) {
+        statusBadges += '<span class="status-badge reviewed">Reviewed</span>';
+      }
+      if (n.status.includes('needs-followup')) {
+        statusBadges += '<span class="status-badge needs-followup">Follow-up</span>';
+      }
+      
+      return '<div class="note-card" data-id="' + n.id + '">' +
+        '<div class="note-card-header">' +
+        '<div class="note-card-header-left">' +
+        '<span class="note-type-badge ' + n.type + '">' + typeLabel + '</span>' +
+        '<div class="note-card-title">' +
+        '<h3>' + escapeHtml(n.title) + '</h3>' +
+        '<div class="note-card-meta">' + escapeHtml(n.author_email) + ' · ' + formatDate(n.created_at) + '</div>' +
+        '</div>' +
+        '</div>' +
+        '<div class="note-card-actions">' +
+        '<button class="note-action-btn bookmark-btn" title="Bookmark">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>' +
+        '</button>' +
+        '</div>' +
+        '</div>' +
+        '<div class="note-card-body">' +
+        '<p class="note-card-preview">' + escapeHtml(preview) + '</p>' +
+        '</div>' +
+        '<div class="note-card-footer">' +
+        '<div class="note-reactions">' +
+        '<button class="reaction-btn" data-reaction="thumbs">👍 <span>' + (thumbs || '') + '</span></button>' +
+        '<button class="reaction-btn" data-reaction="lightbulb">💡 <span>' + (lightbulb || '') + '</span></button>' +
+        '<button class="reaction-btn" data-reaction="warning">⚠️ <span>' + (warning || '') + '</span></button>' +
+        '</div>' +
+        '<div class="note-status-badges">' + statusBadges + '</div>' +
+        '</div>' +
+        '</div>';
+    }).join('');
+    
+    // Bind click handlers
+    feedEl.querySelectorAll('.note-card').forEach(function(card) {
+      card.addEventListener('click', function(e) {
+        if (e.target.closest('.reaction-btn') || e.target.closest('.note-action-btn')) return;
+        var id = card.getAttribute('data-id');
+        openNoteModal(id);
+      });
+    });
+    
+    // Reaction handlers
+    feedEl.querySelectorAll('.reaction-btn').forEach(function(btn) {
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var card = btn.closest('.note-card');
+        var id = card.getAttribute('data-id');
+        var reaction = btn.getAttribute('data-reaction');
+        toggleReaction(id, reaction);
+      });
+    });
+  }
+  
+  function toggleReaction(noteId, reaction) {
+    var note = notes.find(function(n) { return n.id === noteId; });
+    if (!note) return;
+    
+    note.reactions = note.reactions || {};
+    note.reactions[reaction] = (note.reactions[reaction] || 0) + 1;
+    
+    // Save to backend
+    var bodyData = {
+      content: note.content,
+      type: note.type,
+      tags: note.tags,
+      status: note.status,
+      reactions: note.reactions,
+      project: note.project,
+      report: note.report
+    };
+    
+    apiRequest('PATCH', '/api/community-notes/' + noteId, { body: JSON.stringify(bodyData) })
+      .then(function() {
+        renderNotes();
+      })
+      .catch(function() {});
+  }
+  
+  // Filter handlers
+  document.getElementById('filter-search').addEventListener('input', renderNotes);
+  document.getElementById('filter-type').addEventListener('change', renderNotes);
+  document.getElementById('filter-date').addEventListener('change', renderNotes);
+  document.getElementById('filter-mine').addEventListener('click', function() {
+    this.classList.toggle('active');
+    renderNotes();
+  });
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // NOTE MODAL
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  var noteModal = document.getElementById('note-modal');
+  
+  function openNoteModal(noteId) {
+    var note = notes.find(function(n) { return n.id === noteId; });
+    if (!note) return;
+    
+    currentNote = note;
+    
+    document.getElementById('modal-type').innerHTML = 
+      '<span class="note-type-badge ' + note.type + '">' + getTypeLabel(note.type) + '</span>';
+    document.getElementById('modal-title').textContent = note.title;
+    document.getElementById('modal-meta').textContent = note.author_email + ' · ' + formatDate(note.created_at);
+    document.getElementById('modal-body').textContent = note.content || '';
+    
+    // Tags
+    var tagsEl = document.getElementById('modal-tags');
+    if (note.tags && note.tags.length) {
+      tagsEl.innerHTML = note.tags.map(function(t) {
+        return '<span class="note-tag">' + escapeHtml(t) + '</span>';
+      }).join('');
+      tagsEl.style.display = 'flex';
+    } else {
+      tagsEl.style.display = 'none';
+    }
+    
+    // Update status button states
+    document.getElementById('action-reviewed').classList.toggle('active', note.status.includes('reviewed'));
+    document.getElementById('action-followup').classList.toggle('active', note.status.includes('needs-followup'));
+    
+    // Hide AI output
+    document.getElementById('ai-output-panel').classList.remove('visible');
+    
+    noteModal.classList.add('active');
+  }
+  
+  document.getElementById('modal-close').addEventListener('click', function() {
+    noteModal.classList.remove('active');
+    currentNote = null;
+  });
+  
+  noteModal.addEventListener('click', function(e) {
+    if (e.target === noteModal) {
+      noteModal.classList.remove('active');
+      currentNote = null;
+    }
+  });
+  
+  // Delete note
+  document.getElementById('modal-delete').addEventListener('click', function() {
+    if (!currentNote) return;
+    
+    if (confirm('Delete this note?')) {
+      apiRequest('DELETE', '/api/community-notes/' + currentNote.id)
+        .then(function() {
+          noteModal.classList.remove('active');
+          currentNote = null;
+          loadNotes();
+          showToast('Note deleted', 'success');
+        })
+        .catch(function(err) {
+          showToast(err.message || 'Failed to delete', 'error');
+        });
+    }
+  });
+  
+  // Status toggles
+  document.getElementById('action-reviewed').addEventListener('click', function() {
+    if (!currentNote) return;
+    toggleStatus('reviewed');
+  });
+  
+  document.getElementById('action-followup').addEventListener('click', function() {
+    if (!currentNote) return;
+    toggleStatus('needs-followup');
+  });
+  
+  function toggleStatus(status) {
+    if (!currentNote) return;
+    
+    var idx = currentNote.status.indexOf(status);
+    if (idx === -1) {
+      currentNote.status.push(status);
+    } else {
+      currentNote.status.splice(idx, 1);
+    }
+    
+    var bodyData = {
+      content: currentNote.content,
+      type: currentNote.type,
+      tags: currentNote.tags,
+      status: currentNote.status,
+      reactions: currentNote.reactions,
+      project: currentNote.project,
+      report: currentNote.report
+    };
+    
+    apiRequest('PATCH', '/api/community-notes/' + currentNote.id, { body: JSON.stringify(bodyData) })
+      .then(function() {
+        document.getElementById('action-reviewed').classList.toggle('active', currentNote.status.includes('reviewed'));
+        document.getElementById('action-followup').classList.toggle('active', currentNote.status.includes('needs-followup'));
+        renderNotes();
+        showToast('Status updated', 'success');
+      })
+      .catch(function() {
+        showToast('Failed to update', 'error');
+      });
+  }
+  
+  // Promote to Report
+  document.getElementById('action-promote-report').addEventListener('click', function() {
+    if (!currentNote) return;
+    
+    // Create a report from this note
+    var reportData = {
+      title: currentNote.title,
+      body: JSON.stringify({
+        period: '',
+        tags: currentNote.tags.join(', '),
+        sections: {
+          'executive-summary': currentNote.content
+        }
+      }),
+      report_type: 'insight'
+    };
+    
+    apiRequest('POST', '/api/reports', reportData)
+      .then(function() {
+        showToast('Promoted to Reports', 'success');
+      })
+      .catch(function(err) {
+        showToast(err.message || 'Failed to promote', 'error');
+      });
+  });
+  
+  // Promote to Task
+  document.getElementById('action-promote-task').addEventListener('click', function() {
+    if (!currentNote) return;
+    
+    var taskData = {
+      title: currentNote.title,
+      description: currentNote.content,
+      status: 'todo'
+    };
+    
+    apiRequest('POST', '/api/tasks', taskData)
+      .then(function() {
+        showToast('Promoted to Tasks', 'success');
+      })
+      .catch(function(err) {
+        showToast(err.message || 'Failed to promote', 'error');
+      });
+  });
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // AI ACTIONS
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  document.querySelectorAll('.ai-action-chip').forEach(function(chip) {
+    chip.addEventListener('click', function() {
+      if (!currentNote) return;
+      
+      var action = chip.getAttribute('data-action');
+      var content = currentNote.content || '';
+      var title = currentNote.title || '';
+      
+      if (!content.trim()) {
+        showToast('Note has no content', 'error');
+        return;
+      }
+      
+      chip.disabled = true;
+      var originalText = chip.textContent;
+      chip.innerHTML = '<span class="loading-spinner"></span>';
+      
+      var endpoint = '/api/ai/reports/summarize';
+      var payload = { title: title, body: content };
+      var outputTitle = 'AI Output';
+      
+      if (action === 'summarize') {
+        outputTitle = 'Summary';
+      } else if (action === 'extract') {
+        endpoint = '/api/ai/reports/takeaways';
+        outputTitle = 'Action Items';
+      } else if (action === 'task') {
+        endpoint = '/api/ai/reports/takeaways';
+        payload.title = 'Task extraction';
+        outputTitle = 'Task Suggestions';
+      } else if (action === 'report') {
+        payload.body = 'Create a report outline from this idea: ' + content;
+        outputTitle = 'Report Outline';
+      } else if (action === 'improve') {
+        endpoint = '/api/ai/reports/rewrite';
+        payload.audience = 'clarity';
+        outputTitle = 'Improved Version';
+      }
+      
+      apiRequest('POST', endpoint, payload)
+        .then(function(data) {
+          var output = data.summary || data.rewritten || 
+                      (data.takeaways || []).join('\n• ') ||
+                      (data.action_items || []).join('\n• ') ||
+                      'No output generated';
+          
+          if (data.takeaways && data.takeaways.length) {
+            output = '• ' + data.takeaways.join('\n• ');
+          }
+          if (data.action_items && data.action_items.length) {
+            output += '\n\nAction Items:\n• ' + data.action_items.join('\n• ');
+          }
+          
+          document.getElementById('ai-output-title').textContent = outputTitle;
+          document.getElementById('ai-output-content').innerHTML = escapeHtml(output).replace(/\n/g, '<br>');
+          document.getElementById('ai-output-panel').classList.add('visible');
+        })
+        .catch(function(err) {
+          showToast(err.message || 'AI request failed', 'error');
+        })
+        .finally(function() {
+          chip.disabled = false;
+          chip.textContent = originalText;
+        });
+    });
+  });
+  
+  document.getElementById('ai-output-dismiss').addEventListener('click', function() {
+    document.getElementById('ai-output-panel').classList.remove('visible');
+  });
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // INITIALIZE
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  loadNotes();
+  
+})();
+</script>
 {% endblock %}
