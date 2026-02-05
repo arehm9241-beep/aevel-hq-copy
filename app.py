@@ -2261,11 +2261,44 @@ def api_tasks_team():
 
 # — API: user preferences (customization)
 DEFAULT_PREFS = {
+    # Dashboard preferences
     "dashboard_kpis": True,
     "dashboard_chart": True,
     "dashboard_recent": True,
     "dashboard_widgets": True,
+    "ai_insights": False,
+    "default_view": "overview",
     "compact": False,
+    # Workspace preferences
+    "time_range": "30d",
+    "dry_run": False,
+    "auto_validate": True,
+    "report_ai_summary": True,
+    "report_charts": True,
+    "week_start": "monday",
+    "timezone": "local",
+    # Account
+    "display_name": "",
+    # Notification preferences
+    "notif_task_assigned": True,
+    "notif_task_due": True,
+    "notif_report_generated": False,
+    "notif_pipeline_complete": True,
+    "notif_weekly_digest": False,
+    "notif_in_app": True,
+}
+
+# Define which preferences are boolean toggles
+BOOL_PREFS = {
+    "dashboard_kpis", "dashboard_chart", "dashboard_recent", "dashboard_widgets",
+    "ai_insights", "compact", "dry_run", "auto_validate", "report_ai_summary",
+    "report_charts", "notif_task_assigned", "notif_task_due", "notif_report_generated",
+    "notif_pipeline_complete", "notif_weekly_digest", "notif_in_app"
+}
+
+# Define which preferences are string selections
+STRING_PREFS = {
+    "default_view", "time_range", "week_start", "timezone", "display_name"
 }
 
 
@@ -2293,15 +2326,40 @@ def api_preferences_get():
 def api_preferences_update():
     user_id = get_user_id()
     data = request.get_json(silent=True) or {}
+    
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+    
     prefs = get_prefs(user_id)
-    for k in DEFAULT_PREFS:
+    
+    # Process boolean preferences
+    for k in BOOL_PREFS:
         if k in data:
-            if k == "compact":
-                prefs[k] = bool(data[k])
-            elif k.startswith("dashboard_"):
-                prefs[k] = bool(data[k])
+            prefs[k] = bool(data[k])
+    
+    # Process string preferences with validation
+    for k in STRING_PREFS:
+        if k in data:
+            val = str(data[k]).strip() if data[k] is not None else ""
+            # Validate specific fields
+            if k == "default_view" and val not in ("overview", "analytics", "tasks"):
+                val = "overview"
+            elif k == "time_range" and val not in ("7d", "30d", "90d", "all"):
+                val = "30d"
+            elif k == "week_start" and val not in ("sunday", "monday"):
+                val = "monday"
+            elif k == "timezone":
+                # Allow any timezone string, but cap length
+                val = val[:50]
+            elif k == "display_name":
+                # Cap display name length
+                val = val[:100]
+            prefs[k] = val
+    
+    # Handle task_order separately
     if "task_order" in data and isinstance(data["task_order"], list):
         prefs["task_order"] = [str(x) for x in data["task_order"] if x][:500]
+    
     conn = None
     try:
         conn = get_db()
@@ -2311,8 +2369,10 @@ def api_preferences_update():
         )
         conn.commit()
         log_activity(user_id, "preferences_update")
+        app.logger.info(f"Preferences saved for user {user_id}")
         return jsonify(prefs)
-    except Exception:
+    except Exception as e:
+        app.logger.error(f"Failed to save preferences for user {user_id}: {e}")
         if conn:
             try:
                 conn.rollback()

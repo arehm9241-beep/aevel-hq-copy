@@ -21,6 +21,111 @@
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
+   LOADING OVERLAY
+   ───────────────────────────────────────────────────────────────────────────── */
+.settings-loading {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+.settings-loading.visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+.settings-loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(255, 255, 255, 0.2);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: settings-spin 0.8s linear infinite;
+}
+
+@keyframes settings-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   TOAST NOTIFICATIONS
+   ───────────────────────────────────────────────────────────────────────────── */
+.settings-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  padding: 12px 20px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: var(--text-sm);
+  color: var(--text);
+  z-index: 10000;
+  transform: translateY(100px);
+  opacity: 0;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 400px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.settings-toast.visible {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.settings-toast.success {
+  border-left: 3px solid #78A878;
+}
+
+.settings-toast.error {
+  border-left: 3px solid #A87878;
+}
+
+.settings-toast-message {
+  flex: 1;
+}
+
+.settings-toast-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+}
+
+.settings-toast-close:hover {
+  color: var(--text);
+}
+
+.settings-toast-retry {
+  padding: 4px 10px;
+  font-size: 11px;
+  background: rgba(168, 120, 120, 0.2);
+  border: 1px solid rgba(168, 120, 120, 0.3);
+  color: #D4A8A8;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.settings-toast-retry:hover {
+  background: rgba(168, 120, 120, 0.3);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
    1. LEFT NAVIGATION
    ───────────────────────────────────────────────────────────────────────────── */
 .settings-nav {
@@ -113,11 +218,13 @@
 .settings-main {
   padding: var(--space-6);
   overflow-y: auto;
+  max-height: calc(100vh - 60px);
 }
 
 @media (max-width: 800px) {
   .settings-main {
     padding: var(--space-4);
+    max-height: none;
   }
 }
 
@@ -155,6 +262,7 @@
   border-radius: var(--radius);
   border: 1px solid var(--border);
   margin-bottom: var(--space-5);
+  overflow: hidden;
 }
 
 .settings-card:last-child {
@@ -184,6 +292,7 @@
   align-items: flex-start;
   padding: var(--space-4) 0;
   border-bottom: 1px solid var(--border);
+  gap: var(--space-4);
 }
 
 .setting-row:first-child {
@@ -197,7 +306,7 @@
 
 .setting-info {
   flex: 1;
-  padding-right: var(--space-4);
+  min-width: 0;
 }
 
 .setting-label {
@@ -222,12 +331,14 @@
   position: relative;
   width: 44px;
   height: 24px;
+  display: inline-block;
 }
 
 .toggle-switch input {
   opacity: 0;
   width: 0;
   height: 0;
+  position: absolute;
 }
 
 .toggle-slider {
@@ -263,6 +374,11 @@
   background: var(--bg);
 }
 
+.toggle-switch input:disabled + .toggle-slider {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* Select Dropdown */
 .settings-select {
   padding: var(--space-2) var(--space-3);
@@ -272,11 +388,17 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   min-width: 160px;
+  max-width: 200px;
 }
 
 .settings-select:focus {
   outline: none;
   border-color: var(--accent);
+}
+
+.settings-select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* Input Field */
@@ -288,7 +410,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   width: 100%;
-  max-width: 300px;
+  max-width: 240px;
 }
 
 .settings-input:focus {
@@ -301,10 +423,28 @@
   color: var(--text-secondary);
 }
 
+.settings-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Validation Error */
+.settings-input.error,
+.settings-select.error {
+  border-color: #A87878;
+}
+
+.setting-error {
+  font-size: 11px;
+  color: #A87878;
+  margin-top: 4px;
+}
+
 /* Button */
 .settings-btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: var(--space-2);
   padding: var(--space-2) var(--space-4);
   font-size: var(--text-sm);
@@ -312,15 +452,17 @@
   border-radius: var(--radius-sm);
   cursor: pointer;
   transition: all 0.15s ease;
+  white-space: nowrap;
 }
 
 .settings-btn-primary {
   color: var(--bg);
   background: var(--accent);
   border: none;
+  min-width: 120px;
 }
 
-.settings-btn-primary:hover {
+.settings-btn-primary:hover:not(:disabled) {
   opacity: 0.9;
 }
 
@@ -330,7 +472,7 @@
   border: 1px solid var(--border);
 }
 
-.settings-btn-secondary:hover {
+.settings-btn-secondary:hover:not(:disabled) {
   color: var(--text);
   border-color: var(--border-strong);
 }
@@ -341,7 +483,7 @@
   border: 1px solid rgba(186, 138, 138, 0.3);
 }
 
-.settings-btn-danger:hover {
+.settings-btn-danger:hover:not(:disabled) {
   background: rgba(186, 138, 138, 0.1);
 }
 
@@ -350,30 +492,48 @@
   cursor: not-allowed;
 }
 
-/* Save Footer */
-.settings-save-footer {
-  position: sticky;
-  bottom: 0;
-  background: var(--bg-raised);
-  border-top: 1px solid var(--border);
-  padding: var(--space-4);
-  margin-top: var(--space-5);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-radius: 0 0 var(--radius) var(--radius);
+.settings-btn .btn-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: settings-spin 0.6s linear infinite;
+  display: none;
 }
 
-.save-status {
+.settings-btn.loading .btn-spinner {
+  display: inline-block;
+}
+
+.settings-btn.loading .btn-text {
+  display: none;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   SAVE FOOTER (Fixed within card)
+   ───────────────────────────────────────────────────────────────────────────── */
+.settings-card-footer {
+  padding: var(--space-4);
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: var(--space-3);
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.settings-card-footer .save-status {
   font-size: var(--text-xs);
   color: var(--text-muted);
+  margin-right: auto;
 }
 
-.save-status.success {
+.settings-card-footer .save-status.success {
   color: #78A878;
 }
 
-.save-status.error {
+.settings-card-footer .save-status.error {
   color: #A87878;
 }
 
@@ -513,6 +673,7 @@
   font-size: 24px;
   font-weight: var(--weight-bold);
   color: var(--bg);
+  flex-shrink: 0;
 }
 
 .about-title h2 {
@@ -570,6 +731,7 @@
 .about-links {
   display: flex;
   gap: var(--space-3);
+  flex-wrap: wrap;
 }
 
 .about-link {
@@ -622,10 +784,49 @@
   padding: 2px 8px;
   border-radius: var(--radius-full);
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   7. LOADING SKELETON
+   ───────────────────────────────────────────────────────────────────────────── */
+.skeleton {
+  background: linear-gradient(90deg, var(--bg-overlay) 25%, var(--bg-hover) 50%, var(--bg-overlay) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s infinite;
+  border-radius: var(--radius-sm);
+}
+
+@keyframes skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.settings-loading-placeholder {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-4);
+}
+
+.settings-loading-placeholder .skeleton-row {
+  height: 48px;
+  border-radius: var(--radius-sm);
+}
 </style>
 {% endblock %}
 
 {% block content %}
+<!-- Loading Overlay -->
+<div class="settings-loading" id="settings-loading">
+  <div class="settings-loading-spinner"></div>
+</div>
+
+<!-- Toast Notification -->
+<div class="settings-toast" id="settings-toast">
+  <span class="settings-toast-message" id="toast-message"></span>
+  <button class="settings-toast-retry" id="toast-retry" style="display: none;">Retry</button>
+  <button class="settings-toast-close" id="toast-close">&times;</button>
+</div>
+
 <div class="settings-layout">
   
   <!-- ═══════════════════════════════════════════════════════════════════════
@@ -704,7 +905,7 @@
         <p>Customize your dashboard and display options</p>
       </div>
       
-      <div class="settings-card">
+      <form class="settings-card" id="form-preferences" onsubmit="return false;">
         <div class="settings-card-header">
           <h3>Dashboard Preferences</h3>
         </div>
@@ -716,7 +917,7 @@
             </div>
             <div class="setting-control">
               <label class="toggle-switch">
-                <input type="checkbox" id="pref-dashboard_kpis" checked>
+                <input type="checkbox" id="pref-dashboard_kpis" data-pref="dashboard_kpis">
                 <span class="toggle-slider"></span>
               </label>
             </div>
@@ -729,7 +930,7 @@
             </div>
             <div class="setting-control">
               <label class="toggle-switch">
-                <input type="checkbox" id="pref-dashboard_widgets" checked>
+                <input type="checkbox" id="pref-dashboard_widgets" data-pref="dashboard_widgets">
                 <span class="toggle-slider"></span>
               </label>
             </div>
@@ -742,7 +943,7 @@
             </div>
             <div class="setting-control">
               <label class="toggle-switch">
-                <input type="checkbox" id="pref-ai_insights">
+                <input type="checkbox" id="pref-ai_insights" data-pref="ai_insights">
                 <span class="toggle-slider"></span>
               </label>
             </div>
@@ -754,7 +955,7 @@
               <div class="setting-description">Choose what you see first when opening the dashboard</div>
             </div>
             <div class="setting-control">
-              <select class="settings-select" id="pref-default_view">
+              <select class="settings-select" id="pref-default_view" data-pref="default_view">
                 <option value="overview">Overview</option>
                 <option value="analytics">Analytics</option>
                 <option value="tasks">Tasks</option>
@@ -769,18 +970,21 @@
             </div>
             <div class="setting-control">
               <label class="toggle-switch">
-                <input type="checkbox" id="pref-compact">
+                <input type="checkbox" id="pref-compact" data-pref="compact">
                 <span class="toggle-slider"></span>
               </label>
             </div>
           </div>
         </div>
         
-        <div class="settings-save-footer">
-          <span class="save-status" id="prefs-feedback"></span>
-          <button class="settings-btn settings-btn-primary" id="prefs-save">Save Preferences</button>
+        <div class="settings-card-footer">
+          <span class="save-status" id="prefs-status"></span>
+          <button type="submit" class="settings-btn settings-btn-primary" id="prefs-save">
+            <span class="btn-spinner"></span>
+            <span class="btn-text">Save Preferences</span>
+          </button>
         </div>
-      </div>
+      </form>
     </section>
 
     <!-- ═══════════════════════════════════════════════════════════════════════
@@ -792,7 +996,7 @@
         <p>Configure how Aevel processes and displays your data</p>
       </div>
       
-      <div class="settings-card">
+      <form class="settings-card" id="form-workspace" onsubmit="return false;">
         <div class="settings-card-header">
           <h3>Analytics Settings</h3>
         </div>
@@ -803,18 +1007,18 @@
               <div class="setting-description">Time period shown by default in analytics views</div>
             </div>
             <div class="setting-control">
-              <select class="settings-select" id="pref-time_range">
+              <select class="settings-select" id="pref-time_range" data-pref="time_range">
                 <option value="7d">Last 7 days</option>
-                <option value="30d" selected>Last 30 days</option>
+                <option value="30d">Last 30 days</option>
                 <option value="90d">Last 90 days</option>
                 <option value="all">All time</option>
               </select>
             </div>
           </div>
         </div>
-      </div>
+      </form>
       
-      <div class="settings-card">
+      <form class="settings-card" id="form-pipeline" onsubmit="return false;">
         <div class="settings-card-header">
           <h3>Pipeline Defaults</h3>
         </div>
@@ -826,7 +1030,7 @@
             </div>
             <div class="setting-control">
               <label class="toggle-switch">
-                <input type="checkbox" id="pref-dry_run">
+                <input type="checkbox" id="pref-dry_run" data-pref="dry_run">
                 <span class="toggle-slider"></span>
               </label>
             </div>
@@ -839,15 +1043,15 @@
             </div>
             <div class="setting-control">
               <label class="toggle-switch">
-                <input type="checkbox" id="pref-auto_validate" checked>
+                <input type="checkbox" id="pref-auto_validate" data-pref="auto_validate">
                 <span class="toggle-slider"></span>
               </label>
             </div>
           </div>
         </div>
-      </div>
+      </form>
       
-      <div class="settings-card">
+      <form class="settings-card" id="form-reports" onsubmit="return false;">
         <div class="settings-card-header">
           <h3>Report Defaults</h3>
         </div>
@@ -859,7 +1063,7 @@
             </div>
             <div class="setting-control">
               <label class="toggle-switch">
-                <input type="checkbox" id="pref-report_ai_summary" checked>
+                <input type="checkbox" id="pref-report_ai_summary" data-pref="report_ai_summary">
                 <span class="toggle-slider"></span>
               </label>
             </div>
@@ -872,15 +1076,15 @@
             </div>
             <div class="setting-control">
               <label class="toggle-switch">
-                <input type="checkbox" id="pref-report_charts" checked>
+                <input type="checkbox" id="pref-report_charts" data-pref="report_charts">
                 <span class="toggle-slider"></span>
               </label>
             </div>
           </div>
         </div>
-      </div>
+      </form>
       
-      <div class="settings-card">
+      <form class="settings-card" id="form-calendar" onsubmit="return false;">
         <div class="settings-card-header">
           <h3>Calendar Preferences</h3>
         </div>
@@ -891,9 +1095,9 @@
               <div class="setting-description">First day of the week in calendar views</div>
             </div>
             <div class="setting-control">
-              <select class="settings-select" id="pref-week_start">
+              <select class="settings-select" id="pref-week_start" data-pref="week_start">
                 <option value="sunday">Sunday</option>
-                <option value="monday" selected>Monday</option>
+                <option value="monday">Monday</option>
               </select>
             </div>
           </div>
@@ -904,7 +1108,7 @@
               <div class="setting-description">Display times in this timezone</div>
             </div>
             <div class="setting-control">
-              <select class="settings-select" id="pref-timezone">
+              <select class="settings-select" id="pref-timezone" data-pref="timezone">
                 <option value="local">Local (Browser)</option>
                 <option value="UTC">UTC</option>
                 <option value="America/New_York">Eastern Time</option>
@@ -919,11 +1123,14 @@
           </div>
         </div>
         
-        <div class="settings-save-footer">
-          <span class="save-status" id="workspace-feedback"></span>
-          <button class="settings-btn settings-btn-primary" id="workspace-save">Save Workspace Settings</button>
+        <div class="settings-card-footer">
+          <span class="save-status" id="workspace-status"></span>
+          <button type="submit" class="settings-btn settings-btn-primary" id="workspace-save">
+            <span class="btn-spinner"></span>
+            <span class="btn-text">Save Workspace Settings</span>
+          </button>
         </div>
-      </div>
+      </form>
     </section>
 
     <!-- ═══════════════════════════════════════════════════════════════════════
@@ -935,7 +1142,7 @@
         <p>Manage your account information</p>
       </div>
       
-      <div class="settings-card">
+      <form class="settings-card" id="form-account" onsubmit="return false;">
         <div class="settings-card-header">
           <h3>Account Information</h3>
         </div>
@@ -956,7 +1163,7 @@
               <div class="setting-description">How your name appears to team members</div>
             </div>
             <div class="setting-control">
-              <input type="text" class="settings-input" id="account-name" placeholder="Enter display name">
+              <input type="text" class="settings-input" id="pref-display_name" data-pref="display_name" placeholder="Enter display name" maxlength="100">
             </div>
           </div>
           
@@ -981,11 +1188,14 @@
           </div>
         </div>
         
-        <div class="settings-save-footer">
-          <span class="save-status" id="account-feedback"></span>
-          <button class="settings-btn settings-btn-primary" id="account-save">Update Account</button>
+        <div class="settings-card-footer">
+          <span class="save-status" id="account-status"></span>
+          <button type="submit" class="settings-btn settings-btn-primary" id="account-save">
+            <span class="btn-spinner"></span>
+            <span class="btn-text">Update Account</span>
+          </button>
         </div>
-      </div>
+      </form>
     </section>
 
     <!-- ═══════════════════════════════════════════════════════════════════════
@@ -1044,7 +1254,7 @@
               <div class="setting-description">End all active sessions across all devices</div>
             </div>
             <div class="setting-control">
-              <button class="settings-btn settings-btn-danger" id="signout-all">Sign Out All</button>
+              <button type="button" class="settings-btn settings-btn-danger" id="signout-all">Sign Out All</button>
             </div>
           </div>
         </div>
@@ -1061,7 +1271,7 @@
               <div class="setting-description">Update your account password</div>
             </div>
             <div class="setting-control">
-              <button class="settings-btn settings-btn-secondary" disabled>Change Password</button>
+              <button type="button" class="settings-btn settings-btn-secondary" disabled>Change</button>
             </div>
           </div>
           
@@ -1071,7 +1281,7 @@
               <div class="setting-description">Add an extra layer of security to your account</div>
             </div>
             <div class="setting-control">
-              <button class="settings-btn settings-btn-secondary" disabled>Enable 2FA</button>
+              <button type="button" class="settings-btn settings-btn-secondary" disabled>Enable</button>
             </div>
           </div>
         </div>
@@ -1087,7 +1297,7 @@
         <p>Choose what you want to be notified about</p>
       </div>
       
-      <div class="settings-card">
+      <form class="settings-card" id="form-notifications" onsubmit="return false;">
         <div class="settings-card-header">
           <h3>Activity Notifications</h3>
         </div>
@@ -1102,7 +1312,7 @@
               </div>
               <div class="setting-control">
                 <label class="toggle-switch">
-                  <input type="checkbox" id="notif-task_assigned" checked>
+                  <input type="checkbox" id="pref-notif_task_assigned" data-pref="notif_task_assigned">
                   <span class="toggle-slider"></span>
                 </label>
               </div>
@@ -1115,7 +1325,7 @@
               </div>
               <div class="setting-control">
                 <label class="toggle-switch">
-                  <input type="checkbox" id="notif-task_due" checked>
+                  <input type="checkbox" id="pref-notif_task_due" data-pref="notif_task_due">
                   <span class="toggle-slider"></span>
                 </label>
               </div>
@@ -1132,7 +1342,7 @@
               </div>
               <div class="setting-control">
                 <label class="toggle-switch">
-                  <input type="checkbox" id="notif-report_generated">
+                  <input type="checkbox" id="pref-notif_report_generated" data-pref="notif_report_generated">
                   <span class="toggle-slider"></span>
                 </label>
               </div>
@@ -1145,7 +1355,7 @@
               </div>
               <div class="setting-control">
                 <label class="toggle-switch">
-                  <input type="checkbox" id="notif-pipeline_complete" checked>
+                  <input type="checkbox" id="pref-notif_pipeline_complete" data-pref="notif_pipeline_complete">
                   <span class="toggle-slider"></span>
                 </label>
               </div>
@@ -1162,16 +1372,16 @@
               </div>
               <div class="setting-control">
                 <label class="toggle-switch">
-                  <input type="checkbox" id="notif-weekly_digest">
+                  <input type="checkbox" id="pref-notif_weekly_digest" data-pref="notif_weekly_digest">
                   <span class="toggle-slider"></span>
                 </label>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      </form>
       
-      <div class="settings-card">
+      <form class="settings-card" id="form-delivery" onsubmit="return false;">
         <div class="settings-card-header">
           <h3>Delivery Methods</h3>
         </div>
@@ -1183,7 +1393,7 @@
             </div>
             <div class="setting-control">
               <label class="toggle-switch">
-                <input type="checkbox" id="notif-in_app" checked>
+                <input type="checkbox" id="pref-notif_in_app" data-pref="notif_in_app">
                 <span class="toggle-slider"></span>
               </label>
             </div>
@@ -1203,11 +1413,14 @@
           </div>
         </div>
         
-        <div class="settings-save-footer">
-          <span class="save-status" id="notif-feedback"></span>
-          <button class="settings-btn settings-btn-primary" id="notif-save">Save Notification Settings</button>
+        <div class="settings-card-footer">
+          <span class="save-status" id="notif-status"></span>
+          <button type="submit" class="settings-btn settings-btn-primary" id="notif-save">
+            <span class="btn-spinner"></span>
+            <span class="btn-text">Save Notification Settings</span>
+          </button>
         </div>
-      </div>
+      </form>
     </section>
 
     <!-- ═══════════════════════════════════════════════════════════════════════
@@ -1273,6 +1486,27 @@
   'use strict';
   
   // ═══════════════════════════════════════════════════════════════════════════
+  // STATE
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  var serverPrefs = {};
+  var isLoading = false;
+  var isSaving = false;
+  var lastRetryPayload = null;
+  var lastRetryButton = null;
+  var debounceTimers = {};
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // DOM ELEMENTS
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  var loadingOverlay = document.getElementById('settings-loading');
+  var toast = document.getElementById('settings-toast');
+  var toastMessage = document.getElementById('toast-message');
+  var toastRetry = document.getElementById('toast-retry');
+  var toastClose = document.getElementById('toast-close');
+  
+  // ═══════════════════════════════════════════════════════════════════════════
   // NAVIGATION
   // ═══════════════════════════════════════════════════════════════════════════
   
@@ -1287,9 +1521,9 @@
       sections.forEach(function(sec) { sec.classList.remove('active'); });
       
       item.classList.add('active');
-      document.getElementById('section-' + sectionId).classList.add('active');
+      var section = document.getElementById('section-' + sectionId);
+      if (section) section.classList.add('active');
       
-      // Update URL hash
       history.replaceState(null, null, '#' + sectionId);
     });
   });
@@ -1302,106 +1536,202 @@
   }
   
   // ═══════════════════════════════════════════════════════════════════════════
-  // UTILITIES
+  // TOAST SYSTEM
   // ═══════════════════════════════════════════════════════════════════════════
   
-  function showToast(msg, type) {
-    if (typeof Aevel !== 'undefined' && Aevel.toast) {
-      Aevel.toast(msg, type);
+  var toastTimer = null;
+  
+  function showToast(message, type, retryCallback) {
+    if (toastTimer) clearTimeout(toastTimer);
+    
+    toastMessage.textContent = message;
+    toast.className = 'settings-toast visible ' + (type || '');
+    
+    if (retryCallback && type === 'error') {
+      toastRetry.style.display = 'inline-block';
+      toastRetry.onclick = function() {
+        hideToast();
+        retryCallback();
+      };
+    } else {
+      toastRetry.style.display = 'none';
+    }
+    
+    toastTimer = setTimeout(hideToast, type === 'error' ? 8000 : 4000);
+  }
+  
+  function hideToast() {
+    toast.classList.remove('visible');
+  }
+  
+  toastClose.addEventListener('click', hideToast);
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // LOADING STATE
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  function setLoading(show) {
+    isLoading = show;
+    if (show) {
+      loadingOverlay.classList.add('visible');
+    } else {
+      loadingOverlay.classList.remove('visible');
     }
   }
   
-  function setFeedback(elementId, message, isError) {
+  function setButtonLoading(btn, loading) {
+    if (loading) {
+      btn.classList.add('loading');
+      btn.disabled = true;
+    } else {
+      btn.classList.remove('loading');
+      btn.disabled = false;
+    }
+  }
+  
+  function setStatus(elementId, message, isError) {
     var el = document.getElementById(elementId);
     if (el) {
       el.textContent = message;
       el.className = 'save-status ' + (isError ? 'error' : 'success');
-      setTimeout(function() { el.textContent = ''; }, 3000);
+      if (message) {
+        setTimeout(function() { 
+          if (el.textContent === message) el.textContent = ''; 
+        }, 4000);
+      }
     }
   }
   
-  function applyCompact(on) {
-    document.body.classList.toggle('compact', !!on);
+  // ═══════════════════════════════════════════════════════════════════════════
+  // APPLY PREFERENCES TO UI
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  function applyPrefsToUI(prefs) {
+    document.querySelectorAll('[data-pref]').forEach(function(el) {
+      var key = el.getAttribute('data-pref');
+      var value = prefs[key];
+      
+      if (el.type === 'checkbox') {
+        el.checked = value === true || value === 'true';
+      } else if (el.tagName === 'SELECT' || el.type === 'text') {
+        el.value = value || '';
+      }
+    });
+    
+    // Apply compact mode
+    document.body.classList.toggle('compact', !!prefs.compact);
   }
   
   // ═══════════════════════════════════════════════════════════════════════════
   // LOAD PREFERENCES
   // ═══════════════════════════════════════════════════════════════════════════
   
-  var prefs = {};
-  
   function loadPreferences() {
-    fetch('/api/preferences', { credentials: 'same-origin' })
-      .then(function(r) { return r.json(); })
-      .then(function(d) {
-        prefs = d;
-        
-        // Dashboard preferences
-        document.getElementById('pref-dashboard_kpis').checked = d.dashboard_kpis !== false;
-        document.getElementById('pref-dashboard_widgets').checked = d.dashboard_widgets !== false;
-        document.getElementById('pref-ai_insights').checked = !!d.ai_insights;
-        document.getElementById('pref-default_view').value = d.default_view || 'overview';
-        document.getElementById('pref-compact').checked = !!d.compact;
-        
-        // Workspace preferences
-        document.getElementById('pref-time_range').value = d.time_range || '30d';
-        document.getElementById('pref-dry_run').checked = !!d.dry_run;
-        document.getElementById('pref-auto_validate').checked = d.auto_validate !== false;
-        document.getElementById('pref-report_ai_summary').checked = d.report_ai_summary !== false;
-        document.getElementById('pref-report_charts').checked = d.report_charts !== false;
-        document.getElementById('pref-week_start').value = d.week_start || 'monday';
-        document.getElementById('pref-timezone').value = d.timezone || 'local';
-        
-        // Account
-        if (d.display_name) {
-          document.getElementById('account-name').value = d.display_name;
-        }
-        
-        // Notifications
-        document.getElementById('notif-task_assigned').checked = d.notif_task_assigned !== false;
-        document.getElementById('notif-task_due').checked = d.notif_task_due !== false;
-        document.getElementById('notif-report_generated').checked = !!d.notif_report_generated;
-        document.getElementById('notif-pipeline_complete').checked = d.notif_pipeline_complete !== false;
-        document.getElementById('notif-weekly_digest').checked = !!d.notif_weekly_digest;
-        document.getElementById('notif-in_app').checked = d.notif_in_app !== false;
-        
-        applyCompact(d.compact);
+    if (isLoading) return;
+    
+    setLoading(true);
+    console.log('[Settings] Loading preferences...');
+    
+    fetch('/api/preferences', { 
+      credentials: 'same-origin',
+      headers: { 'Accept': 'application/json' }
+    })
+      .then(function(r) { 
+        if (!r.ok) throw new Error('Failed to load (HTTP ' + r.status + ')');
+        return r.json(); 
       })
-      .catch(function() {
-        showToast('Failed to load preferences', 'error');
+      .then(function(data) {
+        console.log('[Settings] Preferences loaded:', Object.keys(data).length, 'keys');
+        serverPrefs = data;
+        applyPrefsToUI(data);
+        setLoading(false);
+      })
+      .catch(function(err) {
+        console.error('[Settings] Load error:', err);
+        setLoading(false);
+        showToast('Failed to load preferences', 'error', loadPreferences);
       });
   }
   
+  // Initial load
   loadPreferences();
   
   // ═══════════════════════════════════════════════════════════════════════════
   // SAVE PREFERENCES
   // ═══════════════════════════════════════════════════════════════════════════
   
-  function savePreferences(payload, feedbackId) {
+  function savePreferences(payload, buttonId, statusId) {
+    if (isSaving) return Promise.reject(new Error('Already saving'));
+    
+    var btn = document.getElementById(buttonId);
+    if (!btn) return Promise.reject(new Error('Button not found'));
+    
+    isSaving = true;
+    setButtonLoading(btn, true);
+    setStatus(statusId, '');
+    
+    console.log('[Settings] Saving:', payload);
+    
     return fetch('/api/preferences', {
       method: 'PATCH',
       credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
       body: JSON.stringify(payload)
     })
-    .then(function(r) { return r.json(); })
-    .then(function(d) {
-      prefs = Object.assign(prefs, d);
-      setFeedback(feedbackId, 'Saved successfully', false);
-      showToast('Settings saved', 'success');
-      return d;
+    .then(function(r) { 
+      if (!r.ok) {
+        return r.json().then(function(data) {
+          throw new Error(data.error || 'Save failed (HTTP ' + r.status + ')');
+        });
+      }
+      return r.json(); 
+    })
+    .then(function(data) {
+      console.log('[Settings] Saved successfully');
+      serverPrefs = Object.assign({}, serverPrefs, data);
+      applyPrefsToUI(serverPrefs);
+      setStatus(statusId, 'Saved', false);
+      showToast('Settings saved successfully', 'success');
+      isSaving = false;
+      setButtonLoading(btn, false);
+      return data;
     })
     .catch(function(err) {
-      setFeedback(feedbackId, 'Failed to save', true);
-      showToast('Failed to save settings', 'error');
+      console.error('[Settings] Save error:', err);
+      setStatus(statusId, 'Failed to save', true);
+      
+      // Store for retry
+      lastRetryPayload = payload;
+      lastRetryButton = buttonId;
+      
+      showToast(err.message || 'Failed to save settings', 'error', function() {
+        savePreferences(lastRetryPayload, lastRetryButton, statusId);
+      });
+      
+      isSaving = false;
+      setButtonLoading(btn, false);
       throw err;
     });
   }
   
-  // Dashboard Preferences
-  document.getElementById('prefs-save').addEventListener('click', function() {
-    var payload = {
+  // ═══════════════════════════════════════════════════════════════════════════
+  // DEBOUNCE
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  function debounce(key, fn, delay) {
+    if (debounceTimers[key]) clearTimeout(debounceTimers[key]);
+    debounceTimers[key] = setTimeout(fn, delay);
+  }
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // COLLECT FORM DATA
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  function collectPrefsPayload() {
+    return {
       dashboard_kpis: document.getElementById('pref-dashboard_kpis').checked,
       dashboard_widgets: document.getElementById('pref-dashboard_widgets').checked,
       ai_insights: document.getElementById('pref-ai_insights').checked,
@@ -1410,13 +1740,10 @@
       dashboard_chart: true,
       dashboard_recent: true
     };
-    applyCompact(payload.compact);
-    savePreferences(payload, 'prefs-feedback');
-  });
+  }
   
-  // Workspace Settings
-  document.getElementById('workspace-save').addEventListener('click', function() {
-    var payload = {
+  function collectWorkspacePayload() {
+    return {
       time_range: document.getElementById('pref-time_range').value,
       dry_run: document.getElementById('pref-dry_run').checked,
       auto_validate: document.getElementById('pref-auto_validate').checked,
@@ -1425,33 +1752,66 @@
       week_start: document.getElementById('pref-week_start').value,
       timezone: document.getElementById('pref-timezone').value
     };
-    savePreferences(payload, 'workspace-feedback');
-  });
+  }
   
-  // Account Settings
-  document.getElementById('account-save').addEventListener('click', function() {
-    var payload = {
-      display_name: document.getElementById('account-name').value.trim()
+  function collectAccountPayload() {
+    var name = document.getElementById('pref-display_name').value.trim();
+    return { display_name: name };
+  }
+  
+  function collectNotifPayload() {
+    return {
+      notif_task_assigned: document.getElementById('pref-notif_task_assigned').checked,
+      notif_task_due: document.getElementById('pref-notif_task_due').checked,
+      notif_report_generated: document.getElementById('pref-notif_report_generated').checked,
+      notif_pipeline_complete: document.getElementById('pref-notif_pipeline_complete').checked,
+      notif_weekly_digest: document.getElementById('pref-notif_weekly_digest').checked,
+      notif_in_app: document.getElementById('pref-notif_in_app').checked
     };
-    savePreferences(payload, 'account-feedback');
+  }
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // EVENT HANDLERS
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  // Preferences
+  document.getElementById('prefs-save').addEventListener('click', function(e) {
+    e.preventDefault();
+    var payload = collectPrefsPayload();
+    document.body.classList.toggle('compact', payload.compact);
+    savePreferences(payload, 'prefs-save', 'prefs-status');
   });
   
-  // Notification Settings
-  document.getElementById('notif-save').addEventListener('click', function() {
-    var payload = {
-      notif_task_assigned: document.getElementById('notif-task_assigned').checked,
-      notif_task_due: document.getElementById('notif-task_due').checked,
-      notif_report_generated: document.getElementById('notif-report_generated').checked,
-      notif_pipeline_complete: document.getElementById('notif-pipeline_complete').checked,
-      notif_weekly_digest: document.getElementById('notif-weekly_digest').checked,
-      notif_in_app: document.getElementById('notif-in_app').checked
-    };
-    savePreferences(payload, 'notif-feedback');
+  // Workspace
+  document.getElementById('workspace-save').addEventListener('click', function(e) {
+    e.preventDefault();
+    savePreferences(collectWorkspacePayload(), 'workspace-save', 'workspace-status');
   });
   
-  // Live compact toggle
+  // Account
+  document.getElementById('account-save').addEventListener('click', function(e) {
+    e.preventDefault();
+    savePreferences(collectAccountPayload(), 'account-save', 'account-status');
+  });
+  
+  // Notifications
+  document.getElementById('notif-save').addEventListener('click', function(e) {
+    e.preventDefault();
+    savePreferences(collectNotifPayload(), 'notif-save', 'notif-status');
+  });
+  
+  // Live compact toggle preview
   document.getElementById('pref-compact').addEventListener('change', function() {
-    applyCompact(this.checked);
+    document.body.classList.toggle('compact', this.checked);
+  });
+  
+  // Prevent form submission on Enter
+  document.querySelectorAll('.settings-card').forEach(function(form) {
+    form.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && e.target.tagName !== 'BUTTON') {
+        e.preventDefault();
+      }
+    });
   });
   
   // ═══════════════════════════════════════════════════════════════════════════
@@ -1460,8 +1820,8 @@
   
   document.getElementById('signout-all').addEventListener('click', function() {
     if (confirm('Sign out of all sessions? You will need to log in again.')) {
-      // For now, just sign out current session
-      document.querySelector('form[action*="logout"]').submit();
+      var form = document.querySelector('form[action*="logout"]');
+      if (form) form.submit();
     }
   });
   
