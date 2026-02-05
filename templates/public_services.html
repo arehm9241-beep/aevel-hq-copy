@@ -1,25 +1,82 @@
 {% extends "public_base.html" %}
-{% block title %}Services · Aevel{% endblock %}
+{% block title %}Services — Aevel{% endblock %}
+
 {% block content %}
-<section class="page-section">
-  <header class="page-section-header">
-    <h1>Services</h1>
-    <p>Strategy, implementation, and ongoing analytics operations.</p>
-  </header>
-  <div class="grid-three">
-    <article class="grid-card">
-      <h2>Analytics Foundations</h2>
-      <p>From tracking plans to data models, we design analytics that align with how your business actually runs.</p>
-    </article>
-    <article class="grid-card">
-      <h2>Reporting Systems</h2>
-      <p>Custom dashboards, client-ready reports, and executive views connected to your existing stack.</p>
-    </article>
-    <article class="grid-card">
-      <h2>Automation &amp; Ops</h2>
-      <p>Notification rules, task flows, and delivery pipelines that keep teams in motion without constant micromanagement.</p>
-    </article>
+<div class="page-header">
+  <h1>Services</h1>
+  <p>
+    We help organizations move from data chaos to clarity—through structured analytics, 
+    streamlined reporting, and ongoing strategic support.
+  </p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     SERVICES GRID
+     ═══════════════════════════════════════════════════════════════════════════ -->
+<section class="section" style="border-top: none; padding-top: 0;">
+  <div class="grid-two">
+    <div class="card">
+      <div class="card-accent"></div>
+      <h3 class="card-title">Data Analytics</h3>
+      <p class="card-text">
+        Turn raw data into decision-ready insight. We design reporting structures and KPI frameworks 
+        that surface what matters—clearly, consistently, and without noise.
+      </p>
+      <p class="card-text" style="margin-top: var(--space-4); color: var(--text-muted); font-size: 0.9rem;">
+        Includes: KPI design, data modeling, reporting infrastructure, executive dashboards
+      </p>
+    </div>
+    
+    <div class="card">
+      <div class="card-accent"></div>
+      <h3 class="card-title">Marketing Intelligence</h3>
+      <p class="card-text">
+        Clarity across channels. We help you understand performance, attribution, and momentum 
+        so you know where to double down—and where to stop wasting time.
+      </p>
+      <p class="card-text" style="margin-top: var(--space-4); color: var(--text-muted); font-size: 0.9rem;">
+        Includes: Channel analysis, attribution modeling, campaign performance, growth forecasting
+      </p>
+    </div>
+    
+    <div class="card">
+      <div class="card-accent"></div>
+      <h3 class="card-title">Automation & Integration</h3>
+      <p class="card-text">
+        Reporting that runs itself. We connect your existing systems and streamline workflows 
+        so insight arrives when it's needed, not weeks later.
+      </p>
+      <p class="card-text" style="margin-top: var(--space-4); color: var(--text-muted); font-size: 0.9rem;">
+        Includes: Data pipelines, automated reporting, system integration, scheduled delivery
+      </p>
+    </div>
+    
+    <div class="card">
+      <div class="card-accent"></div>
+      <h3 class="card-title">Strategic Advisory</h3>
+      <p class="card-text">
+        Insight is only valuable if it leads to action. We work alongside your team to interpret 
+        results, identify opportunities, and continuously refine direction.
+      </p>
+      <p class="card-text" style="margin-top: var(--space-4); color: var(--text-muted); font-size: 0.9rem;">
+        Includes: Ongoing support, strategic review sessions, opportunity identification, roadmap planning
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     CTA SECTION
+     ═══════════════════════════════════════════════════════════════════════════ -->
+<section class="cta-section">
+  <div class="cta-inner">
+    <h2 class="cta-title">Ready to get started?</h2>
+    <p class="cta-text">
+      Tell us about your current challenges and goals. We'll respond with thoughts on 
+      how we might help—and whether we're the right fit.
+    </p>
+    <a href="{{ url_for('marketing_contact') }}" class="btn-primary">Request a consultation</a>
+    <p class="cta-note">No obligation. No pitch decks. Just a focused discussion.</p>
   </div>
 </section>
 {% endblock %}
-

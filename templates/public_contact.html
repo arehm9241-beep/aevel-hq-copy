@@ -1,26 +1,104 @@
 {% extends "public_base.html" %}
-{% block title %}Contact · Aevel{% endblock %}
+{% block title %}Contact — Aevel{% endblock %}
+
 {% block content %}
-<section class="page-section">
-  <header class="page-section-header">
-    <h1>Contact</h1>
-    <p>Tell us about your analytics, reporting, and automation challenges.</p>
-  </header>
+<div class="page-header">
+  <h1>Let's talk about your data</h1>
+  <p>
+    If you're struggling with unclear metrics, slow reporting, or decisions that feel harder 
+    than they should—let's have a conversation.
+  </p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     CONTACT CARDS
+     ═══════════════════════════════════════════════════════════════════════════ -->
+<section class="section" style="border-top: none; padding-top: 0;">
   <div class="grid-two">
-    <div class="grid-card">
-      <h2>Start a conversation</h2>
-      <p>Email us and we’ll respond with a short set of questions and a time to connect.</p>
-      <p class="contact-email"><a href="mailto:hello.aevel@zohomail.com">hello.aevel@zohomail.com</a></p>
+    <div class="card">
+      <div class="card-accent"></div>
+      <h3 class="card-title">Start a conversation</h3>
+      <p class="card-text">
+        Email us with a brief overview of your situation. We'll respond within 1–2 business days 
+        with initial thoughts and a time to connect.
+      </p>
+      <p class="contact-email" style="margin-top: var(--space-5);">
+        <a href="mailto:hello.aevel@zohomail.com">hello.aevel@zohomail.com</a>
+      </p>
     </div>
-    <div class="grid-card">
-      <h2>What to include</h2>
+    
+    <div class="card">
+      <div class="card-accent"></div>
+      <h3 class="card-title">What to include</h3>
       <ul class="contact-list">
-        <li>Your team size and primary tools</li>
-        <li>The metrics you care most about</li>
-        <li>Any reporting or automation pain points</li>
+        <li>Your organization and role</li>
+        <li>Current analytics or reporting challenges</li>
+        <li>What outcomes matter most right now</li>
+        <li>Timeline and any constraints</li>
       </ul>
     </div>
   </div>
 </section>
-{% endblock %}
 
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     WHAT TO EXPECT
+     ═══════════════════════════════════════════════════════════════════════════ -->
+<section class="section">
+  <div class="section-header">
+    <p class="section-eyebrow">What to expect</p>
+    <h2 class="section-title">A focused conversation, not a sales pitch</h2>
+    <p class="section-subtitle">
+      We'll ask questions, listen carefully, and share honest thoughts on whether 
+      we're the right fit—no pressure, no obligation.
+    </p>
+  </div>
+  
+  <ol class="steps">
+    <li class="step">
+      <span class="step-number">01</span>
+      <div class="step-content">
+        <h3>Initial response</h3>
+        <p>
+          We'll review your message and respond with initial thoughts, clarifying questions, 
+          and suggested next steps.
+        </p>
+      </div>
+    </li>
+    
+    <li class="step">
+      <span class="step-number">02</span>
+      <div class="step-content">
+        <h3>Discovery call</h3>
+        <p>
+          A 30-minute conversation to understand your situation in more depth. No slide decks, 
+          no prepared pitches—just a focused discussion.
+        </p>
+      </div>
+    </li>
+    
+    <li class="step">
+      <span class="step-number">03</span>
+      <div class="step-content">
+        <h3>Recommendation</h3>
+        <p>
+          We'll share our honest assessment of how we might help—or point you in a better direction 
+          if we're not the right fit.
+        </p>
+      </div>
+    </li>
+  </ol>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     CTA
+     ═══════════════════════════════════════════════════════════════════════════ -->
+<section class="cta-section">
+  <div class="cta-inner">
+    <p class="cta-text" style="margin-bottom: var(--space-5);">
+      Ready when you are.
+    </p>
+    <a href="mailto:hello.aevel@zohomail.com" class="btn-primary">Send an email</a>
+    <p class="cta-note">No obligation. No pitch decks. Just a focused discussion.</p>
+  </div>
+</section>
+{% endblock %}

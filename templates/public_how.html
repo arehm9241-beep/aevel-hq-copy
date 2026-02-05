@@ -1,29 +1,110 @@
 {% extends "public_base.html" %}
-{% block title %}How We Work · Aevel{% endblock %}
+{% block title %}Our Approach — Aevel{% endblock %}
+
 {% block content %}
-<section class="page-section">
-  <header class="page-section-header">
-    <h1>How We Work</h1>
-    <p>A structured, transparent engagement model designed for analytical teams.</p>
-  </header>
+<div class="page-header">
+  <h1>Our Approach</h1>
+  <p>
+    A structured, transparent engagement model designed for organizations that value 
+    clarity, efficiency, and results over process theater.
+  </p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     PROCESS STEPS
+     ═══════════════════════════════════════════════════════════════════════════ -->
+<section class="section" style="border-top: none; padding-top: 0;">
   <ol class="steps">
     <li class="step">
-      <h2>01 · Discovery</h2>
-      <p>We map your current stack, workflows, and reporting needs across teams and stakeholders.</p>
+      <span class="step-number">01</span>
+      <div class="step-content">
+        <h3>Discovery</h3>
+        <p>
+          Understand objectives, constraints, and decision context. We map your current state, 
+          identify gaps, and align on what success looks like before touching any data.
+        </p>
+      </div>
     </li>
+    
     <li class="step">
-      <h2>02 · Design</h2>
-      <p>We translate your requirements into data models, processes, and interfaces that your team will actually use.</p>
+      <span class="step-number">02</span>
+      <div class="step-content">
+        <h3>Data Integration</h3>
+        <p>
+          Align sources, definitions, and reporting foundations. We ensure your data infrastructure 
+          supports the insights you need—without unnecessary complexity.
+        </p>
+      </div>
     </li>
+    
     <li class="step">
-      <h2>03 · Implementation</h2>
-      <p>We configure pipelines, dashboards, and automations inside Aevel’s Team Space and your existing tools.</p>
+      <span class="step-number">03</span>
+      <div class="step-content">
+        <h3>Analysis & Direction</h3>
+        <p>
+          Surface insight, identify leverage points, and clarify next steps. We translate data 
+          into recommendations that your team can act on immediately.
+        </p>
+      </div>
     </li>
+    
     <li class="step">
-      <h2>04 · Iterate</h2>
-      <p>We review outcomes with you, tune metrics, and adjust workflows as your team and data evolve.</p>
+      <span class="step-number">04</span>
+      <div class="step-content">
+        <h3>Ongoing Optimization</h3>
+        <p>
+          Continuous refinement as conditions change. We review outcomes with you, tune metrics, 
+          and adjust direction as your business evolves.
+        </p>
+      </div>
     </li>
   </ol>
 </section>
-{% endblock %}
 
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     WORKING STYLE
+     ═══════════════════════════════════════════════════════════════════════════ -->
+<section class="section">
+  <div class="section-header">
+    <p class="section-eyebrow">How we operate</p>
+    <h2 class="section-title">Built for busy teams</h2>
+    <p class="section-subtitle">
+      We stay out of your way while keeping you informed. Clear communication, 
+      minimal meetings, maximum progress.
+    </p>
+  </div>
+  
+  <div class="grid-two">
+    <div class="card">
+      <h3 class="card-title">Transparent progress</h3>
+      <p class="card-text">
+        Regular updates without the overhead. You'll always know what we're working on, 
+        what's complete, and what's next—without sitting in status meetings.
+      </p>
+    </div>
+    
+    <div class="card">
+      <h3 class="card-title">Flexible engagement</h3>
+      <p class="card-text">
+        Whether you need a one-time analysis or ongoing support, we structure engagements 
+        around your actual needs—not arbitrary retainer packages.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     CTA SECTION
+     ═══════════════════════════════════════════════════════════════════════════ -->
+<section class="cta-section">
+  <div class="cta-inner">
+    <h2 class="cta-title">Let's talk about your data</h2>
+    <p class="cta-text">
+      If you're struggling with unclear metrics, slow reporting, or decisions that feel harder 
+      than they should—let's have a conversation.
+    </p>
+    <a href="{{ url_for('marketing_contact') }}" class="btn-primary">Request a consultation</a>
+    <p class="cta-note">No obligation. No pitch decks. Just a focused discussion.</p>
+  </div>
+</section>
+{% endblock %}

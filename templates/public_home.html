@@ -1,33 +1,102 @@
 {% extends "public_base.html" %}
-{% block title %}Aevel — Analytics Headquarters{% endblock %}
+{% block title %}Aevel — Data Clarity for Growth Teams{% endblock %}
+
 {% block content %}
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     HERO SECTION
+     ═══════════════════════════════════════════════════════════════════════════ -->
 <section class="hero">
   <div class="hero-inner">
-    <p class="eyebrow">Analytics HQ</p>
-    <h1>Operational clarity for data-driven teams.</h1>
-    <p class="lead">
-      Aevel turns scattered tasks, reports, and calendars into a single, calm command center
-      for your analytics and growth workflows.
+    <h1>Data clarity for teams that need to move fast</h1>
+    
+    <p class="hero-lead">
+      We help organizations turn complex data into clear direction—through structured analytics, 
+      streamlined reporting, and insight you can actually act on.
     </p>
+    
+    <p class="hero-points">
+      No dashboards to babysit.<br>
+      No bloated tools.<br>
+      Just decisions, made easier.
+    </p>
+    
     <div class="hero-actions">
-      <a href="{{ url_for('dashboard') }}" class="btn-primary">Enter Team Space</a>
-      <a href="{{ url_for('marketing_services') }}" class="btn-ghost">Explore services</a>
+      <a href="{{ url_for('marketing_contact') }}" class="btn-primary">Request a consultation</a>
+      <a href="{{ url_for('marketing_how') }}" class="btn-ghost">Our approach</a>
     </div>
-    <p class="hero-meta">Built for teams that live in dashboards, pipelines, and client deliverables.</p>
   </div>
 </section>
 
-<section class="grid-section">
-  <div class="grid-two">
-    <div class="grid-card">
-      <h2>Analytics that stay in sync.</h2>
-      <p>Tasks, reports, events, and notes live in one timeline, so your team always knows what changed and why.</p>
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     WHAT WE DO
+     ═══════════════════════════════════════════════════════════════════════════ -->
+<section class="section">
+  <div class="section-header">
+    <p class="section-eyebrow">What we do</p>
+    <h2 class="section-title">Outcomes, not outputs</h2>
+    <p class="section-subtitle">
+      We focus on clarity, direction, and results—not more dashboards or reports to manage.
+    </p>
+  </div>
+  
+  <div class="grid-four">
+    <div class="card">
+      <div class="card-accent"></div>
+      <h3 class="card-title">Data Analytics</h3>
+      <p class="card-text">
+        Turn raw data into decision-ready insight. We design reporting structures and KPI frameworks 
+        that surface what matters—clearly, consistently, and without noise.
+      </p>
     </div>
-    <div class="grid-card">
-      <h2>Automation without chaos.</h2>
-      <p>Campaigns, alerts, and internal workflows are orchestrated from a single place instead of a patchwork of tools.</p>
+    
+    <div class="card">
+      <div class="card-accent"></div>
+      <h3 class="card-title">Marketing Intelligence</h3>
+      <p class="card-text">
+        Clarity across channels. We help you understand performance, attribution, and momentum 
+        so you know where to double down—and where to stop wasting time.
+      </p>
     </div>
+    
+    <div class="card">
+      <div class="card-accent"></div>
+      <h3 class="card-title">Automation & Integration</h3>
+      <p class="card-text">
+        Reporting that runs itself. We connect your existing systems and streamline workflows 
+        so insight arrives when it's needed, not weeks later.
+      </p>
+    </div>
+    
+    <div class="card">
+      <div class="card-accent"></div>
+      <h3 class="card-title">Strategic Advisory</h3>
+      <p class="card-text">
+        Insight is only valuable if it leads to action. We work alongside your team to interpret 
+        results, identify opportunities, and continuously refine direction.
+      </p>
+    </div>
+  </div>
+  
+  <div class="platform-note">
+    <p>
+      Our work is supported by internal systems developed to streamline analysis, reporting, and delivery—allowing 
+      us to move quickly and stay focused on outcomes rather than tools.
+    </p>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     CTA SECTION
+     ═══════════════════════════════════════════════════════════════════════════ -->
+<section class="cta-section">
+  <div class="cta-inner">
+    <h2 class="cta-title">Let's talk about your data</h2>
+    <p class="cta-text">
+      If you're struggling with unclear metrics, slow reporting, or decisions that feel harder 
+      than they should—let's have a conversation.
+    </p>
+    <a href="{{ url_for('marketing_contact') }}" class="btn-primary">Request a consultation</a>
+    <p class="cta-note">No obligation. No pitch decks. Just a focused discussion.</p>
   </div>
 </section>
 {% endblock %}
-

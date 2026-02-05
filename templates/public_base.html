@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% block title %}Aevel — Data Analytics{% endblock %}</title>
+  <title>{% block title %}Aevel — Analytics & Advisory{% endblock %}</title>
+  <meta name="description" content="Data clarity for teams that need to move fast. Analytics, reporting, and strategic advisory for growth-focused organizations.">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/public.css') }}">
   {% block head %}{% endblock %}
 </head>
@@ -11,21 +12,26 @@
   <header class="site-header">
     <div class="site-header-inner">
       <a href="{{ url_for('marketing_home') }}" class="site-logo">Aevel</a>
+      
       <nav class="site-nav" aria-label="Primary">
-        <a href="{{ url_for('marketing_home') }}" class="nav-link{% if request.endpoint == 'marketing_home' %} is-active{% endif %}">Home</a>
         <a href="{{ url_for('marketing_services') }}" class="nav-link{% if request.endpoint == 'marketing_services' %} is-active{% endif %}">Services</a>
-        <a href="{{ url_for('marketing_how') }}" class="nav-link{% if request.endpoint == 'marketing_how' %} is-active{% endif %}">How We Work</a>
+        <a href="{{ url_for('marketing_how') }}" class="nav-link{% if request.endpoint == 'marketing_how' %} is-active{% endif %}">Process</a>
         <a href="{{ url_for('marketing_contact') }}" class="nav-link{% if request.endpoint == 'marketing_contact' %} is-active{% endif %}">Contact</a>
+        <a href="{{ url_for('login') }}" class="nav-login">Team Login</a>
       </nav>
+      
       <button class="burger" id="burger-toggle" aria-label="Open menu" aria-expanded="false" aria-controls="burger-menu">
         <span></span>
         <span></span>
       </button>
     </div>
+    
     <div class="burger-menu" id="burger-menu">
       <div class="burger-menu-inner">
-        <a href="{{ url_for('dashboard') }}" class="burger-primary">Team Space</a>
-        <a href="{{ url_for('login') }}" class="burger-secondary">Sign in</a>
+        <a href="{{ url_for('marketing_services') }}" class="burger-secondary">Services</a>
+        <a href="{{ url_for('marketing_how') }}" class="burger-secondary">Process</a>
+        <a href="{{ url_for('marketing_contact') }}" class="burger-primary">Contact</a>
+        <a href="{{ url_for('login') }}" class="burger-secondary">Team Login</a>
       </div>
     </div>
   </header>
@@ -36,8 +42,8 @@
 
   <footer class="site-footer">
     <div class="site-footer-inner">
-      <span>© {{ 2026 }} Aevel Analytics</span>
-      <span class="site-footer-secondary">Data analytics, automation, and reporting.</span>
+      <span>© 2026 Aevel</span>
+      <span class="site-footer-secondary">Analytics & strategic advisory</span>
     </div>
   </footer>
 
@@ -45,4 +51,3 @@
   {% block scripts %}{% endblock %}
 </body>
 </html>
-
