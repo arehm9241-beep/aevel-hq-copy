@@ -1,397 +1,2101 @@
 {% extends "base_aevel.html" %}
 {% block title %}Reports{% endblock %}
-{% block content %}
-<div class="page-header">
-  <h1>Reports</h1>
-  <p class="subtitle">Notes and memos</p>
-</div>
 
-<section class="section">
-  <div class="card" style="margin-bottom: 1.25rem;">
-    <div class="card-title">New report</div>
-    <form id="note-form">
-      <div class="form-group">
-        <label>Title</label>
-        <input type="text" class="input" id="note-title" placeholder="Report title" required>
-      </div>
-      <div class="form-group">
-        <label>Content</label>
-        <textarea class="textarea" id="note-body" placeholder="Content…"></textarea>
-      </div>
-      <div class="form-actions" style="display: flex; gap: var(--space-3); align-items: center; flex-wrap: wrap;">
-        <button type="submit" class="btn btn-primary">Save</button>
-        <div class="ai-actions" style="display: flex; gap: var(--space-2);">
-          <button type="button" class="btn btn-ghost btn-small" id="ai-summarize-btn">
-            <span class="ai-badge-inline">AI</span> Summarize
-          </button>
-          <button type="button" class="btn btn-ghost btn-small" id="ai-takeaways-btn">
-            <span class="ai-badge-inline">AI</span> Extract takeaways
-          </button>
-          <div class="ai-rewrite-dropdown" style="position: relative;">
-            <button type="button" class="btn btn-ghost btn-small" id="ai-rewrite-btn">
-              <span class="ai-badge-inline">AI</span> Rewrite for...
-            </button>
-            <div class="ai-rewrite-menu" id="ai-rewrite-menu" style="display: none;">
-              <button type="button" data-audience="executive">Executive</button>
-              <button type="button" data-audience="marketing">Marketing</button>
-              <button type="button" data-audience="technical">Technical</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </form>
-    
-    <!-- AI Output Panel -->
-    <div class="ai-output-panel" id="ai-output-panel" style="display: none;">
-      <div class="ai-output-header">
-        <span class="ai-badge">AI</span>
-        <span class="ai-output-title" id="ai-output-title">AI Output</span>
-        <button type="button" class="btn btn-ghost btn-small" id="ai-apply-btn" style="display: none;">Apply to content</button>
-        <button type="button" class="btn btn-ghost btn-small" id="ai-dismiss-btn">Dismiss</button>
-      </div>
-      <div class="ai-output-content" id="ai-output-content"></div>
-    </div>
-  </div>
-
-  <h2 class="section-title">Saved reports</h2>
-  <p class="text-secondary" style="font-size: 0.875rem; margin-bottom: 0.75rem;">
-    <a href="/api/notes/export?format=csv" class="btn btn-ghost btn-small" download="aevel-reports.csv" style="padding: 0.25rem 0;">Export CSV</a>
-  </p>
-  <div class="card">
-    <div class="table-wrap">
-      <table class="table">
-        <thead>
-          <tr>
-            <th>Title</th>
-            <th>Updated</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody id="notes-tbody">
-          <tr><td colspan="3" class="cell-primary">Loading…</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-</section>
-
+{% block head %}
 <style>
-.ai-badge-inline {
-  font-size: 9px;
-  padding: 1px 4px;
-  background: var(--bg-overlay);
-  color: var(--text-muted);
-  border-radius: var(--radius-full);
-  margin-right: 4px;
-  vertical-align: middle;
+/* ═══════════════════════════════════════════════════════════════════════════
+   REPORTS WORKSPACE — AI-POWERED REPORTING
+   Internal analysis, client insights, marketing performance, decisions
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.reports-workspace {
+  display: grid;
+  grid-template-columns: 280px 1fr 300px;
+  height: calc(100vh - 60px);
+  overflow: hidden;
 }
-.ai-rewrite-menu {
-  position: absolute;
-  top: 100%;
-  left: 0;
+
+@media (max-width: 1200px) {
+  .reports-workspace {
+    grid-template-columns: 240px 1fr 260px;
+  }
+}
+
+@media (max-width: 900px) {
+  .reports-workspace {
+    grid-template-columns: 1fr;
+  }
+  .reports-sidebar,
+  .reports-ai-panel {
+    display: none;
+  }
+  .reports-sidebar.mobile-visible,
+  .reports-ai-panel.mobile-visible {
+    display: flex;
+    position: fixed;
+    top: 60px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 100;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   1. LEFT SIDEBAR — REPORT LIBRARY
+   ───────────────────────────────────────────────────────────────────────────── */
+.reports-sidebar {
+  display: flex;
+  flex-direction: column;
   background: var(--bg-raised);
+  border-right: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.sidebar-header {
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--border);
+}
+
+.sidebar-title {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--text);
+  margin-bottom: var(--space-3);
+}
+
+.sidebar-search {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-xs);
+  color: var(--text);
+  background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  padding: var(--space-1);
-  z-index: 100;
-  min-width: 140px;
-  box-shadow: var(--shadow-md);
 }
-.ai-rewrite-menu button {
-  display: block;
-  width: 100%;
-  text-align: left;
-  padding: var(--space-2) var(--space-3);
-  background: none;
-  border: none;
+
+.sidebar-search::placeholder {
+  color: var(--text-muted);
+}
+
+.sidebar-filters {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.sidebar-filter {
+  flex: 1;
+  padding: var(--space-1) var(--space-2);
+  font-size: 10px;
   color: var(--text-secondary);
-  font-size: var(--text-sm);
-  cursor: pointer;
+  background: var(--bg);
+  border: 1px solid var(--border);
   border-radius: var(--radius-xs);
 }
-.ai-rewrite-menu button:hover {
-  background: var(--bg-hover);
-  color: var(--text);
+
+.report-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-2);
 }
-.ai-output-panel {
-  margin-top: var(--space-4);
-  padding: var(--space-4);
-  background: var(--bg-overlay);
+
+.report-list-item {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-3);
+  margin-bottom: var(--space-2);
+  background: var(--bg);
+  border: 1px solid transparent;
   border-radius: var(--radius-sm);
-  border-left: 3px solid var(--accent);
+  cursor: pointer;
+  transition: all 0.15s ease;
 }
-.ai-output-header {
+
+.report-list-item:hover {
+  background: var(--bg-hover);
+  border-color: var(--border);
+}
+
+.report-list-item.active {
+  background: var(--bg-overlay);
+  border-color: var(--accent);
+}
+
+.report-list-item-title {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text);
+  margin-bottom: var(--space-1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.report-list-item-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.report-type-badge {
+  padding: 1px 6px;
+  background: var(--bg-overlay);
+  border-radius: var(--radius-full);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.report-type-badge.internal { background: rgba(168, 144, 120, 0.15); color: #A89078; }
+.report-type-badge.client { background: rgba(120, 144, 168, 0.15); color: #8A9AAA; }
+.report-type-badge.campaign { background: rgba(144, 168, 120, 0.15); color: #9AAA8A; }
+.report-type-badge.insight { background: rgba(168, 120, 144, 0.15); color: #AA8A9A; }
+
+.sidebar-new-btn {
+  margin: var(--space-3);
+  padding: var(--space-3);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--bg);
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.sidebar-new-btn:hover {
+  opacity: 0.9;
+}
+
+.report-list-empty {
+  padding: var(--space-6) var(--space-4);
+  text-align: center;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   2. CENTER — REPORT EDITOR
+   ───────────────────────────────────────────────────────────────────────────── */
+.reports-editor {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  overflow: hidden;
+}
+
+.editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-raised);
+}
+
+.editor-header-left {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  margin-bottom: var(--space-3);
 }
-.ai-output-title {
+
+.editor-status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+
+.status-dot.saved { background: #8aba8a; }
+.status-dot.saving { background: #baba8a; animation: pulse 1s infinite; }
+.status-dot.unsaved { background: #ba8a8a; }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.editor-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.editor-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.editor-btn:hover {
+  color: var(--text-secondary);
+  border-color: var(--border-strong);
+}
+
+.editor-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.editor-btn.btn-primary {
+  background: var(--accent);
+  border-color: transparent;
+  color: var(--bg);
+}
+
+.editor-btn.btn-primary:hover {
+  opacity: 0.9;
+}
+
+.editor-body {
   flex: 1;
+  overflow-y: auto;
+  padding: var(--space-5);
+}
+
+/* Report Metadata */
+.report-metadata {
+  background: var(--bg-raised);
+  border-radius: var(--radius);
+  padding: var(--space-5);
+  margin-bottom: var(--space-5);
+  border: 1px solid var(--border);
+}
+
+.metadata-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+@media (max-width: 700px) {
+  .metadata-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.metadata-row:last-child {
+  margin-bottom: 0;
+}
+
+.metadata-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.metadata-field.full-width {
+  grid-column: 1 / -1;
+}
+
+.metadata-label {
+  font-size: 10px;
+  font-weight: var(--weight-medium);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.metadata-input {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.metadata-input::placeholder {
+  color: var(--text-muted);
+}
+
+.metadata-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.title-input {
+  font-size: 20px;
+  font-weight: var(--weight-semibold);
+  padding: var(--space-3) var(--space-4);
+  letter-spacing: -0.01em;
+}
+
+/* Report Sections */
+.report-sections {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.report-section {
+  background: var(--bg-raised);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  transition: border-color 0.15s ease;
+}
+
+.report-section:focus-within {
+  border-color: var(--accent);
+}
+
+.report-section.collapsed .section-body {
+  display: none;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-overlay);
+  cursor: pointer;
+  user-select: none;
+}
+
+.section-header-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.section-drag-handle {
+  color: var(--text-muted);
+  cursor: grab;
+}
+
+.section-drag-handle:active {
+  cursor: grabbing;
+}
+
+.section-title {
   font-size: var(--text-sm);
   font-weight: var(--weight-medium);
-  color: var(--text-secondary);
+  color: var(--text);
 }
-.ai-output-content {
+
+.section-toggle {
+  padding: var(--space-1);
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  transform: rotate(0deg);
+  transition: transform 0.15s ease;
+}
+
+.report-section.collapsed .section-toggle {
+  transform: rotate(-90deg);
+}
+
+.section-header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.section-ai-btn {
+  padding: var(--space-1) var(--space-2);
+  font-size: 10px;
+  color: var(--accent);
+  background: var(--accent-muted);
+  border: none;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.report-section:hover .section-ai-btn,
+.section-ai-btn:focus {
+  opacity: 1;
+}
+
+.section-body {
+  padding: var(--space-4);
+}
+
+.section-textarea {
+  width: 100%;
+  min-height: 120px;
+  padding: var(--space-3);
   font-size: var(--text-sm);
+  line-height: 1.6;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  resize: vertical;
+}
+
+.section-textarea::placeholder {
+  color: var(--text-muted);
+}
+
+.section-textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* Add Section Button */
+.add-section-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  background: transparent;
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.add-section-btn:hover {
   color: var(--text-secondary);
-  line-height: var(--leading);
-  white-space: pre-wrap;
+  border-color: var(--border-strong);
 }
-.ai-output-content ul {
-  margin: var(--space-2) 0;
-  padding-left: var(--space-5);
+
+/* Data Source Badge */
+.data-source-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  font-size: 11px;
+  color: var(--text-secondary);
+  background: var(--bg-overlay);
+  border-radius: var(--radius-sm);
 }
-.ai-output-content li {
-  margin-bottom: var(--space-1);
+
+.data-source-badge svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* Narrative-only indicator */
+.narrative-indicator {
+  padding: var(--space-2) var(--space-3);
+  font-size: 11px;
+  color: var(--text-muted);
+  background: var(--bg-overlay);
+  border-radius: var(--radius-sm);
+  border-left: 2px solid var(--text-muted);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   3. RIGHT PANEL — AI ASSISTANT
+   ───────────────────────────────────────────────────────────────────────────── */
+.reports-ai-panel {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-raised);
+  border-left: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.ai-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--border);
+}
+
+.ai-panel-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--text);
+}
+
+.ai-badge {
+  padding: 2px 6px;
+  font-size: 9px;
+  font-weight: var(--weight-semibold);
+  background: var(--accent);
+  color: var(--bg);
+  border-radius: var(--radius-full);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.ai-panel-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-4);
+}
+
+/* AI Action Groups */
+.ai-action-group {
+  margin-bottom: var(--space-5);
+}
+
+.ai-action-group-title {
+  font-size: 10px;
+  font-weight: var(--weight-medium);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: var(--space-3);
+}
+
+.ai-action-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.ai-action-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-3);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s ease;
+}
+
+.ai-action-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+.ai-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ai-action-btn svg {
+  width: 14px;
+  height: 14px;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+/* AI Output */
+.ai-output-area {
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border);
+}
+
+.ai-output-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-3);
+}
+
+.ai-output-title {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  color: var(--text);
+}
+
+.ai-output-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.ai-output-btn {
+  padding: var(--space-1) var(--space-2);
+  font-size: 10px;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+}
+
+.ai-output-btn:hover {
+  color: var(--text-secondary);
+}
+
+.ai-output-btn.apply {
+  background: var(--accent);
+  border-color: transparent;
+  color: var(--bg);
+}
+
+.ai-output-content {
+  padding: var(--space-3);
+  font-size: var(--text-xs);
+  line-height: 1.6;
+  color: var(--text-secondary);
+  background: var(--bg);
+  border-radius: var(--radius-sm);
+  border-left: 2px solid var(--accent);
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+/* Rewrite audience selector */
+.rewrite-audience-select {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.audience-chip {
+  padding: var(--space-1) var(--space-2);
+  font-size: 10px;
+  color: var(--text-muted);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.audience-chip:hover,
+.audience-chip.selected {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   4. EXPORT MODAL
+   ───────────────────────────────────────────────────────────────────────────── */
+.export-modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-5);
+}
+
+.export-modal.active {
+  display: flex;
+}
+
+.export-modal-content {
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  width: 400px;
+  max-width: 100%;
+}
+
+.export-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--border);
+}
+
+.export-modal-title {
+  font-size: var(--text-base);
+  font-weight: var(--weight-medium);
+  color: var(--text);
+}
+
+.export-modal-close {
+  padding: var(--space-2);
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.export-modal-body {
+  padding: var(--space-4);
+}
+
+.export-option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  margin-bottom: var(--space-2);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.export-option:hover {
+  border-color: var(--accent);
+}
+
+.export-option-icon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-overlay);
+  border-radius: var(--radius-sm);
+}
+
+.export-option-icon svg {
+  width: 16px;
+  height: 16px;
+  color: var(--accent);
+}
+
+.export-option-text {
+  flex: 1;
+}
+
+.export-option-title {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text);
+}
+
+.export-option-desc {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   5. ADD SECTION MODAL
+   ───────────────────────────────────────────────────────────────────────────── */
+.section-modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-5);
+}
+
+.section-modal.active {
+  display: flex;
+}
+
+.section-modal-content {
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  width: 450px;
+  max-width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.section-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: var(--bg-raised);
+}
+
+.section-modal-body {
+  padding: var(--space-4);
+}
+
+.section-type-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+.section-type-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.section-type-btn:hover {
+  border-color: var(--accent);
+  background: var(--bg-hover);
+}
+
+.section-type-icon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-muted);
+  border-radius: var(--radius-sm);
+}
+
+.section-type-icon svg {
+  width: 16px;
+  height: 16px;
+  color: var(--accent);
+}
+
+.section-type-name {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   6. MOBILE TOGGLES
+   ───────────────────────────────────────────────────────────────────────────── */
+.mobile-toggle-bar {
+  display: none;
+  padding: var(--space-2) var(--space-4);
+  background: var(--bg-raised);
+  border-bottom: 1px solid var(--border);
+}
+
+@media (max-width: 900px) {
+  .mobile-toggle-bar {
+    display: flex;
+    gap: var(--space-2);
+  }
+}
+
+.mobile-toggle-btn {
+  flex: 1;
+  padding: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.mobile-toggle-btn.active {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* Loading states */
+.skeleton {
+  background: linear-gradient(90deg, var(--bg-overlay) 25%, var(--bg-elevated) 50%, var(--bg-overlay) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--radius-xs);
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }
 </style>
 {% endblock %}
+
+{% block content %}
+<div class="reports-workspace">
+  
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       1. LEFT SIDEBAR — REPORT LIBRARY
+       ═══════════════════════════════════════════════════════════════════════ -->
+  <aside class="reports-sidebar" id="reports-sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-title">Report Library</div>
+      <input type="text" class="sidebar-search" id="report-search" placeholder="Search reports...">
+      <div class="sidebar-filters">
+        <select class="sidebar-filter" id="filter-type">
+          <option value="">All Types</option>
+          <option value="internal">Internal</option>
+          <option value="client">Client</option>
+          <option value="campaign">Campaign</option>
+          <option value="insight">Insight</option>
+        </select>
+        <select class="sidebar-filter" id="filter-date">
+          <option value="">All Time</option>
+          <option value="7d">Last 7 days</option>
+          <option value="30d">Last 30 days</option>
+        </select>
+      </div>
+    </div>
+    
+    <div class="report-list" id="report-list">
+      <div class="report-list-empty">Loading reports...</div>
+    </div>
+    
+    <button class="sidebar-new-btn" id="new-report-btn">+ New Report</button>
+  </aside>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       2. CENTER — REPORT EDITOR
+       ═══════════════════════════════════════════════════════════════════════ -->
+  <main class="reports-editor">
+    <!-- Mobile toggle bar -->
+    <div class="mobile-toggle-bar">
+      <button class="mobile-toggle-btn" id="toggle-sidebar">Library</button>
+      <button class="mobile-toggle-btn active">Editor</button>
+      <button class="mobile-toggle-btn" id="toggle-ai">AI Assistant</button>
+    </div>
+    
+    <header class="editor-header">
+      <div class="editor-header-left">
+        <div class="editor-status" id="editor-status">
+          <span class="status-dot saved"></span>
+          <span>Saved</span>
+        </div>
+        <div class="narrative-indicator" id="data-source-indicator">
+          Narrative-only report
+        </div>
+      </div>
+      <div class="editor-actions">
+        <button class="editor-btn" id="mark-final-btn" title="Mark as Final">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
+            <polyline points="22,4 12,14.01 9,11.01"/>
+          </svg>
+          Final
+        </button>
+        <button class="editor-btn" id="export-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+            <polyline points="7,10 12,15 17,10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Export
+        </button>
+        <button class="editor-btn btn-primary" id="save-report-btn">
+          Save Report
+        </button>
+      </div>
+    </header>
+    
+    <div class="editor-body">
+      <!-- Report Metadata -->
+      <div class="report-metadata">
+        <div class="metadata-row">
+          <div class="metadata-field full-width">
+            <label class="metadata-label">Report Title</label>
+            <input type="text" class="metadata-input title-input" id="report-title" placeholder="Enter report title...">
+          </div>
+        </div>
+        <div class="metadata-row">
+          <div class="metadata-field">
+            <label class="metadata-label">Report Type</label>
+            <select class="metadata-input" id="report-type">
+              <option value="internal">Internal</option>
+              <option value="client">Client</option>
+              <option value="campaign">Campaign</option>
+              <option value="insight">Insight</option>
+            </select>
+          </div>
+          <div class="metadata-field">
+            <label class="metadata-label">Time Period</label>
+            <input type="text" class="metadata-input" id="report-period" placeholder="e.g., Q1 2024">
+          </div>
+          <div class="metadata-field">
+            <label class="metadata-label">Tags</label>
+            <input type="text" class="metadata-input" id="report-tags" placeholder="marketing, performance">
+          </div>
+        </div>
+      </div>
+      
+      <!-- Report Sections -->
+      <div class="report-sections" id="report-sections">
+        <!-- Executive Summary -->
+        <div class="report-section" data-section="executive-summary">
+          <div class="section-header">
+            <div class="section-header-left">
+              <span class="section-drag-handle">⋮⋮</span>
+              <span class="section-title">Executive Summary</span>
+            </div>
+            <div class="section-header-actions">
+              <button class="section-ai-btn" data-action="summarize" title="AI Summarize">AI</button>
+              <button class="section-toggle">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="6,9 12,15 18,9"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div class="section-body">
+            <textarea class="section-textarea" id="section-executive-summary" placeholder="High-level summary of key findings and recommendations..."></textarea>
+          </div>
+        </div>
+        
+        <!-- Key Metrics -->
+        <div class="report-section" data-section="key-metrics">
+          <div class="section-header">
+            <div class="section-header-left">
+              <span class="section-drag-handle">⋮⋮</span>
+              <span class="section-title">Key Metrics</span>
+            </div>
+            <div class="section-header-actions">
+              <button class="section-ai-btn" data-action="extract" title="AI Extract">AI</button>
+              <button class="section-toggle">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="6,9 12,15 18,9"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div class="section-body">
+            <textarea class="section-textarea" id="section-key-metrics" placeholder="Important numbers and KPIs from this period..."></textarea>
+          </div>
+        </div>
+        
+        <!-- Insights -->
+        <div class="report-section" data-section="insights">
+          <div class="section-header">
+            <div class="section-header-left">
+              <span class="section-drag-handle">⋮⋮</span>
+              <span class="section-title">Insights</span>
+            </div>
+            <div class="section-header-actions">
+              <button class="section-ai-btn" data-action="insights" title="AI Insights">AI</button>
+              <button class="section-toggle">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="6,9 12,15 18,9"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div class="section-body">
+            <textarea class="section-textarea" id="section-insights" placeholder="Key observations and analysis..."></textarea>
+          </div>
+        </div>
+        
+        <!-- Recommendations -->
+        <div class="report-section" data-section="recommendations">
+          <div class="section-header">
+            <div class="section-header-left">
+              <span class="section-drag-handle">⋮⋮</span>
+              <span class="section-title">Recommendations</span>
+            </div>
+            <div class="section-header-actions">
+              <button class="section-ai-btn" data-action="recommend" title="AI Recommend">AI</button>
+              <button class="section-toggle">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="6,9 12,15 18,9"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div class="section-body">
+            <textarea class="section-textarea" id="section-recommendations" placeholder="Suggested actions and next steps..."></textarea>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Add Section Button -->
+      <button class="add-section-btn" id="add-section-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="12" y1="5" x2="12" y2="19"/>
+          <line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        Add Section
+      </button>
+    </div>
+  </main>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       3. RIGHT PANEL — AI ASSISTANT
+       ═══════════════════════════════════════════════════════════════════════ -->
+  <aside class="reports-ai-panel" id="reports-ai-panel">
+    <div class="ai-panel-header">
+      <div class="ai-panel-title">
+        <span>AI Assistant</span>
+        <span class="ai-badge">AI</span>
+      </div>
+    </div>
+    
+    <div class="ai-panel-body">
+      <!-- Report-Level Actions -->
+      <div class="ai-action-group">
+        <div class="ai-action-group-title">Report Actions</div>
+        <div class="ai-action-list">
+          <button class="ai-action-btn" id="ai-generate-summary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+              <polyline points="14,2 14,8 20,8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/>
+              <line x1="16" y1="17" x2="8" y2="17"/>
+            </svg>
+            Generate Executive Summary
+          </button>
+          <button class="ai-action-btn" id="ai-identify-risks">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+              <line x1="12" y1="9" x2="12" y2="13"/>
+              <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+            Identify Opportunities & Risks
+          </button>
+          <button class="ai-action-btn" id="ai-suggest-actions">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="9,11 12,14 22,4"/>
+              <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+            </svg>
+            Suggest Next Actions
+          </button>
+          <button class="ai-action-btn" id="ai-highlight-changes">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12,6 12,12 16,14"/>
+            </svg>
+            What Changed Since Last Report
+          </button>
+        </div>
+      </div>
+      
+      <!-- Rewrite Actions -->
+      <div class="ai-action-group">
+        <div class="ai-action-group-title">Rewrite For Audience</div>
+        <div class="rewrite-audience-select" id="rewrite-audience-select">
+          <button class="audience-chip" data-audience="executive">Executive</button>
+          <button class="audience-chip" data-audience="client">Client</button>
+          <button class="audience-chip" data-audience="internal">Internal Team</button>
+          <button class="audience-chip" data-audience="nontechnical">Non-technical</button>
+        </div>
+      </div>
+      
+      <!-- Quick Actions -->
+      <div class="ai-action-group">
+        <div class="ai-action-group-title">Quick Actions</div>
+        <div class="ai-action-list">
+          <button class="ai-action-btn" id="ai-improve-clarity">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"/>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              <line x1="11" y1="8" x2="11" y2="14"/>
+              <line x1="8" y1="11" x2="14" y2="11"/>
+            </svg>
+            Improve Clarity
+          </button>
+          <button class="ai-action-btn" id="ai-make-concise">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="4,14 10,14 10,20"/>
+              <polyline points="20,10 14,10 14,4"/>
+              <line x1="14" y1="10" x2="21" y2="3"/>
+              <line x1="3" y1="21" x2="10" y2="14"/>
+            </svg>
+            Make More Concise
+          </button>
+          <button class="ai-action-btn" id="ai-make-persuasive">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="13,2 3,14 12,14 11,22 21,10 12,10 13,2"/>
+            </svg>
+            Make More Persuasive
+          </button>
+        </div>
+      </div>
+      
+      <!-- AI Output Area -->
+      <div class="ai-output-area" id="ai-output-area" style="display: none;">
+        <div class="ai-output-header">
+          <span class="ai-output-title" id="ai-output-title">AI Output</span>
+          <div class="ai-output-actions">
+            <button class="ai-output-btn apply" id="ai-apply-btn">Apply</button>
+            <button class="ai-output-btn" id="ai-dismiss-btn">Dismiss</button>
+          </div>
+        </div>
+        <div class="ai-output-content" id="ai-output-content"></div>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<!-- Export Modal -->
+<div class="export-modal" id="export-modal">
+  <div class="export-modal-content">
+    <div class="export-modal-header">
+      <span class="export-modal-title">Export Report</span>
+      <button class="export-modal-close" id="export-close">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+    <div class="export-modal-body">
+      <div class="export-option" data-format="csv">
+        <div class="export-option-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+            <polyline points="14,2 14,8 20,8"/>
+          </svg>
+        </div>
+        <div class="export-option-text">
+          <div class="export-option-title">CSV</div>
+          <div class="export-option-desc">Spreadsheet-compatible format</div>
+        </div>
+      </div>
+      <div class="export-option" data-format="json">
+        <div class="export-option-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="16,18 22,12 16,6"/>
+            <polyline points="8,6 2,12 8,18"/>
+          </svg>
+        </div>
+        <div class="export-option-text">
+          <div class="export-option-title">JSON</div>
+          <div class="export-option-desc">Structured data format</div>
+        </div>
+      </div>
+      <div class="export-option" data-format="txt">
+        <div class="export-option-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+            <line x1="10" y1="9" x2="8" y2="9"/>
+          </svg>
+        </div>
+        <div class="export-option-text">
+          <div class="export-option-title">Text</div>
+          <div class="export-option-desc">Plain text document</div>
+        </div>
+      </div>
+      <div class="export-option" data-format="html">
+        <div class="export-option-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="12,2 2,7 12,12 22,7 12,2"/>
+            <polyline points="2,17 12,22 22,17"/>
+            <polyline points="2,12 12,17 22,12"/>
+          </svg>
+        </div>
+        <div class="export-option-text">
+          <div class="export-option-title">HTML</div>
+          <div class="export-option-desc">Web-ready format with styling</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add Section Modal -->
+<div class="section-modal" id="section-modal">
+  <div class="section-modal-content">
+    <div class="section-modal-header">
+      <span class="export-modal-title">Add Section</span>
+      <button class="export-modal-close" id="section-modal-close">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+    <div class="section-modal-body">
+      <div class="section-type-grid">
+        <button class="section-type-btn" data-section="trends">
+          <div class="section-type-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="23,6 13.5,15.5 8.5,10.5 1,18"/>
+            </svg>
+          </div>
+          <span class="section-type-name">Trends & Patterns</span>
+        </button>
+        <button class="section-type-btn" data-section="notes">
+          <div class="section-type-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+              <polyline points="14,2 14,8 20,8"/>
+            </svg>
+          </div>
+          <span class="section-type-name">Notes / Observations</span>
+        </button>
+        <button class="section-type-btn" data-section="next-actions">
+          <div class="section-type-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="9,11 12,14 22,4"/>
+              <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+            </svg>
+          </div>
+          <span class="section-type-name">Next Actions</span>
+        </button>
+        <button class="section-type-btn" data-section="custom">
+          <div class="section-type-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"/>
+              <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+          </div>
+          <span class="section-type-name">Custom Section</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
 {% block scripts %}
 <script>
 (function() {
+  'use strict';
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // STATE
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  var currentReportId = null;
+  var reports = [];
+  var hasUnsavedChanges = false;
+  var autosaveTimer = null;
   var lastAIOutput = null;
-  var lastAIType = null;
+  var lastAITargetSection = null;
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // UTILITIES
+  // ═══════════════════════════════════════════════════════════════════════════
   
   function escapeHtml(str) {
     var div = document.createElement('div');
-    div.textContent = str;
+    div.textContent = str || '';
     return div.innerHTML;
   }
   
-  function showAIOutput(title, content, showApply) {
-    var panel = document.getElementById('ai-output-panel');
-    var titleEl = document.getElementById('ai-output-title');
-    var contentEl = document.getElementById('ai-output-content');
-    var applyBtn = document.getElementById('ai-apply-btn');
+  function apiRequest(path, method, body) {
+    var options = {
+      method: method || 'GET',
+      credentials: 'same-origin',
+      headers: {}
+    };
+    if (body) {
+      options.headers['Content-Type'] = 'application/json';
+      options.body = JSON.stringify(body);
+    }
+    return fetch(path, options).then(function(r) {
+      return r.json().then(function(d) {
+        if (!r.ok) throw new Error(d.error || 'Request failed');
+        return d;
+      });
+    });
+  }
+  
+  function showToast(msg, type) {
+    if (typeof Aevel !== 'undefined' && Aevel.toast) {
+      Aevel.toast(msg, type);
+    }
+  }
+  
+  function setStatus(status) {
+    var statusEl = document.getElementById('editor-status');
+    var dot = statusEl.querySelector('.status-dot');
+    var text = statusEl.querySelector('span:last-child');
     
-    titleEl.textContent = title;
-    contentEl.innerHTML = escapeHtml(content).replace(/\n/g, '<br>');
-    if (applyBtn) applyBtn.style.display = showApply ? 'inline-flex' : 'none';
-    panel.style.display = 'block';
-    lastAIOutput = content;
+    dot.className = 'status-dot ' + status;
+    text.textContent = status === 'saved' ? 'Saved' : (status === 'saving' ? 'Saving...' : 'Unsaved');
   }
   
-  function hideAIOutput() {
-    document.getElementById('ai-output-panel').style.display = 'none';
-    lastAIOutput = null;
+  // ═══════════════════════════════════════════════════════════════════════════
+  // REPORT LIBRARY (LEFT SIDEBAR)
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  function loadReports() {
+    var listEl = document.getElementById('report-list');
+    listEl.innerHTML = '<div class="report-list-empty">Loading reports...</div>';
+    
+    apiRequest('/api/reports', 'GET')
+      .then(function(data) {
+        reports = data.reports || [];
+        renderReportList();
+      })
+      .catch(function(err) {
+        listEl.innerHTML = '<div class="report-list-empty">Failed to load reports</div>';
+        showToast('Failed to load reports', 'error');
+      });
   }
   
-  function getReportContent() {
+  function renderReportList() {
+    var listEl = document.getElementById('report-list');
+    var searchTerm = document.getElementById('report-search').value.toLowerCase();
+    var typeFilter = document.getElementById('filter-type').value;
+    var dateFilter = document.getElementById('filter-date').value;
+    
+    var filtered = reports.filter(function(r) {
+      if (searchTerm && (r.title || '').toLowerCase().indexOf(searchTerm) === -1) return false;
+      if (typeFilter && r.report_type !== typeFilter) return false;
+      if (dateFilter) {
+        var reportDate = new Date(r.updated_at || r.created_at);
+        var now = new Date();
+        var diff = (now - reportDate) / (1000 * 60 * 60 * 24);
+        if (dateFilter === '7d' && diff > 7) return false;
+        if (dateFilter === '30d' && diff > 30) return false;
+      }
+      return true;
+    });
+    
+    if (filtered.length === 0) {
+      listEl.innerHTML = '<div class="report-list-empty">No reports found</div>';
+      return;
+    }
+    
+    listEl.innerHTML = filtered.map(function(r) {
+      var updated = r.updated_at ? new Date(r.updated_at).toLocaleDateString() : 'Never';
+      var typeClass = r.report_type || 'internal';
+      var isActive = r.id === currentReportId ? ' active' : '';
+      
+      return '<div class="report-list-item' + isActive + '" data-id="' + r.id + '">' +
+        '<div class="report-list-item-title">' + escapeHtml(r.title || 'Untitled') + '</div>' +
+        '<div class="report-list-item-meta">' +
+        '<span class="report-type-badge ' + typeClass + '">' + typeClass + '</span>' +
+        '<span>' + updated + '</span>' +
+        '</div>' +
+        '</div>';
+    }).join('');
+    
+    // Bind click handlers
+    listEl.querySelectorAll('.report-list-item').forEach(function(item) {
+      item.addEventListener('click', function() {
+        var id = item.getAttribute('data-id');
+        loadReport(id);
+      });
+    });
+  }
+  
+  // Search and filter handlers
+  document.getElementById('report-search').addEventListener('input', renderReportList);
+  document.getElementById('filter-type').addEventListener('change', renderReportList);
+  document.getElementById('filter-date').addEventListener('change', renderReportList);
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // REPORT EDITOR
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  function getReportData() {
+    var sections = {};
+    document.querySelectorAll('.report-section').forEach(function(sec) {
+      var sectionId = sec.getAttribute('data-section');
+      var textarea = sec.querySelector('.section-textarea');
+      if (textarea) {
+        sections[sectionId] = textarea.value || '';
+      }
+    });
+    
     return {
-      title: document.getElementById('note-title').value.trim(),
-      body: document.getElementById('note-body').value.trim()
+      title: document.getElementById('report-title').value.trim(),
+      report_type: document.getElementById('report-type').value,
+      body: JSON.stringify({
+        period: document.getElementById('report-period').value,
+        tags: document.getElementById('report-tags').value,
+        sections: sections
+      })
     };
   }
   
-  // AI Summarize
-  document.getElementById('ai-summarize-btn').addEventListener('click', function() {
-    var btn = this;
-    var content = getReportContent();
-    if (!content.body) {
-      if (typeof Aevel !== 'undefined' && Aevel.toast) Aevel.toast('Add content first', 'error');
+  function setReportData(report) {
+    document.getElementById('report-title').value = report.title || '';
+    document.getElementById('report-type').value = report.report_type || 'internal';
+    
+    var body = {};
+    try {
+      body = JSON.parse(report.body || '{}');
+    } catch (e) {
+      // Legacy format - body is plain text
+      body = { sections: { 'executive-summary': report.body || '' } };
+    }
+    
+    document.getElementById('report-period').value = body.period || '';
+    document.getElementById('report-tags').value = body.tags || '';
+    
+    var sections = body.sections || {};
+    Object.keys(sections).forEach(function(sectionId) {
+      var textarea = document.getElementById('section-' + sectionId);
+      if (textarea) {
+        textarea.value = sections[sectionId] || '';
+      }
+    });
+  }
+  
+  function clearEditor() {
+    currentReportId = null;
+    document.getElementById('report-title').value = '';
+    document.getElementById('report-type').value = 'internal';
+    document.getElementById('report-period').value = '';
+    document.getElementById('report-tags').value = '';
+    
+    document.querySelectorAll('.section-textarea').forEach(function(ta) {
+      ta.value = '';
+    });
+    
+    setStatus('saved');
+    hasUnsavedChanges = false;
+    renderReportList();
+  }
+  
+  function loadReport(id) {
+    if (hasUnsavedChanges && !confirm('You have unsaved changes. Discard?')) {
       return;
     }
-    btn.disabled = true;
-    btn.innerHTML = '<span class="ai-badge-inline">AI</span> Analyzing...';
     
-    fetch('/api/ai/reports/summarize', {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(content)
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      if (data.error) throw new Error(data.error);
-      showAIOutput('Summary', data.summary || 'No summary generated.', false);
-      lastAIType = 'summary';
-    })
-    .catch(function(err) {
-      if (typeof Aevel !== 'undefined' && Aevel.toast) Aevel.toast(err.message || 'Failed', 'error');
-    })
-    .finally(function() {
-      btn.disabled = false;
-      btn.innerHTML = '<span class="ai-badge-inline">AI</span> Summarize';
-    });
-  });
-  
-  // AI Takeaways
-  document.getElementById('ai-takeaways-btn').addEventListener('click', function() {
-    var btn = this;
-    var content = getReportContent();
-    if (!content.body) {
-      if (typeof Aevel !== 'undefined' && Aevel.toast) Aevel.toast('Add content first', 'error');
-      return;
-    }
-    btn.disabled = true;
-    btn.innerHTML = '<span class="ai-badge-inline">AI</span> Analyzing...';
-    
-    fetch('/api/ai/reports/takeaways', {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(content)
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      if (data.error) throw new Error(data.error);
-      var takeaways = data.takeaways || [];
-      var actions = data.action_items || [];
-      var output = 'Key Takeaways:\n';
-      output += takeaways.length ? takeaways.map(function(t) { return '• ' + t; }).join('\n') : '• None identified';
-      if (actions.length) {
-        output += '\n\nAction Items:\n';
-        output += actions.map(function(a) { return '• ' + a; }).join('\n');
-      }
-      showAIOutput('Takeaways & Actions', output, false);
-      lastAIType = 'takeaways';
-    })
-    .catch(function(err) {
-      if (typeof Aevel !== 'undefined' && Aevel.toast) Aevel.toast(err.message || 'Failed', 'error');
-    })
-    .finally(function() {
-      btn.disabled = false;
-      btn.innerHTML = '<span class="ai-badge-inline">AI</span> Extract takeaways';
-    });
-  });
-  
-  // AI Rewrite dropdown
-  var rewriteBtn = document.getElementById('ai-rewrite-btn');
-  var rewriteMenu = document.getElementById('ai-rewrite-menu');
-  
-  rewriteBtn.addEventListener('click', function(e) {
-    e.stopPropagation();
-    rewriteMenu.style.display = rewriteMenu.style.display === 'none' ? 'block' : 'none';
-  });
-  
-  document.addEventListener('click', function() {
-    rewriteMenu.style.display = 'none';
-  });
-  
-  rewriteMenu.querySelectorAll('button').forEach(function(btn) {
-    btn.addEventListener('click', function(e) {
-      e.stopPropagation();
-      var audience = btn.getAttribute('data-audience');
-      var content = getReportContent();
-      if (!content.body) {
-        if (typeof Aevel !== 'undefined' && Aevel.toast) Aevel.toast('Add content first', 'error');
-        rewriteMenu.style.display = 'none';
-        return;
-      }
-      rewriteBtn.disabled = true;
-      rewriteBtn.innerHTML = '<span class="ai-badge-inline">AI</span> Rewriting...';
-      rewriteMenu.style.display = 'none';
-      
-      fetch('/api/ai/reports/rewrite', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: content.title, body: content.body, audience: audience })
-      })
-      .then(function(r) { return r.json(); })
+    apiRequest('/api/reports/' + id, 'GET')
       .then(function(data) {
-        if (data.error) throw new Error(data.error);
-        showAIOutput('Rewritten for ' + audience + ' audience', data.rewritten || 'No rewrite generated.', true);
-        lastAIType = 'rewrite';
+        currentReportId = id;
+        setReportData(data);
+        setStatus('saved');
+        hasUnsavedChanges = false;
+        renderReportList();
       })
       .catch(function(err) {
-        if (typeof Aevel !== 'undefined' && Aevel.toast) Aevel.toast(err.message || 'Failed', 'error');
-      })
-      .finally(function() {
-        rewriteBtn.disabled = false;
-        rewriteBtn.innerHTML = '<span class="ai-badge-inline">AI</span> Rewrite for...';
-      });
-    });
-  });
-  
-  // Apply AI output to content
-  document.getElementById('ai-apply-btn').addEventListener('click', function() {
-    if (lastAIOutput && lastAIType === 'rewrite') {
-      document.getElementById('note-body').value = lastAIOutput;
-      hideAIOutput();
-      if (typeof Aevel !== 'undefined' && Aevel.toast) Aevel.toast('Content updated', 'success');
-    }
-  });
-  
-  // Dismiss AI output
-  document.getElementById('ai-dismiss-btn').addEventListener('click', hideAIOutput);
-  
-  // Load reports - uses dedicated /api/reports endpoint
-  function load() {
-    fetch('/api/reports', { credentials: 'same-origin' })
-      .then(function(r) { return r.json().then(function(d) { if (!r.ok) throw new Error(d.error || 'Request failed'); return d; }); })
-      .then(function(d) {
-        var reports = d.reports || [];
-        var tbody = document.getElementById('notes-tbody');
-        if (reports.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="3"><div class="empty-state"><p class="empty-state__title">No reports yet</p><p>Create your first report above.</p></div></td></tr>';
-        } else {
-          tbody.innerHTML = reports.map(function(r) {
-            var updated = r.updated_at ? new Date(r.updated_at).toLocaleDateString() : '—';
-            return '<tr data-id="' + r.id + '"><td class="cell-primary">' + escapeHtml(r.title || '') + '</td><td>' + updated + '</td><td><button class="btn btn-ghost btn-small delete-report-btn" data-id="' + r.id + '">Delete</button></td></tr>';
-          }).join('');
-          // Bind delete buttons
-          tbody.querySelectorAll('.delete-report-btn').forEach(function(btn) {
-            btn.addEventListener('click', function() {
-              var id = btn.getAttribute('data-id');
-              if (!confirm('Delete this report?')) return;
-              fetch('/api/reports/' + id, { method: 'DELETE', credentials: 'same-origin' })
-                .then(function(r) { return r.json().then(function(d) { if (!r.ok) throw new Error(d.error || 'Failed'); return d; }); })
-                .then(function() {
-                  load();
-                  if (typeof Aevel !== 'undefined' && Aevel.toast) Aevel.toast('Report deleted', 'success');
-                })
-                .catch(function(err) {
-                  if (typeof Aevel !== 'undefined' && Aevel.toast) Aevel.toast(err.message || 'Failed to delete', 'error');
-                });
-            });
-          });
-        }
-      })
-      .catch(function(err) {
-        var tbody = document.getElementById('notes-tbody');
-        if (tbody) tbody.innerHTML = '<tr><td colspan="3"><div class="empty-state"><p class="empty-state__title">Failed to load</p><p>' + escapeHtml(err.message || '') + '</p></div></td></tr>';
-        if (typeof Aevel !== 'undefined' && Aevel.toast) Aevel.toast('Failed to load reports', 'error');
+        showToast('Failed to load report', 'error');
       });
   }
   
-  // Save report - uses dedicated /api/reports endpoint
-  document.getElementById('note-form').addEventListener('submit', function(e) {
-    e.preventDefault();
-    var title = document.getElementById('note-title').value.trim();
-    var body = document.getElementById('note-body').value || '';
-    if (!title) {
-      if (typeof Aevel !== 'undefined' && Aevel.toast) Aevel.toast('Title is required', 'error');
+  function saveReport() {
+    var data = getReportData();
+    
+    if (!data.title) {
+      showToast('Title is required', 'error');
       return;
     }
     
-    var submitBtn = e.target.querySelector('button[type="submit"]');
-    if (submitBtn) submitBtn.disabled = true;
+    setStatus('saving');
     
-    fetch('/api/reports', { 
-      method: 'POST', 
-      credentials: 'same-origin', 
-      headers: { 'Content-Type': 'application/json' }, 
-      body: JSON.stringify({ title: title, body: body, report_type: 'manual' }) 
-    })
-      .then(function(r) { return r.json().then(function(d) { if (!r.ok) throw new Error(d.error || 'Request failed'); return d; }); })
-      .then(function() {
-        document.getElementById('note-title').value = '';
-        document.getElementById('note-body').value = '';
-        hideAIOutput();
-        load();
-        if (typeof Aevel !== 'undefined' && Aevel.toast) Aevel.toast('Report saved', 'success');
+    var promise;
+    if (currentReportId) {
+      promise = apiRequest('/api/reports/' + currentReportId, 'PATCH', data);
+    } else {
+      promise = apiRequest('/api/reports', 'POST', data);
+    }
+    
+    promise
+      .then(function(result) {
+        if (!currentReportId && result.id) {
+          currentReportId = result.id;
+        }
+        setStatus('saved');
+        hasUnsavedChanges = false;
+        loadReports();
+        showToast('Report saved', 'success');
       })
       .catch(function(err) {
-        if (typeof Aevel !== 'undefined' && Aevel.toast) Aevel.toast(err.message || 'Failed to save report', 'error');
-      })
-      .finally(function() {
-        if (submitBtn) submitBtn.disabled = false;
+        setStatus('unsaved');
+        showToast(err.message || 'Failed to save', 'error');
       });
+  }
+  
+  // Track changes for autosave
+  function markUnsaved() {
+    if (!hasUnsavedChanges) {
+      hasUnsavedChanges = true;
+      setStatus('unsaved');
+    }
+    
+    // Autosave after 3 seconds of inactivity
+    clearTimeout(autosaveTimer);
+    autosaveTimer = setTimeout(function() {
+      if (hasUnsavedChanges && document.getElementById('report-title').value.trim()) {
+        saveReport();
+      }
+    }, 3000);
+  }
+  
+  // Bind change handlers
+  document.getElementById('report-title').addEventListener('input', markUnsaved);
+  document.getElementById('report-type').addEventListener('change', markUnsaved);
+  document.getElementById('report-period').addEventListener('input', markUnsaved);
+  document.getElementById('report-tags').addEventListener('input', markUnsaved);
+  document.querySelectorAll('.section-textarea').forEach(function(ta) {
+    ta.addEventListener('input', markUnsaved);
   });
   
-  load();
+  // Save button
+  document.getElementById('save-report-btn').addEventListener('click', saveReport);
+  
+  // New report button
+  document.getElementById('new-report-btn').addEventListener('click', function() {
+    if (hasUnsavedChanges && !confirm('You have unsaved changes. Discard?')) {
+      return;
+    }
+    clearEditor();
+    document.getElementById('report-title').focus();
+  });
+  
+  // Section toggle
+  document.querySelectorAll('.section-header').forEach(function(header) {
+    header.addEventListener('click', function(e) {
+      if (e.target.closest('.section-ai-btn')) return;
+      var section = header.closest('.report-section');
+      section.classList.toggle('collapsed');
+    });
+  });
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // AI ASSISTANT
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  function showAIOutput(title, content, targetSection) {
+    var area = document.getElementById('ai-output-area');
+    var titleEl = document.getElementById('ai-output-title');
+    var contentEl = document.getElementById('ai-output-content');
+    
+    titleEl.textContent = title;
+    contentEl.innerHTML = escapeHtml(content).replace(/\n/g, '<br>');
+    area.style.display = 'block';
+    
+    lastAIOutput = content;
+    lastAITargetSection = targetSection;
+    
+    // Show/hide apply button based on target
+    var applyBtn = document.getElementById('ai-apply-btn');
+    applyBtn.style.display = targetSection ? 'inline-flex' : 'none';
+  }
+  
+  function hideAIOutput() {
+    document.getElementById('ai-output-area').style.display = 'none';
+    lastAIOutput = null;
+    lastAITargetSection = null;
+  }
+  
+  function getFullReportContent() {
+    var data = getReportData();
+    var body = {};
+    try { body = JSON.parse(data.body); } catch(e) {}
+    
+    var content = data.title + '\n\n';
+    var sections = body.sections || {};
+    Object.keys(sections).forEach(function(key) {
+      if (sections[key]) {
+        content += key.replace(/-/g, ' ').toUpperCase() + ':\n' + sections[key] + '\n\n';
+      }
+    });
+    return content;
+  }
+  
+  function callAI(endpoint, payload, title, targetSection) {
+    var btn = event.target;
+    var originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span style="opacity:0.5">Processing...</span>';
+    
+    apiRequest(endpoint, 'POST', payload)
+      .then(function(data) {
+        var output = data.summary || data.rewritten || 
+                    (data.takeaways || []).join('\n') || 
+                    (data.suggestions || []).join('\n') ||
+                    JSON.stringify(data);
+        showAIOutput(title, output, targetSection);
+      })
+      .catch(function(err) {
+        showToast(err.message || 'AI request failed', 'error');
+      })
+      .finally(function() {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+      });
+  }
+  
+  // Report-level AI actions
+  document.getElementById('ai-generate-summary').addEventListener('click', function(e) {
+    var content = getFullReportContent();
+    if (!content.trim()) {
+      showToast('Add content first', 'error');
+      return;
+    }
+    callAI('/api/ai/reports/summarize', { title: '', body: content }, 'Executive Summary', 'executive-summary');
+  });
+  
+  document.getElementById('ai-identify-risks').addEventListener('click', function(e) {
+    var content = getFullReportContent();
+    if (!content.trim()) {
+      showToast('Add content first', 'error');
+      return;
+    }
+    callAI('/api/ai/reports/takeaways', { title: 'Risk Analysis', body: content }, 'Opportunities & Risks', null);
+  });
+  
+  document.getElementById('ai-suggest-actions').addEventListener('click', function(e) {
+    var content = getFullReportContent();
+    if (!content.trim()) {
+      showToast('Add content first', 'error');
+      return;
+    }
+    callAI('/api/ai/reports/takeaways', { title: 'Action Items', body: content }, 'Suggested Actions', 'recommendations');
+  });
+  
+  document.getElementById('ai-highlight-changes').addEventListener('click', function(e) {
+    var content = getFullReportContent();
+    callAI('/api/ai/reports/summarize', { title: 'Changes', body: 'Summarize what changed in this report: ' + content }, 'What Changed', null);
+  });
+  
+  // Quick actions
+  document.getElementById('ai-improve-clarity').addEventListener('click', function(e) {
+    var content = getFullReportContent();
+    if (!content.trim()) {
+      showToast('Add content first', 'error');
+      return;
+    }
+    callAI('/api/ai/reports/rewrite', { title: '', body: content, audience: 'clarity' }, 'Improved Clarity', null);
+  });
+  
+  document.getElementById('ai-make-concise').addEventListener('click', function(e) {
+    var content = getFullReportContent();
+    if (!content.trim()) {
+      showToast('Add content first', 'error');
+      return;
+    }
+    callAI('/api/ai/reports/rewrite', { title: '', body: content, audience: 'concise' }, 'More Concise', null);
+  });
+  
+  document.getElementById('ai-make-persuasive').addEventListener('click', function(e) {
+    var content = getFullReportContent();
+    if (!content.trim()) {
+      showToast('Add content first', 'error');
+      return;
+    }
+    callAI('/api/ai/reports/rewrite', { title: '', body: content, audience: 'persuasive' }, 'More Persuasive', null);
+  });
+  
+  // Audience rewrite chips
+  document.querySelectorAll('.audience-chip').forEach(function(chip) {
+    chip.addEventListener('click', function() {
+      var audience = chip.getAttribute('data-audience');
+      var content = getFullReportContent();
+      if (!content.trim()) {
+        showToast('Add content first', 'error');
+        return;
+      }
+      
+      // Toggle selected state
+      document.querySelectorAll('.audience-chip').forEach(function(c) {
+        c.classList.remove('selected');
+      });
+      chip.classList.add('selected');
+      
+      callAI('/api/ai/reports/rewrite', { title: '', body: content, audience: audience }, 'Rewritten for ' + audience, null);
+    });
+  });
+  
+  // Section-level AI buttons
+  document.querySelectorAll('.section-ai-btn').forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var section = btn.closest('.report-section');
+      var sectionId = section.getAttribute('data-section');
+      var textarea = section.querySelector('.section-textarea');
+      var content = textarea.value.trim();
+      
+      if (!content) {
+        // If section is empty, use full report context
+        content = getFullReportContent();
+      }
+      
+      callAI('/api/ai/reports/summarize', { title: sectionId, body: content }, 'AI Suggestion', sectionId);
+    });
+  });
+  
+  // Apply AI output
+  document.getElementById('ai-apply-btn').addEventListener('click', function() {
+    if (lastAIOutput && lastAITargetSection) {
+      var textarea = document.getElementById('section-' + lastAITargetSection);
+      if (textarea) {
+        textarea.value = lastAIOutput;
+        markUnsaved();
+        showToast('Applied to ' + lastAITargetSection.replace(/-/g, ' '), 'success');
+      }
+    }
+    hideAIOutput();
+  });
+  
+  document.getElementById('ai-dismiss-btn').addEventListener('click', hideAIOutput);
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // EXPORT
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  var exportModal = document.getElementById('export-modal');
+  
+  document.getElementById('export-btn').addEventListener('click', function() {
+    var data = getReportData();
+    if (!data.title) {
+      showToast('Save report first', 'error');
+      return;
+    }
+    exportModal.classList.add('active');
+  });
+  
+  document.getElementById('export-close').addEventListener('click', function() {
+    exportModal.classList.remove('active');
+  });
+  
+  exportModal.addEventListener('click', function(e) {
+    if (e.target === exportModal) {
+      exportModal.classList.remove('active');
+    }
+  });
+  
+  document.querySelectorAll('.export-option').forEach(function(option) {
+    option.addEventListener('click', function() {
+      var format = option.getAttribute('data-format');
+      var data = getReportData();
+      var body = {};
+      try { body = JSON.parse(data.body); } catch(e) {}
+      
+      var content = '';
+      var filename = (data.title || 'report').replace(/[^a-z0-9]/gi, '_') + '.' + format;
+      var mimeType = 'text/plain';
+      
+      if (format === 'csv') {
+        content = 'Section,Content\n';
+        var sections = body.sections || {};
+        Object.keys(sections).forEach(function(key) {
+          content += '"' + key + '","' + (sections[key] || '').replace(/"/g, '""') + '"\n';
+        });
+        mimeType = 'text/csv';
+      } else if (format === 'json') {
+        content = JSON.stringify({
+          title: data.title,
+          type: data.report_type,
+          period: body.period,
+          tags: body.tags,
+          sections: body.sections,
+          exportedAt: new Date().toISOString()
+        }, null, 2);
+        mimeType = 'application/json';
+      } else if (format === 'txt') {
+        content = data.title + '\n' + '='.repeat(data.title.length) + '\n\n';
+        content += 'Type: ' + data.report_type + '\n';
+        if (body.period) content += 'Period: ' + body.period + '\n';
+        if (body.tags) content += 'Tags: ' + body.tags + '\n';
+        content += '\n';
+        var sections = body.sections || {};
+        Object.keys(sections).forEach(function(key) {
+          if (sections[key]) {
+            content += key.replace(/-/g, ' ').toUpperCase() + '\n';
+            content += '-'.repeat(key.length) + '\n';
+            content += sections[key] + '\n\n';
+          }
+        });
+      } else if (format === 'html') {
+        content = '<!DOCTYPE html>\n<html>\n<head>\n';
+        content += '<meta charset="UTF-8">\n';
+        content += '<title>' + escapeHtml(data.title) + '</title>\n';
+        content += '<style>body{font-family:system-ui,-apple-system,sans-serif;max-width:800px;margin:2rem auto;padding:0 1rem;color:#1a1a1a;line-height:1.6}h1{border-bottom:2px solid #a89078}h2{color:#666;margin-top:2rem}pre{background:#f5f5f5;padding:1rem;border-radius:4px;white-space:pre-wrap}.meta{color:#888;font-size:0.9rem}</style>\n';
+        content += '</head>\n<body>\n';
+        content += '<h1>' + escapeHtml(data.title) + '</h1>\n';
+        content += '<p class="meta">Type: ' + escapeHtml(data.report_type) + '</p>\n';
+        if (body.period) content += '<p class="meta">Period: ' + escapeHtml(body.period) + '</p>\n';
+        var sections = body.sections || {};
+        Object.keys(sections).forEach(function(key) {
+          if (sections[key]) {
+            content += '<h2>' + escapeHtml(key.replace(/-/g, ' ')) + '</h2>\n';
+            content += '<pre>' + escapeHtml(sections[key]) + '</pre>\n';
+          }
+        });
+        content += '</body>\n</html>';
+        mimeType = 'text/html';
+      }
+      
+      // Download
+      var blob = new Blob([content], { type: mimeType });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+      
+      exportModal.classList.remove('active');
+      showToast('Exported as ' + format.toUpperCase(), 'success');
+    });
+  });
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ADD SECTION MODAL
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  var sectionModal = document.getElementById('section-modal');
+  
+  document.getElementById('add-section-btn').addEventListener('click', function() {
+    sectionModal.classList.add('active');
+  });
+  
+  document.getElementById('section-modal-close').addEventListener('click', function() {
+    sectionModal.classList.remove('active');
+  });
+  
+  sectionModal.addEventListener('click', function(e) {
+    if (e.target === sectionModal) {
+      sectionModal.classList.remove('active');
+    }
+  });
+  
+  document.querySelectorAll('.section-type-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var sectionType = btn.getAttribute('data-section');
+      var sectionName = sectionType;
+      
+      if (sectionType === 'custom') {
+        sectionName = prompt('Enter section name:');
+        if (!sectionName) return;
+        sectionType = sectionName.toLowerCase().replace(/\s+/g, '-');
+      }
+      
+      var sectionTitles = {
+        'trends': 'Trends & Patterns',
+        'notes': 'Notes / Observations',
+        'next-actions': 'Next Actions'
+      };
+      
+      var title = sectionTitles[sectionType] || sectionName;
+      
+      // Check if section already exists
+      if (document.querySelector('[data-section="' + sectionType + '"]')) {
+        showToast('Section already exists', 'error');
+        sectionModal.classList.remove('active');
+        return;
+      }
+      
+      // Create new section
+      var newSection = document.createElement('div');
+      newSection.className = 'report-section';
+      newSection.setAttribute('data-section', sectionType);
+      newSection.innerHTML = 
+        '<div class="section-header">' +
+        '<div class="section-header-left">' +
+        '<span class="section-drag-handle">⋮⋮</span>' +
+        '<span class="section-title">' + escapeHtml(title) + '</span>' +
+        '</div>' +
+        '<div class="section-header-actions">' +
+        '<button class="section-ai-btn" data-action="summarize" title="AI">AI</button>' +
+        '<button class="section-toggle">' +
+        '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
+        '<polyline points="6,9 12,15 18,9"/>' +
+        '</svg>' +
+        '</button>' +
+        '</div>' +
+        '</div>' +
+        '<div class="section-body">' +
+        '<textarea class="section-textarea" id="section-' + sectionType + '" placeholder="Enter content..."></textarea>' +
+        '</div>';
+      
+      document.getElementById('report-sections').appendChild(newSection);
+      
+      // Bind events
+      newSection.querySelector('.section-header').addEventListener('click', function(e) {
+        if (e.target.closest('.section-ai-btn')) return;
+        newSection.classList.toggle('collapsed');
+      });
+      
+      newSection.querySelector('.section-textarea').addEventListener('input', markUnsaved);
+      
+      newSection.querySelector('.section-ai-btn').addEventListener('click', function(e) {
+        e.stopPropagation();
+        var content = newSection.querySelector('.section-textarea').value.trim() || getFullReportContent();
+        callAI('/api/ai/reports/summarize', { title: sectionType, body: content }, 'AI Suggestion', sectionType);
+      });
+      
+      sectionModal.classList.remove('active');
+      markUnsaved();
+      showToast('Section added', 'success');
+    });
+  });
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // MARK AS FINAL
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  document.getElementById('mark-final-btn').addEventListener('click', function() {
+    if (!currentReportId) {
+      showToast('Save report first', 'error');
+      return;
+    }
+    
+    if (confirm('Mark this report as final? This indicates it is ready for distribution.')) {
+      // Add a "FINAL" tag
+      var tagsInput = document.getElementById('report-tags');
+      var tags = tagsInput.value.split(',').map(function(t) { return t.trim(); }).filter(Boolean);
+      if (tags.indexOf('FINAL') === -1) {
+        tags.push('FINAL');
+        tagsInput.value = tags.join(', ');
+        markUnsaved();
+        saveReport();
+      }
+      showToast('Report marked as final', 'success');
+    }
+  });
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // MOBILE TOGGLES
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  document.getElementById('toggle-sidebar').addEventListener('click', function() {
+    document.getElementById('reports-sidebar').classList.toggle('mobile-visible');
+    document.getElementById('reports-ai-panel').classList.remove('mobile-visible');
+  });
+  
+  document.getElementById('toggle-ai').addEventListener('click', function() {
+    document.getElementById('reports-ai-panel').classList.toggle('mobile-visible');
+    document.getElementById('reports-sidebar').classList.remove('mobile-visible');
+  });
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // KEYBOARD SHORTCUTS
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  document.addEventListener('keydown', function(e) {
+    // Ctrl/Cmd + S to save
+    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+      e.preventDefault();
+      saveReport();
+    }
+    // Ctrl/Cmd + N for new report
+    if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+      e.preventDefault();
+      document.getElementById('new-report-btn').click();
+    }
+  });
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // INITIALIZE
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  loadReports();
+  
+  // Warn before leaving with unsaved changes
+  window.addEventListener('beforeunload', function(e) {
+    if (hasUnsavedChanges) {
+      e.preventDefault();
+      e.returnValue = '';
+    }
+  });
+  
 })();
 </script>
 {% endblock %}
