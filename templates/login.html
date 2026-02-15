@@ -246,6 +246,21 @@
       .public-hero { padding: 0 var(--space-4); margin-top: var(--space-10); }
       .public-section { padding: var(--space-8) var(--space-4); }
     }
+
+    .login-subtitle {
+      font-size: var(--text-xs);
+      color: var(--text-tertiary);
+      margin-top: calc(var(--space-1) * -1);
+      margin-bottom: var(--space-5);
+    }
+
+    #login-submit-btn {
+      background: #1a1a1a !important;
+      color: #ffffff !important;
+    }
+    #login-submit-btn:hover {
+      background: #333333 !important;
+    }
   </style>
 </head>
 <body class="public-site">
@@ -344,6 +359,7 @@
         {% endif %}
       {% endwith %}
       <h2>Team Sign In</h2>
+      <p class="login-subtitle">Powered by Aevel Intelligence</p>
       <form method="POST" action="{{ url_for('login') }}" id="login-form" novalidate>
         <div class="form-group">
           <label for="login-email">Email</label>
@@ -353,7 +369,7 @@
           <label for="login-password">Password</label>
           <input type="password" id="login-password" name="password" class="input" placeholder="Password" required autocomplete="current-password">
         </div>
-        <button type="submit" class="btn btn-primary" style="width:100%;">Sign in</button>
+        <button type="submit" class="btn btn-primary" id="login-submit-btn" style="width:100%;">Login</button>
       </form>
       <p style="margin-top: var(--space-4); font-size: var(--text-sm); color: var(--text-muted); text-align: center;">
         <a href="{{ url_for('forgot_password') }}">Forgot password?</a>
